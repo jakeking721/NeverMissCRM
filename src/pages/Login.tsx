@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import PageShell from "../components/PageShell";
 import { useAuth } from "../context/AuthContext";
-import { getCurrentUser } from "../utils/auth"; // TEMP fallback until we fully remove it
+import { getCurrentUser, refreshCurrentUser } from "../utils/auth"; // TEMP fallback until we fully remove it
 import { supabase } from "@/utils/supabaseClient";
 
 export default function Login() {
@@ -39,7 +39,8 @@ export default function Login() {
       return;
     }
 
-    // Make sure context re-reads (Supabase + cache), then navigate
+    // Ensure the auth cache is updated before navigating
+    await refreshCurrentUser();
     refresh();
     navigate("/dashboard", { replace: true });
   };
