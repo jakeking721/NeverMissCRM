@@ -19,12 +19,13 @@ import {
 } from "@/services/customerService";
 
 import { getFields, addField, CustomField } from "@/services/fieldsService";
+import { toKeySlug } from "@/utils/slug";
 
 type AnyValue = string | number | boolean | null | undefined;
 type Customer = SbcCustomer;
 
 // ---- CSV helpers (no external deps) -----------------------------------------
-function parseCSV(text: string): { headers: string[]; rows: string[][] } {
+function parseCSV(text: string, delimiter = ","): { headers: string[]; rows: string[][] } {
   const lines = text.split(/\r?\n/).filter(Boolean);
   if (lines.length === 0) return { headers: [], rows: [] };
 
@@ -41,7 +42,7 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
         } else {
           inQuotes = !inQuotes;
         }
-      } else if (ch === "," && !inQuotes) {
+      } else if (ch === delimiter && !inQuotes) {
         out.push(cur);
         cur = "";
       } else {
@@ -72,11 +73,15 @@ function toKeySlug(label: string) {
 type CsvPreview = {
   headers: string[];
   rows: string[][];
-  mapped: any[];
+  headerToKey: Record<string, string | null>;
   unmatchedHeaders: string[];
-  addMap: Record<string, boolean>;
-  headerMap: Record<string, string>;
-  errors: string[];
+  addFlags: Record<string, boolean>;
+};
+
+type JsonPreview = {
+  customers: any[];
+  unknownKeys: string[];
+  addFlags: Record<string, boolean>;
 };
 
 export default function Customers() {
@@ -230,13 +235,18 @@ export default function Customers() {
   const [csvModalOpen, setCsvModalOpen] = React.useState(false);
   const csvInputRef = React.useRef<HTMLInputElement | null>(null);
 
+  const [jsonPreview, setJsonPreview] = React.useState<JsonPreview | null>(null);
+  const [jsonModalOpen, setJsonModalOpen] = React.useState(false);
+
   const onImportCsvClick = () => csvInputRef.current?.click();
 
   const onImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const parsed = parseCSV(text);
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const delimiter = ext === "tsv" ? "\t" : ",";
+    const parsed = parseCSV(text, delimiter);
     if (!parsed.headers.length) {
       alert("CSV appears empty.");
       return;
@@ -276,26 +286,20 @@ export default function Customers() {
 
     const unmatchedHeaders = Object.keys(headerMap);
 
-    const errors: string[] = [];
-    const mapped = parsed.rows.map((row, idx) => {
-      const obj: any = { id: uuid(), signupDate: new Date().toISOString() };
-      parsed.headers.forEach((h, i) => {
-        const key = headerToKey[h];
-        if (key) obj[key] = row[i];
-      });
-      if (obj.phone) obj.phone = String(obj.phone).replace(/[^0-9+]/g, "");
-      if (!obj.name) obj.name = `Imported #${idx + 1}`;
-      return obj;
-    });
+    const addFlags = unmatchedHeaders.reduce<Record<string, boolean>>(
+      (acc, h) => {
+        acc[h] = true;
+        return acc;
+      },
+      {}
+    );
 
     setCsvPreview({
       headers: parsed.headers,
       rows: parsed.rows,
-      mapped,
+      headerToKey,
       unmatchedHeaders,
-      addMap,
-      headerMap,
-      errors,
+      addFlags,
     });
     setCsvModalOpen(true);
   };
@@ -303,43 +307,57 @@ export default function Customers() {
   const confirmCsvImport = async () => {
     if (!csvPreview) return;
     try {
-      // Create new fields for opted-in headers
+      const headerToKey = { ...csvPreview.headerToKey };
+      const fieldsToAdd: string[] = [];
+      // Add new custom fields if selected
       for (const h of csvPreview.unmatchedHeaders) {
-        if (csvPreview.addMap[h]) {
-          const key = csvPreview.headerMap[h];
-          const newField: CustomField = {
-            id: uuid(),
-            key,
-            label: h,
-            type: "text",
-            order: customFields.length,
-            visibleOn: { dashboard: true, customers: true, campaigns: true },
-          };
-          try {
-            await addField(newField);
-            setCustomFields((prev) => [...prev, newField]);
-          } catch (e) {
-            console.error("addField failed", e);
-          }
+        if (csvPreview.addFlags[h]) {
+          const key = toKeySlug(h);
+          headerToKey[h] = key;
+          fieldsToAdd.push(h);
         }
       }
 
-      const next = [...customers, ...csvPreview.mapped.map((c) => {
-        const obj = { ...c } as any;
-        for (const h of csvPreview.unmatchedHeaders) {
-          if (!csvPreview.addMap[h]) {
-            delete obj[csvPreview.headerMap[h]];
-          }
+      if (fieldsToAdd.length > 0) {
+        const existing = await getFields();
+        let order = existing.length;
+        for (const h of fieldsToAdd) {
+          const field: CustomField = {
+            id: uuid(),
+            key: toKeySlug(h),
+            label: h,
+            type: "text",
+            order: order++,
+            options: [],
+            required: false,
+            visibleOn: { dashboard: true, customers: true, campaigns: true },
+            archived: false,
+          };
+          await addField(field);
         }
-        return obj as Customer;
-      })];
+        // Reload fields to reflect new ones
+        const newList = await getFields();
+        const all = newList
+          .filter((f) => !f.archived && f.visibleOn.customers)
+          .sort((a, b) => a.order - b.order);
+        setCustomFields(all);
+      }
 
+      const mapped = csvPreview.rows.map((row, idx) => {
+        const obj: any = { id: uuid(), signupDate: new Date().toISOString() };
+        csvPreview.headers.forEach((h, i) => {
+          const key = headerToKey[h];
+          if (key) obj[key] = row[i];
+        });
+        if (obj.phone) obj.phone = String(obj.phone).replace(/[^0-9+]/g, "");
+        if (!obj.name) obj.name = `Imported #${idx + 1}`;
+        return obj;
+      });
+
+      const next = [...customers, ...mapped];
       await replaceCustomers(next);
       await reloadCustomers();
-
-      const success = csvPreview.rows.length - csvPreview.errors.length;
-      const fail = csvPreview.errors.length;
-      alert(`Imported ${success} customers${fail ? `, ${fail} failed.` : "."}`);
+      alert(`Imported ${mapped.length} customers.`);
     } catch (e) {
       console.error(e);
       alert("Import failed.");
@@ -385,14 +403,94 @@ export default function Customers() {
         alert("Invalid file format (missing .customers array).");
         return;
       }
-      await replaceCustomers(json.customers);
-      await reloadCustomers();
-      alert("Import complete.");
+      const knownKeys = [
+        "name",
+        "phone",
+        "location",
+        "signupDate",
+        ...customFields.map((f) => f.key),
+      ];
+      const unknown = new Set<string>();
+      json.customers.forEach((c: any) => {
+        Object.keys(c).forEach((k) => {
+          if (!knownKeys.includes(k)) unknown.add(k);
+        });
+      });
+      const addFlags = Array.from(unknown).reduce<Record<string, boolean>>(
+        (acc, k) => {
+          acc[k] = true;
+          return acc;
+        },
+        {}
+      );
+      setJsonPreview({ customers: json.customers, unknownKeys: Array.from(unknown), addFlags });
+      setJsonModalOpen(true);
     } catch (err) {
       console.error(err);
       alert("Import failed.");
     } finally {
       if (e.target) e.target.value = "";
+    }
+  };
+
+  const confirmJsonImport = async () => {
+    if (!jsonPreview) return;
+    try {
+      const fieldsToAdd: string[] = [];
+      for (const k of jsonPreview.unknownKeys) {
+        if (jsonPreview.addFlags[k]) {
+          fieldsToAdd.push(k);
+        }
+      }
+      const headerToKey: Record<string, string> = {};
+      if (fieldsToAdd.length > 0) {
+        const existing = await getFields();
+        let order = existing.length;
+        for (const h of fieldsToAdd) {
+          const key = toKeySlug(h);
+          headerToKey[h] = key;
+          const field: CustomField = {
+            id: uuid(),
+            key,
+            label: h,
+            type: "text",
+            order: order++,
+            options: [],
+            required: false,
+            visibleOn: { dashboard: true, customers: true, campaigns: true },
+            archived: false,
+          };
+          await addField(field);
+        }
+        const newList = await getFields();
+        const all = newList
+          .filter((f) => !f.archived && f.visibleOn.customers)
+          .sort((a, b) => a.order - b.order);
+        setCustomFields(all);
+      }
+
+      const mapped = jsonPreview.customers.map((row: any, idx: number) => {
+        const obj: any = { id: row.id ?? uuid(), signupDate: row.signupDate ?? new Date().toISOString() };
+        Object.entries(row).forEach(([k, v]) => {
+          if (k === "id" || k === "signupDate") return;
+          let key = k;
+          if (headerToKey[k]) key = headerToKey[k];
+          obj[key] = v;
+        });
+        if (!obj.name) obj.name = `Imported #${idx + 1}`;
+        return obj;
+      });
+
+      const next = [...customers, ...mapped];
+      await replaceCustomers(next);
+      await reloadCustomers();
+      alert(`Imported ${mapped.length} customers.`);
+    } catch (e) {
+      console.error(e);
+      alert("Import failed.");
+    } finally {
+      setJsonModalOpen(false);
+      setJsonPreview(null);
     }
   };
 
@@ -584,25 +682,21 @@ export default function Customers() {
             <h3 className="text-lg font-semibold">CSV Import Preview</h3>
             {csvPreview.unmatchedHeaders.length > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
-                <p>Unknown columns detected. Choose which ones to add as custom fields:</p>
+                <p>Unknown columns detected. Check any you wish to add as custom fields.</p>
                 {csvPreview.unmatchedHeaders.map((h) => (
-                  <label key={h} className="block">
+                  <label key={h} className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="mr-1"
-                      checked={csvPreview.addMap[h]}
+                      checked={csvPreview.addFlags[h]}
                       onChange={(e) =>
                         setCsvPreview((prev) =>
                           prev
-                            ? {
-                                ...prev,
-                                addMap: { ...prev.addMap, [h]: e.target.checked },
-                              }
+                            ? { ...prev, addFlags: { ...prev.addFlags, [h]: e.target.checked } }
                             : prev
                         )
                       }
                     />
-                    {h} ({csvPreview.headerMap[h]})
+                    {h}
                   </label>
                 ))}
               </div>
@@ -652,6 +746,54 @@ export default function Customers() {
               </button>
               <button
                 onClick={confirmCsvImport}
+                className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800"
+              >
+                Confirm Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {jsonModalOpen && jsonPreview && (
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
+            <h3 className="text-lg font-semibold">JSON Import Preview</h3>
+            {jsonPreview.unknownKeys.length > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
+                <p>Unknown fields detected. Check any you wish to add as custom fields.</p>
+                {jsonPreview.unknownKeys.map((k) => (
+                  <label key={k} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={jsonPreview.addFlags[k]}
+                      onChange={(e) =>
+                        setJsonPreview((prev) =>
+                          prev ? { ...prev, addFlags: { ...prev.addFlags, [k]: e.target.checked } } : prev
+                        )
+                      }
+                    />
+                    {k}
+                  </label>
+                ))}
+              </div>
+            )}
+            <div className="max-h-60 overflow-auto border rounded text-xs">
+              <pre className="p-2 whitespace-pre-wrap">{JSON.stringify(jsonPreview.customers.slice(0, 5), null, 2)}</pre>
+            </div>
+            <div className="text-sm text-gray-600">Previewing first {Math.min(5, jsonPreview.customers.length)} of {jsonPreview.customers.length} entries.</div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setJsonModalOpen(false);
+                  setJsonPreview(null);
+                }}
+                className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmJsonImport}
                 className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800"
               >
                 Confirm Import

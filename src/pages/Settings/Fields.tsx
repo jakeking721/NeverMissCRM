@@ -11,6 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import { v4 as uuid } from "uuid";
 import { getFields, saveFields, CustomField, FieldType } from "../../services/fieldsService";
 import { FiPlus, FiTrash2, FiEdit2, FiSave, FiX, FiMove, FiInfo } from "react-icons/fi";
+import { toKeySlug } from "../../utils/slug";
 
 type DraftField = Omit<CustomField, "id" | "order"> & { id?: string; order?: number };
 
@@ -21,13 +22,6 @@ function normalizeOrders(fields: CustomField[]): CustomField[] {
     .map((f, i) => ({ ...f, order: i }));
 }
 
-function toKeySlug(label: string) {
-  return label
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "_")
-    .toLowerCase();
-}
 
 const emptyDraft: DraftField = {
   key: "",

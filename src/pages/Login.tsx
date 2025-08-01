@@ -90,6 +90,7 @@ export default function Login() {
             <input
               type="email"
               value={id}
+              data-testid="email"
               onChange={(e) => setId(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none"
               required
@@ -102,6 +103,7 @@ export default function Login() {
             <input
               type="password"
               value={password}
+              data-testid="password"
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none"
               required
