@@ -66,7 +66,7 @@ export function getCurrentUser(): User | null {
  * then updates the local cache used by getCurrentUser().
  */
 export async function refreshCurrentUser(): Promise<User | null> {
-  if (process.env.VITEST) {
+  if (import.meta.env.VITEST) {
     writeProfileCache(null);
     return null;
   }

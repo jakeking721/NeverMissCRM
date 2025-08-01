@@ -35,7 +35,7 @@ export type CustomField = {
 };
 
 async function getCurrentUserId(): Promise<string | null> {
-  if (process.env.VITEST) return null;
+  if (import.meta.env.VITEST) return null;
   try {
     const { data } = await supabase.auth.getUser();
     return data?.user?.id ?? null;

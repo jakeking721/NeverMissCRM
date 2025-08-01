@@ -20,7 +20,7 @@ export type Customer = {
 };
 
 async function requireUserId(): Promise<string> {
-  if (process.env.VITEST) throw new Error("Not authenticated");
+  if (import.meta.env.VITEST) throw new Error("Not authenticated");
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {
     throw new Error("Not authenticated");

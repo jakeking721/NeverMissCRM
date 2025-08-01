@@ -29,8 +29,8 @@ type AuthContextShape = {
 
 const AuthContext = createContext<AuthContextShape>({
   user: null,
-  refresh: () => {},
-  logout: () => {},
+  refresh: () => { },
+  logout: () => { },
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (process.env.VITEST) return;
+    if (import.meta.env.VITEST) return;
     // 1) Initial hydration from Supabase
     refresh();
 

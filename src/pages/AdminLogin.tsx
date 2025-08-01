@@ -6,13 +6,18 @@ export default function AdminLogin() {
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     // loginUser now expects an object with usernameOrEmail and password
-    const result = loginUser({ usernameOrEmail: id, password });
+    const result = await loginUser({ usernameOrEmail: id, password });
+
+    setLoading(false);
 
     if (!result.ok) {
       setError(result.message || "Invalid login.");
@@ -63,12 +68,13 @@ export default function AdminLogin() {
               required
             />
             {error && <div className="mb-4 text-red-600 text-sm text-center">{error}</div>}
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl transition"
-            >
-              Log In as Admin
-            </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl transition disabled:opacity-50"
+          >
+            {loading ? "Logging in…" : "Log In as Admin"}
+          </button>
           </form>
         </div>
       </div>
