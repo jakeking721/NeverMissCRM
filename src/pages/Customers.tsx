@@ -18,7 +18,7 @@ import {
   Customer as SbcCustomer,
 } from "@/services/customerService";
 
-import { getFields, CustomField } from "@/services/fieldsService";
+import { getFields, addField, CustomField } from "@/services/fieldsService";
 
 type AnyValue = string | number | boolean | null | undefined;
 type Customer = SbcCustomer;
@@ -61,11 +61,21 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
   return { headers, rows };
 }
 
+function toKeySlug(label: string) {
+  return label
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "_")
+    .toLowerCase();
+}
+
 type CsvPreview = {
   headers: string[];
   rows: string[][];
   mapped: any[];
   unmatchedHeaders: string[];
+  addMap: Record<string, boolean>;
+  headerMap: Record<string, string>;
   errors: string[];
 };
 
@@ -239,17 +249,32 @@ export default function Customers() {
       ...customFields.map((f) => f.key),
     ];
 
-    // Attempt auto mapping by case-insensitive match of header -> key
-    const headerToKey = parsed.headers.reduce<Record<string, string | null>>((acc, h) => {
+    const existing = new Set(knownKeys);
+    const headerToKey: Record<string, string> = {};
+    const headerMap: Record<string, string> = {};
+    const addMap: Record<string, boolean> = {};
+
+    parsed.headers.forEach((h) => {
       const normalized = h.trim().toLowerCase();
       const match = knownKeys.find((k) => k.toLowerCase() === normalized);
-      acc[h] = match || null;
-      return acc;
-    }, {});
+      if (match) {
+        headerToKey[h] = match;
+      } else {
+        const slugBase = toKeySlug(h);
+        let slug = slugBase;
+        let i = 1;
+        while (existing.has(slug)) {
+          slug = `${slugBase}_${i}`;
+          i++;
+        }
+        existing.add(slug);
+        headerToKey[h] = slug;
+        headerMap[h] = slug;
+        addMap[h] = true;
+      }
+    });
 
-    const unmatchedHeaders = Object.entries(headerToKey)
-      .filter(([, v]) => !v)
-      .map(([h]) => h);
+    const unmatchedHeaders = Object.keys(headerMap);
 
     const errors: string[] = [];
     const mapped = parsed.rows.map((row, idx) => {
@@ -258,7 +283,6 @@ export default function Customers() {
         const key = headerToKey[h];
         if (key) obj[key] = row[i];
       });
-      // naive phone normalization (optional)
       if (obj.phone) obj.phone = String(obj.phone).replace(/[^0-9+]/g, "");
       if (!obj.name) obj.name = `Imported #${idx + 1}`;
       return obj;
@@ -269,6 +293,8 @@ export default function Customers() {
       rows: parsed.rows,
       mapped,
       unmatchedHeaders,
+      addMap,
+      headerMap,
       errors,
     });
     setCsvModalOpen(true);
@@ -277,10 +303,43 @@ export default function Customers() {
   const confirmCsvImport = async () => {
     if (!csvPreview) return;
     try {
-      const next = [...customers, ...csvPreview.mapped];
+      // Create new fields for opted-in headers
+      for (const h of csvPreview.unmatchedHeaders) {
+        if (csvPreview.addMap[h]) {
+          const key = csvPreview.headerMap[h];
+          const newField: CustomField = {
+            id: uuid(),
+            key,
+            label: h,
+            type: "text",
+            order: customFields.length,
+            visibleOn: { dashboard: true, customers: true, campaigns: true },
+          };
+          try {
+            await addField(newField);
+            setCustomFields((prev) => [...prev, newField]);
+          } catch (e) {
+            console.error("addField failed", e);
+          }
+        }
+      }
+
+      const next = [...customers, ...csvPreview.mapped.map((c) => {
+        const obj = { ...c } as any;
+        for (const h of csvPreview.unmatchedHeaders) {
+          if (!csvPreview.addMap[h]) {
+            delete obj[csvPreview.headerMap[h]];
+          }
+        }
+        return obj as Customer;
+      })];
+
       await replaceCustomers(next);
       await reloadCustomers();
-      alert("CSV import complete (appended).");
+
+      const success = csvPreview.rows.length - csvPreview.errors.length;
+      const fail = csvPreview.errors.length;
+      alert(`Imported ${success} customers${fail ? `, ${fail} failed.` : "."}`);
     } catch (e) {
       console.error(e);
       alert("Import failed.");
@@ -524,9 +583,28 @@ export default function Customers() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
             <h3 className="text-lg font-semibold">CSV Import Preview</h3>
             {csvPreview.unmatchedHeaders.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded">
-                Unmatched headers: {csvPreview.unmatchedHeaders.join(", ")}. These columns will be
-                ignored. (TODO: manual mapping UI)
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
+                <p>Unknown columns detected. Choose which ones to add as custom fields:</p>
+                {csvPreview.unmatchedHeaders.map((h) => (
+                  <label key={h} className="block">
+                    <input
+                      type="checkbox"
+                      className="mr-1"
+                      checked={csvPreview.addMap[h]}
+                      onChange={(e) =>
+                        setCsvPreview((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                addMap: { ...prev.addMap, [h]: e.target.checked },
+                              }
+                            : prev
+                        )
+                      }
+                    />
+                    {h} ({csvPreview.headerMap[h]})
+                  </label>
+                ))}
               </div>
             )}
             <div className="max-h-60 overflow-auto border rounded">
@@ -555,6 +633,12 @@ export default function Customers() {
             </div>
             <div className="text-sm text-gray-600">
               Previewing first 10 of {csvPreview.rows.length} rows.
+            </div>
+            <div className="text-sm text-gray-600">
+              Successful rows: {csvPreview.rows.length - csvPreview.errors.length}
+              {csvPreview.errors.length > 0 && (
+                <> | Failed: {csvPreview.errors.length}</>
+              )}
             </div>
             <div className="flex justify-end gap-2">
               <button
