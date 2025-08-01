@@ -3,11 +3,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import PageShell from "../components/PageShell";
 import { useAuth } from "../context/AuthContext";
-import { getCurrentUser, refreshCurrentUser } from "../utils/auth"; // TEMP fallback until we fully remove it
+import { getCurrentUser, refreshCurrentUser } from "../utils/auth";
 import { supabase } from "@/utils/supabaseClient";
 
 export default function Login() {
-  const [id, setId] = useState(""); // username or email (we'll just pass to supabase as email)
+  const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,9 +15,8 @@ export default function Login() {
   const navigate = useNavigate();
   const { refresh, user } = useAuth();
 
-  // If already logged in, bounce away
   useEffect(() => {
-    const me = user ?? getCurrentUser(); // TEMP: legacy fallback
+    const me = user ?? getCurrentUser();
     if (me) navigate("/dashboard", { replace: true });
   }, [user, navigate]);
 
@@ -26,23 +25,49 @@ export default function Login() {
     setError(null);
     setLoading(true);
 
-    // For now, treat "id" as email (Supabase doesn't let us look up username without a session).
-    const { error } = await supabase.auth.signInWithPassword({
-      email: id,
-      password,
-    });
+    try {
+      const { data: loginResult, error } = await supabase.auth.signInWithPassword({
+        email: id,
+        password,
+      });
 
-    setLoading(false);
+      if (error) {
+        setError(error.message || "Invalid credentials.");
+        return;
+      }
 
-    if (error) {
-      setError(error.message || "Invalid credentials.");
-      return;
+      const userId = loginResult?.user?.id;
+
+      if (userId) {
+        // 🧩 Upsert profile to ensure row exists
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert(
+            {
+              id: userId,
+              username: id.split("@")[0],
+              role: "user",
+              credits: 0,
+              avatar: "",
+              public_slug: null,
+            },
+            { onConflict: "id" }
+          );
+
+        if (profileError) {
+          console.error("Profile insert error:", profileError);
+        }
+      }
+
+      await refreshCurrentUser();
+      await refresh();
+      navigate("/dashboard", { replace: true });
+    } catch (err: any) {
+      console.error("Login crash:", err);
+      setError("Unexpected error. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    // Ensure the auth cache is updated before navigating
-    await refreshCurrentUser();
-    refresh();
-    navigate("/dashboard", { replace: true });
   };
 
   return (
@@ -61,11 +86,8 @@ export default function Login() {
           )}
 
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
-              Email
-            </label>
+            <label className="block text-sm font-medium mb-1">Email</label>
             <input
-              data-testid="email"
               type="email"
               value={id}
               onChange={(e) => setId(e.target.value)}
@@ -78,7 +100,6 @@ export default function Login() {
           <div className="mb-6">
             <label className="block text-sm font-medium mb-1">Password</label>
             <input
-              data-testid="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
