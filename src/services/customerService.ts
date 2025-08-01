@@ -152,6 +152,7 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
 // --------------------------------- helpers ---------------------------------
 
 function stripBaseColumns(obj: Partial<Customer>): Record<string, any> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id, name, phone, location, signupDate, extra, ...rest } = obj;
   return { ...(extra ?? {}), ...rest };
 }

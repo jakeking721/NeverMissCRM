@@ -2,10 +2,8 @@ import React from "react";
 import PageShell from "../components/PageShell";
 import { getCurrentUser } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 
 export default function Settings() {
-  const { user: ctxUser, refresh } = useAuth();
   const [user, setUser] = React.useState(getCurrentUser());
   const navigate = useNavigate();
 

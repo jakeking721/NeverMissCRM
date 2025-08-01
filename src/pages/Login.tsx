@@ -65,6 +65,7 @@ export default function Login() {
               Email
             </label>
             <input
+              data-testid="email"
               type="email"
               value={id}
               onChange={(e) => setId(e.target.value)}
@@ -77,6 +78,7 @@ export default function Login() {
           <div className="mb-6">
             <label className="block text-sm font-medium mb-1">Password</label>
             <input
+              data-testid="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

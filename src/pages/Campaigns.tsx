@@ -14,13 +14,11 @@ import {
   removeCampaign,
   Campaign,
 } from "@/services/campaignService";
-import { getCustomers } from "@/services/customerService";
 import { creditsService } from "@/services/creditsService";
 
 export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [customersCount, setCustomersCount] = useState(0);
   const [credits, setCredits] = useState<number>(0);
 
   // Initial load
@@ -29,14 +27,12 @@ export default function Campaigns() {
     (async () => {
       try {
         setLoading(true);
-        const [campaignList, customerList, balance] = await Promise.all([
+        const [campaignList, balance] = await Promise.all([
           getCampaigns(),
-          getCustomers(),
           creditsService.getBalance(),
         ]);
         if (!mounted) return;
         setCampaigns(campaignList);
-        setCustomersCount(customerList.length);
         setCredits(balance);
       } catch (e) {
         console.error(e);
