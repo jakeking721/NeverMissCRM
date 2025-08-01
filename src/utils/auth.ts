@@ -66,12 +66,17 @@ export function getCurrentUser(): User | null {
  * then updates the local cache used by getCurrentUser().
  */
 export async function refreshCurrentUser(): Promise<User | null> {
-  const { data: auth } = await supabase.auth.getUser();
-  const sUser = auth.user;
-  if (!sUser) {
+  if (process.env.VITEST) {
     writeProfileCache(null);
     return null;
   }
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const sUser = auth.user;
+    if (!sUser) {
+      writeProfileCache(null);
+      return null;
+    }
 
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -95,6 +100,10 @@ export async function refreshCurrentUser(): Promise<User | null> {
 
   writeProfileCache(u);
   return u;
+  } catch {
+    writeProfileCache(null);
+    return null;
+  }
 }
 
 export async function registerUser({

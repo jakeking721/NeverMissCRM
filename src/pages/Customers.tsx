@@ -85,10 +85,18 @@ export default function Customers() {
 
   // Fetch fields (still localStorage-backed for now)
   React.useEffect(() => {
-    const all = getFields()
-      .filter((f) => !f.archived && f.visibleOn.customers)
-      .sort((a, b) => a.order - b.order);
-    setCustomFields(all);
+    let cancelled = false;
+    (async () => {
+      const list = await getFields();
+      if (cancelled) return;
+      const all = list
+        .filter((f) => !f.archived && f.visibleOn.customers)
+        .sort((a, b) => a.order - b.order);
+      setCustomFields(all);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   // Initial load of customers
@@ -470,7 +478,7 @@ export default function Customers() {
                   {filtered.length === 0 ? (
                     <tr>
                       <td className="py-6 text-center text-gray-400" colSpan={columns.length + 1}>
-                        No customers found.
+                        No results found.
                       </td>
                     </tr>
                   ) : (

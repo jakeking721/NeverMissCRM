@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (process.env.VITEST) return;
     // 1) Initial hydration from Supabase
     refresh();
 

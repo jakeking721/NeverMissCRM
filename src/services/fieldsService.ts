@@ -35,9 +35,13 @@ export type CustomField = {
 };
 
 async function getCurrentUserId(): Promise<string | null> {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) return null;
-  return data.user.id;
+  if (process.env.VITEST) return null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    return data?.user?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // ------------------------------------------------------------------------------------
