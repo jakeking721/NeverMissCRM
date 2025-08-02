@@ -22,7 +22,10 @@ function normalizeOrders(fields: CustomField[]): CustomField[] {
     .map((f, i) => ({ ...f, order: i }));
 }
 
+<<<<<<< ours
 
+=======
+>>>>>>> theirs
 const emptyDraft: DraftField = {
   key: "",
   label: "",
@@ -270,7 +273,7 @@ export default function Fields() {
         {/* Create / Edit */}
         <div className="p-4 bg-white rounded-md shadow border">
           <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium">{editingId ? "Edit Field" : "Add Field"}</h2>
+            <h2 className="text-lg font-medium">{editingId ? "Edit Field" : "Add Field"}</h2>
             {editingId ? (
               <button
                 onClick={() => {
