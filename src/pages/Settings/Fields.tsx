@@ -22,10 +22,6 @@ function normalizeOrders(fields: CustomField[]): CustomField[] {
     .map((f, i) => ({ ...f, order: i }));
 }
 
-<<<<<<< ours
-
-=======
->>>>>>> theirs
 const emptyDraft: DraftField = {
   key: "",
   label: "",
