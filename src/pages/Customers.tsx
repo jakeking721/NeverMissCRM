@@ -244,7 +244,7 @@ export default function Customers() {
     const file = e.target.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const ext = file.name.split('.').pop()?.toLowerCase();
+    const ext = file.name.split(".").pop()?.toLowerCase();
     const delimiter = ext === "tsv" ? "\t" : ",";
     const parsed = parseCSV(text, delimiter);
     if (!parsed.headers.length) {
@@ -267,22 +267,18 @@ export default function Customers() {
     parsed.headers.forEach((h) => {
       const normalized = h.trim().toLowerCase();
       const match = knownKeys.find((k) => k.toLowerCase() === normalized);
-      if (match) {
-        headerToKey[h] = match;
-      } else {
-        const slugBase = toKeySlug(h);
-        let slug = slugBase;
-        let i = 1;
-        while (existing.has(slug)) {
-          slug = `${slugBase}_${i}`;
-          i++;
-        }
-        existing.add(slug);
-        headerToKey[h] = slug;
-        headerMap[h] = slug;
-        addMap[h] = true;
-      }
-    });
+      acc[h] = match || null;
+      return acc;
+    }, {});
+
+    const unmatchedHeaders = Object.entries(headerToKey)
+      .filter(([, v]) => !v)
+      .map(([h]) => h);
+
+    const addFlags = unmatchedHeaders.reduce<Record<string, boolean>>((acc, h) => {
+      acc[h] = true;
+      return acc;
+    }, {});
 
     const unmatchedHeaders = Object.keys(headerMap);
 
@@ -302,6 +298,7 @@ export default function Customers() {
       addFlags,
     });
     setCsvModalOpen(true);
+    if (e.target) e.target.value = "";
   };
 
   const confirmCsvImport = async () => {
@@ -416,13 +413,10 @@ export default function Customers() {
           if (!knownKeys.includes(k)) unknown.add(k);
         });
       });
-      const addFlags = Array.from(unknown).reduce<Record<string, boolean>>(
-        (acc, k) => {
-          acc[k] = true;
-          return acc;
-        },
-        {}
-      );
+      const addFlags = Array.from(unknown).reduce<Record<string, boolean>>((acc, k) => {
+        acc[k] = true;
+        return acc;
+      }, {});
       setJsonPreview({ customers: json.customers, unknownKeys: Array.from(unknown), addFlags });
       setJsonModalOpen(true);
     } catch (err) {
@@ -470,7 +464,10 @@ export default function Customers() {
       }
 
       const mapped = jsonPreview.customers.map((row: any, idx: number) => {
-        const obj: any = { id: row.id ?? uuid(), signupDate: row.signupDate ?? new Date().toISOString() };
+        const obj: any = {
+          id: row.id ?? uuid(),
+          signupDate: row.signupDate ?? new Date().toISOString(),
+        };
         Object.entries(row).forEach(([k, v]) => {
           if (k === "id" || k === "signupDate") return;
           let key = k;
@@ -769,7 +766,9 @@ export default function Customers() {
                       checked={jsonPreview.addFlags[k]}
                       onChange={(e) =>
                         setJsonPreview((prev) =>
-                          prev ? { ...prev, addFlags: { ...prev.addFlags, [k]: e.target.checked } } : prev
+                          prev
+                            ? { ...prev, addFlags: { ...prev.addFlags, [k]: e.target.checked } }
+                            : prev
                         )
                       }
                     />
@@ -779,9 +778,14 @@ export default function Customers() {
               </div>
             )}
             <div className="max-h-60 overflow-auto border rounded text-xs">
-              <pre className="p-2 whitespace-pre-wrap">{JSON.stringify(jsonPreview.customers.slice(0, 5), null, 2)}</pre>
+              <pre className="p-2 whitespace-pre-wrap">
+                {JSON.stringify(jsonPreview.customers.slice(0, 5), null, 2)}
+              </pre>
             </div>
-            <div className="text-sm text-gray-600">Previewing first {Math.min(5, jsonPreview.customers.length)} of {jsonPreview.customers.length} entries.</div>
+            <div className="text-sm text-gray-600">
+              Previewing first {Math.min(5, jsonPreview.customers.length)} of{" "}
+              {jsonPreview.customers.length} entries.
+            </div>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => {
