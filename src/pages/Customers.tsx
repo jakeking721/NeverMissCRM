@@ -62,14 +62,6 @@ function parseCSV(text: string, delimiter = ","): { headers: string[]; rows: str
   return { headers, rows };
 }
 
-function toKeySlug(label: string) {
-  return label
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "_")
-    .toLowerCase();
-}
-
 type CsvPreview = {
   headers: string[];
   rows: string[][];
