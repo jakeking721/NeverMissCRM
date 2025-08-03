@@ -456,8 +456,8 @@ export default function Customers() {
         };
         Object.entries(row).forEach(([k, v]) => {
           if (k === "id" || k === "signupDate") return;
-          let key = k;
-          if (headerToKey[k]) key = headerToKey[k];
+          if (jsonPreview.unknownKeys.includes(k) && !jsonPreview.addFlags[k]) return;
+          const key = headerToKey[k] ?? k;
           obj[key] = v;
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
