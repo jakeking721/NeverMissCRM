@@ -253,15 +253,15 @@ export default function Customers() {
     ];
 
     // Map each header in the uploaded file to a known key (or null if unknown)
-      const headerToKey = parsed.headers.reduce<Record<string, string | null>>(
-        (acc, h) => {
-          const normalized = h.trim().toLowerCase();
-          const match = knownKeys.find((k) => k.toLowerCase() === normalized);
-          acc[h] = match || null;
-          return acc;
-        },
-        {}
-      );
+    const headerToKey = parsed.headers.reduce<Record<string, string | null>>(
+      (acc, h) => {
+        const normalized = h.trim().toLowerCase();
+        const match = knownKeys.find((k) => k.toLowerCase() === normalized);
+        acc[h] = match || null;
+        return acc;
+      },
+      {}
+    );
 
     const unmatchedHeaders = Object.entries(headerToKey)
       .filter(([, v]) => !v)
@@ -287,12 +287,18 @@ export default function Customers() {
     if (e.target) e.target.value = "";
   };
 
+  // -----------------------------------------------------------------------------
+  // Replace the old confirmCsvImport with everything below
+  // -----------------------------------------------------------------------------
   const confirmCsvImport = async () => {
     if (!csvPreview) return;
+
     try {
-      const headerToKey = { ...csvPreview.headerToKey };
+      // --- 1.  Map CSV headers -> field keys -------------------------------
+      const headerToKey: Record<string, string | null> = { ...csvPreview.headerToKey };
       const fieldsToAdd: string[] = [];
-      // Add new custom fields if selected
+
+      // add new custom-field labels the user checked
       for (const h of csvPreview.unmatchedHeaders) {
         if (csvPreview.addFlags[h]) {
           const key = toKeySlug(h);
@@ -301,14 +307,16 @@ export default function Customers() {
         }
       }
 
+      // --- 2.  Create any brand-new custom fields --------------------------
       if (fieldsToAdd.length > 0) {
-        const existing = await getFields();
+        const existing = await getFields();          // read current set
         let order = existing.length;
-        for (const h of fieldsToAdd) {
+
+        for (const label of fieldsToAdd) {
           const field: CustomField = {
             id: uuid(),
-            key: toKeySlug(h),
-            label: h,
+            key: toKeySlug(label),
+            label,
             type: "text",
             order: order++,
             options: [],
@@ -316,37 +324,48 @@ export default function Customers() {
             visibleOn: { dashboard: true, customers: true, campaigns: true },
             archived: false,
           };
-          await addField(field);
+          await addField(field);                     // inserts into custom_fields
         }
-        // Reload fields to reflect new ones
-        const newList = await getFields();
-        const all = newList
+
+        // refresh local custom-field cache
+        const refreshed = await getFields();
+        const visible = refreshed
           .filter((f) => !f.archived && f.visibleOn.customers)
           .sort((a, b) => a.order - b.order);
-        setCustomFields(all);
+        setCustomFields(visible);
       }
 
+      // --- 3.  Transform CSV rows into customer objects --------------------
       const mapped = csvPreview.rows.map((row, idx) => {
-        const obj: any = { id: uuid(), signupDate: new Date().toISOString() };
+        const obj: any = {
+          id: uuid(),
+          signupDate: new Date().toISOString(),
+        };
+
         csvPreview.headers.forEach((h, i) => {
           const key = headerToKey[h];
           if (key) obj[key] = row[i];
         });
+
         if (obj.phone) obj.phone = String(obj.phone).replace(/[^0-9+]/g, "");
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
         return obj;
       });
 
+      // --- 4.  Upsert customers & refresh list -----------------------------
       const next = [...customers, ...mapped];
-      await replaceCustomers(next);
-      await reloadCustomers();
+      await replaceCustomers(next);   // <- Supabase upsert
+      await reloadCustomers();        // <- GET latest list
       alert(`Imported ${mapped.length} customers.`);
-    } catch (e) {
-      console.error(e);
-      alert("Import failed.");
-    } finally {
+
+      // close modal & clear preview
       setCsvModalOpen(false);
       setCsvPreview(null);
+    } catch (err: any) {
+      // ---- Surface *any* failure transparently ---------------------------
+      console.error("IMPORT FAILED >>>", err);
+      alert(`Import failed: ${err?.message ?? err}`);
+      // (modal stays open so the user can retry / untick fields)
     }
   };
 
