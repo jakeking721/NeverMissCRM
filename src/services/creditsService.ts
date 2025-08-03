@@ -22,7 +22,7 @@ export interface CreditsService {
 }
 
 async function getSessionUser() {
-  if (process.env.VITEST) return null;
+  if (import.meta.env.VITEST) return null;
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
   return data.user ?? null;

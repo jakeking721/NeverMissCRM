@@ -68,6 +68,7 @@ type CsvPreview = {
   headerToKey: Record<string, string | null>;
   unmatchedHeaders: string[];
   addFlags: Record<string, boolean>;
+  errors: string[];
 };
 
 type JsonPreview = {
@@ -252,15 +253,15 @@ export default function Customers() {
     ];
 
     // Map each header in the uploaded file to a known key (or null if unknown)
-    const headerToKey = parsed.headers.reduce<Record<string, string>>(
-      (acc, h) => {
-        const normalized = h.trim().toLowerCase();
-        const match = knownKeys.find((k) => k.toLowerCase() === normalized);
-        acc[h] = match || null;
-        return acc;
-      },
-      {}
-    );
+      const headerToKey = parsed.headers.reduce<Record<string, string | null>>(
+        (acc, h) => {
+          const normalized = h.trim().toLowerCase();
+          const match = knownKeys.find((k) => k.toLowerCase() === normalized);
+          acc[h] = match || null;
+          return acc;
+        },
+        {}
+      );
 
     const unmatchedHeaders = Object.entries(headerToKey)
       .filter(([, v]) => !v)
@@ -280,6 +281,7 @@ export default function Customers() {
       headerToKey,
       unmatchedHeaders,
       addFlags,
+      errors: [],
     });
     setCsvModalOpen(true);
     if (e.target) e.target.value = "";
@@ -710,9 +712,9 @@ export default function Customers() {
               Previewing first 10 of {csvPreview.rows.length} rows.
             </div>
             <div className="text-sm text-gray-600">
-              Successful rows: {csvPreview.rows.length - csvPreview.errors.length}
-              {csvPreview.errors.length > 0 && (
-                <> | Failed: {csvPreview.errors.length}</>
+              Successful rows: {csvPreview.rows.length - (csvPreview.errors?.length ?? 0)}
+              {(csvPreview.errors?.length ?? 0) > 0 && (
+                <> | Failed: {csvPreview.errors?.length ?? 0}</>
               )}
             </div>
             <div className="flex justify-end gap-2">
