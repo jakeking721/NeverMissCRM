@@ -1,0 +1,24 @@
+name: ChatGPT Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]          # remove this block if you only want PR reviews
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Replace with the image / action your agent’s docs require
+      - name: Run ChatGPT Agent
+        uses: openai-labs/openai-pr-reviewer@v0
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          github_token:   ${{ secrets.GITHUB_TOKEN }}
