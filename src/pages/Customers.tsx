@@ -259,28 +259,20 @@ export default function Customers() {
       ...customFields.map((f) => f.key),
     ];
 
-    const existing = new Set(knownKeys);
-    const headerToKey: Record<string, string> = {};
-    const headerMap: Record<string, string> = {};
-    const addMap: Record<string, boolean> = {};
-
-    parsed.headers.forEach((h) => {
-      const normalized = h.trim().toLowerCase();
-      const match = knownKeys.find((k) => k.toLowerCase() === normalized);
-      acc[h] = match || null;
-      return acc;
-    }, {});
+    // Map each header in the uploaded file to a known key (or null if unknown)
+    const headerToKey = parsed.headers.reduce<Record<string, string>>(
+      (acc, h) => {
+        const normalized = h.trim().toLowerCase();
+        const match = knownKeys.find((k) => k.toLowerCase() === normalized);
+        acc[h] = match || null;
+        return acc;
+      },
+      {}
+    );
 
     const unmatchedHeaders = Object.entries(headerToKey)
       .filter(([, v]) => !v)
       .map(([h]) => h);
-
-    const addFlags = unmatchedHeaders.reduce<Record<string, boolean>>((acc, h) => {
-      acc[h] = true;
-      return acc;
-    }, {});
-
-    const unmatchedHeaders = Object.keys(headerMap);
 
     const addFlags = unmatchedHeaders.reduce<Record<string, boolean>>(
       (acc, h) => {
