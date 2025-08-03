@@ -8,7 +8,7 @@
 //   - isTrue / isFalse (booleans)
 //
 // TODO:
-// - AND/OR group logic (nested groups)
+// - Nested groups
 // - Between ranges for numbers/dates
 // - Server-side query builder
 // ------------------------------------------------------------------------------------
@@ -27,6 +27,7 @@ export type SegmentRule = {
 
 export type Segment = {
   rules: SegmentRule[];
+  match: "all" | "any";
 };
 
 type Props = {
@@ -85,9 +86,19 @@ export default function SegmentBuilder({ fields, segment, onChange }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Filters (Segment)</h3>
-        <button onClick={addRule} className="px-2 py-1 text-xs border rounded hover:bg-gray-50">
-          + Add rule
-        </button>
+        <div className="flex items-center gap-2">
+          <select
+            value={segment.match}
+            onChange={(e) => onChange({ ...segment, match: e.target.value as "all" | "any" })}
+            className="border rounded px-2 py-1 text-xs"
+          >
+            <option value="all">Match all</option>
+            <option value="any">Match any</option>
+          </select>
+          <button onClick={addRule} className="px-2 py-1 text-xs border rounded hover:bg-gray-50">
+            + Add rule
+          </button>
+        </div>
       </div>
 
       {segment.rules.length === 0 ? (
@@ -155,7 +166,6 @@ export default function SegmentBuilder({ fields, segment, onChange }: Props) {
         </div>
       )}
 
-      {/* TODO: AND/OR grouping, nested groups */}
     </div>
   );
 }

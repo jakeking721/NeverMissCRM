@@ -13,7 +13,7 @@
 // second component (SmsBulkModal) so both flows coexist cleanly.
 // ------------------------------------------------------------------------------------
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getSmsService } from "../services/smsService";
 import { creditsService } from "../services/creditsService";
@@ -32,34 +32,43 @@ export default function SmsModal({ customer, onClose }: Props) {
   const sms = useMemo(() => getSmsService(user?.username ?? user?.email ?? null), [user]);
 
   const [message, setMessage] = useState("");
+  const [canAfford, setCanAfford] = useState(true);
+  const [balance, setBalance] = useState(0);
 
   const creditsNeeded = useMemo(() => {
-    // 1 recipient
     return sms.estimateCredits(message, 1);
   }, [sms, message]);
 
-  const canAfford = creditsService.canAfford(creditsNeeded);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const afford = await creditsService.canAfford(creditsNeeded);
+      if (active) setCanAfford(afford);
+      const b = await creditsService.getBalance();
+      if (active) setBalance(b);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [creditsNeeded]);
 
   const onSend = async () => {
     if (!message.trim()) {
       alert("Please enter a message.");
       return;
     }
+    const phone = customer.phone ? String(customer.phone) : "";
+    if (!/^\+?\d{10,15}$/.test(phone)) {
+      alert("Invalid phone number.");
+      return;
+    }
     if (!canAfford) {
-      alert(
-        `Not enough credits. You need ${creditsNeeded} but have ${creditsService.getBalance()}.`
-      );
+      alert(`Not enough credits. You need ${creditsNeeded} but have ${balance}.`);
       return;
     }
 
-    const res = await sms.sendBulk([customer.phone ?? ""], message); // local fake impl
-    if (res.success) {
-      creditsService.deduct(creditsNeeded);
-      alert(`Message queued. Deducted ${creditsNeeded} credits.`);
-      onClose();
-    } else {
-      alert("Failed to send (demo).");
-    }
+    await sms.sendBulk([phone], message);
+    onClose();
   };
 
   return (
@@ -79,7 +88,7 @@ export default function SmsModal({ customer, onClose }: Props) {
           </div>
           <div className="mt-1 text-xs text-gray-500">
             Credits required: <strong>{creditsNeeded}</strong> | Available:{" "}
-            <strong>{creditsService.getBalance()}</strong>
+            <strong>{balance}</strong>
           </div>
         </div>
 
@@ -110,7 +119,6 @@ export default function SmsModal({ customer, onClose }: Props) {
           </button>
         </div>
 
-        {/* TODO: Add phone validation, template variables, segment estimates */}
       </div>
     </div>
   );

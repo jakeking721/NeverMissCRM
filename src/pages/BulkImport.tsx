@@ -1,11 +1,36 @@
 // src/pages/BulkImport.tsx
 
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-// TODO: Implement CSV upload and import logic here
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { replaceCustomers, Customer } from "@/services/customerService";
 
 export default function BulkImport() {
   const navigate = useNavigate();
+  const [importing, setImporting] = useState(false);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const customers = parseCsv(text);
+      if (customers.length === 0) {
+        alert("No rows found in CSV.");
+      } else {
+        await replaceCustomers(customers);
+        alert(`Imported ${customers.length} contacts.`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to import CSV.");
+    } finally {
+      setImporting(false);
+      e.target.value = "";
+    }
+  };
 
   return (
     <div
@@ -14,16 +39,24 @@ export default function BulkImport() {
         background: `url('/flag-bg.jpg') center top / cover no-repeat, linear-gradient(to bottom right, #e0e8f8 50%, #f8fafc 100%)`,
       }}
     >
-      {/* TODO: Insert <Header /> here */}
+      <Header />
       <div className="max-w-2xl mx-auto pt-12 px-4 pb-10">
         <h1 className="text-2xl md:text-3xl font-extrabold text-blue-900 mb-6">
           Bulk Import Contacts
         </h1>
         <div className="bg-white rounded-2xl shadow-lg p-8">
-          {/* TODO: Add CSV upload component and import instructions */}
-          <div className="text-gray-400 text-center py-10">
-            Bulk import from CSV (Excel/Google Sheets) coming soon!
-          </div>
+          <p className="mb-4 text-sm text-gray-600">
+            Upload a CSV file with columns like <code>name</code>, <code>phone</code>,
+            and optional additional fields. Existing contacts will be replaced.
+          </p>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFile}
+            disabled={importing}
+            className="mb-4"
+          />
+          {importing && <div className="text-sm text-gray-500">Importing…</div>}
         </div>
         <div className="mt-8 flex justify-end">
           <button
@@ -34,7 +67,29 @@ export default function BulkImport() {
           </button>
         </div>
       </div>
-      {/* TODO: Insert <Footer /> here */}
+      <Footer />
     </div>
   );
+}
+
+function parseCsv(text: string): Customer[] {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((h) => h.trim());
+  return lines.slice(1).map((line) => {
+    const cols = line.split(",").map((c) => c.trim());
+    const obj: any = {};
+    headers.forEach((h, i) => {
+      obj[h] = cols[i] ?? "";
+    });
+    const { name = "", phone = "", location = "", ...extra } = obj;
+    return {
+      id: crypto.randomUUID(),
+      name,
+      phone,
+      location,
+      signupDate: new Date().toISOString(),
+      ...extra,
+    } as Customer;
+  });
 }

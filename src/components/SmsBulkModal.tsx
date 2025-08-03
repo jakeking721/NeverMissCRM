@@ -7,13 +7,12 @@
 // - Future-proofed for Twilio chunking/rate limits
 //
 // TODOs:
-// - Phone validation & dedupe
 // - Server-side credit enforcement
 // - Chunking, rate limiting & retry (Twilio / provider limits)
-// - Segment preview & template variables
+// - Template variables
 // ------------------------------------------------------------------------------------
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getSmsService } from "../services/smsService";
 import { creditsService } from "../services/creditsService";
@@ -33,12 +32,26 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
   const sms = useMemo(() => getSmsService(user?.username ?? user?.email ?? null), [user]);
 
   const [message, setMessage] = useState("");
+  const [canAfford, setCanAfford] = useState(true);
+  const [balance, setBalance] = useState(0);
+  const [showAll, setShowAll] = useState(false);
 
   const creditsNeeded = useMemo(() => {
     return sms.estimateCredits(message, customers.length);
   }, [sms, message, customers.length]);
 
-  const canAfford = creditsService.canAfford(creditsNeeded);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const afford = await creditsService.canAfford(creditsNeeded);
+      if (active) setCanAfford(afford);
+      const b = await creditsService.getBalance();
+      if (active) setBalance(b);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [creditsNeeded]);
 
   const onSend = async () => {
     if (!message.trim()) {
@@ -50,23 +63,25 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
       return;
     }
     if (!canAfford) {
-      alert(
-        `Not enough credits. You need ${creditsNeeded} but have ${creditsService.getBalance()}.`
-      );
+      alert(`Not enough credits. You need ${creditsNeeded} but have ${balance}.`);
       return;
     }
 
-    // Extract phones (TODO: validate & dedupe)
-    const phones = customers.map((c) => (c.phone ? String(c.phone) : "")).filter(Boolean);
+    const phones = Array.from(
+      new Set(
+        customers
+          .map((c) => (c.phone ? String(c.phone) : ""))
+          .filter((p) => /^\+?\d{10,15}$/.test(p))
+      )
+    );
 
-    const res = await sms.sendBulk(phones, message); // local fake impl
-    if (res.success) {
-      creditsService.deduct(creditsNeeded);
-      alert(`Queued ${phones.length} messages. Deducted ${creditsNeeded} credits. (Demo)`);
-      onClose();
-    } else {
-      alert("Failed to send (demo).");
+    if (phones.length === 0) {
+      alert("No valid phone numbers.");
+      return;
     }
+
+    await sms.sendBulk(phones, message);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -85,7 +100,7 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
 
         <div className="mb-3 text-xs text-gray-600">
           Credits required: <strong>{creditsNeeded}</strong> | Available:{" "}
-          <strong>{creditsService.getBalance()}</strong>
+          <strong>{balance}</strong>
         </div>
 
         <textarea
@@ -94,6 +109,25 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
+
+        {customers.length > 0 && (
+          <div className="mt-3 mb-2 text-xs text-gray-500">
+            <div>Preview recipients:</div>
+            <ul className="list-disc ml-5">
+              {(showAll ? customers : customers.slice(0, 5)).map((c) => (
+                <li key={c.id}>{c.name ?? "Unknown"} ({c.phone ?? ""})</li>
+              ))}
+            </ul>
+            {customers.length > 5 && !showAll && (
+              <button
+                onClick={() => setShowAll(true)}
+                className="text-blue-600 underline"
+              >
+                Show all
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 mt-4">
           <button
@@ -115,7 +149,6 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
           </button>
         </div>
 
-        {/* TODO: Add preview of first N recipients (with show all toggle) */}
       </div>
     </div>
   );

@@ -4,7 +4,7 @@
 // - All balances are read/written on profiles.credits
 // - All functions are async now (DB-backed) — update callers to await.
 // - Admin-only mutations check profile.role === 'admin'.
-// - TODO: create a Postgres RPC (e.g., increment_credits) for atomic increments/decrements.
+// - Uses Postgres RPC increment_credits for atomic updates when available.
 // ------------------------------------------------------------------------------------
 
 import { supabase } from "@/utils/supabaseClient";
@@ -58,6 +58,14 @@ async function setCredits(userId: string, nextCredits: number) {
   if (error) throw error;
 }
 
+async function incrementCredits(userId: string, delta: number) {
+  const { error } = await supabase.rpc("increment_credits", {
+    p_user_id: userId,
+    p_amount: delta,
+  });
+  if (error) throw error;
+}
+
 export function createCreditsService(): CreditsService {
   return {
     async getBalance(): Promise<number> {
@@ -76,14 +84,17 @@ export function createCreditsService(): CreditsService {
         const user = await getSessionUser();
         if (!user) return { ok: false, message: "Not logged in." };
 
-        // TODO: use an RPC for atomicity (e.g., increment_credits(p_user_id, -amount))
         const me = await getProfileById(user.id);
         const current = me.credits ?? 0;
         if (current < amount) {
           return { ok: false, message: "Insufficient credits." };
         }
 
-        await setCredits(user.id, current - amount);
+        try {
+          await incrementCredits(user.id, -amount);
+        } catch {
+          await setCredits(user.id, current - amount);
+        }
         return { ok: true };
       } catch (e: any) {
         console.error(e);
@@ -99,8 +110,12 @@ export function createCreditsService(): CreditsService {
           return { ok: false, message: "Only admins can add credits directly." };
         }
 
-        const current = me.credits ?? 0;
-        await setCredits(me.id, current + amount);
+        try {
+          await incrementCredits(me.id, amount);
+        } catch {
+          const current = me.credits ?? 0;
+          await setCredits(me.id, current + amount);
+        }
         return { ok: true };
       } catch (e: any) {
         console.error(e);
@@ -116,9 +131,13 @@ export function createCreditsService(): CreditsService {
           return { ok: false, message: "Only admins can add credits directly." };
         }
 
-        const userProfile = await getProfileById(userId);
-        const current = userProfile.credits ?? 0;
-        await setCredits(userId, current + amount);
+        try {
+          await incrementCredits(userId, amount);
+        } catch {
+          const userProfile = await getProfileById(userId);
+          const current = userProfile.credits ?? 0;
+          await setCredits(userId, current + amount);
+        }
         return { ok: true };
       } catch (e: any) {
         console.error(e);

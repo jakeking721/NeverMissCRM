@@ -7,9 +7,10 @@
 //
 // TODO:
 // - Replace with real provider (Twilio/etc.)
-// - Move credit estimation to a shared config (utils/credits or server-side)
 // - Server-side scheduling, delivery status, retries
 // ------------------------------------------------------------------------------------
+
+import { DEFAULT_SMS_COST_PER_SEGMENT } from "@/utils/credits";
 
 export type SmsSendResult = {
   success: boolean;
@@ -34,7 +35,7 @@ export interface SmsService {
   sendTest: (to: string, message: string) => Promise<SmsSendResult>;
 }
 
-const COST_PER_SEGMENT = 1; // TODO: read from utils/credits or server config
+const COST_PER_SEGMENT = DEFAULT_SMS_COST_PER_SEGMENT;
 
 function smsLogKey(userKey: string | null | undefined) {
   return `sms_log_${userKey ?? "anonymous"}`;
@@ -101,6 +102,7 @@ export function getSmsService(userKey: string | null | undefined): SmsService {
 
       // Simulate network
       await sleep(200);
+      alert("No SMS sent - Feature coming soon");
       return { success: true, id };
     },
 
@@ -121,6 +123,7 @@ export function getSmsService(userKey: string | null | undefined): SmsService {
       });
 
       await sleep(200);
+      alert("No SMS sent - Feature coming soon");
       return { success: true, id, scheduledFor: whenISO };
     },
 
@@ -140,6 +143,7 @@ export function getSmsService(userKey: string | null | undefined): SmsService {
       });
 
       await sleep(150);
+      alert("No SMS sent - Feature coming soon");
       return { success: true, id };
     },
   };

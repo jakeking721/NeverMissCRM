@@ -3,7 +3,7 @@
 // Dashboard (Supabase-backed customers)
 // - Auto-generates & displays a per-user QR code (via ensure_user_slug RPC)
 // - Async customer CRUD via services/customerService.ts (Supabase)
-// - Admin credit top-up left as TODO (needs Supabase migration)
+// - Admin credit top-up implemented with creditsService
 // ------------------------------------------------------------------------------------
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -13,6 +13,7 @@ import SmsModal from "@/components/SmsModal";
 import { useAuth } from "@/context/AuthContext";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "@/utils/supabaseClient";
+import { creditsService } from "@/services/creditsService";
 
 import {
   getCustomers,
@@ -29,7 +30,7 @@ type AnyValue = string | number | boolean | null | undefined | string[];
 type Customer = SbcCustomer;
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
@@ -243,9 +244,17 @@ export default function Dashboard() {
     setShowSmsModal(false);
   };
 
-  // Optional admin credits button – TODO: migrate to Supabase
-  const onAdminAddCredits = () => {
-    alert("TODO: migrate credit top-up to Supabase (admin only).");
+  const onAdminAddCredits = async () => {
+    const input = prompt("Add how many credits?");
+    const amount = Number(input);
+    if (!input || isNaN(amount) || amount <= 0) return;
+    const res = await creditsService.adminAddToCurrentUser(amount);
+    if (res.ok) {
+      alert(`Added ${amount} credits.`);
+      refresh();
+    } else {
+      alert(res.message || "Failed to add credits.");
+    }
   };
 
   const appOrigin =

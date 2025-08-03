@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { registerUser } from "@/utils/auth";
 
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,9 +18,17 @@ const SignupPage: React.FC = () => {
       return;
     }
 
-    // TODO: Add actual registration logic here if needed
+    const { ok, message } = await registerUser({
+      email,
+      password,
+      username: businessName,
+    });
 
-    // Demo: simulate success and redirect
+    if (!ok) {
+      setError(message || "Registration failed.");
+      return;
+    }
+
     navigate("/dashboard");
   };
 

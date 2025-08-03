@@ -56,7 +56,7 @@ export default function CampaignBuilder() {
   const [creditsEstimate, setCreditsEstimate] = useState<number>(0);
   const [canAfford, setCanAfford] = useState<boolean>(true);
 
-  const [segment, setSegment] = useState<Segment>({ rules: [] });
+  const [segment, setSegment] = useState<Segment>({ rules: [], match: "all" });
 
   const sms = useMemo(
     () => getSmsService(user?.username ?? user?.email ?? null),
@@ -204,7 +204,7 @@ export default function CampaignBuilder() {
       setMessage("");
       setSelectedIds([]);
       setScheduleDate("");
-      setSegment({ rules: [] });
+      setSegment({ rules: [], match: "all" });
 
       alert("Campaign saved.");
     } catch (e) {
@@ -231,19 +231,7 @@ export default function CampaignBuilder() {
       return;
     }
 
-    const res = await sms.sendTest(to, message);
-    if (res.success) {
-      const deductRes = await creditsService.deduct(testCost);
-      if (!deductRes.ok) {
-        alert(deductRes.message ?? "Failed to deduct credits after test send.");
-        return;
-      }
-      const newBal = await creditsService.getBalance();
-      setCreditsBalance(newBal);
-      alert("Test send queued (demo).");
-    } else {
-      alert("Test send failed (demo).");
-    }
+    await sms.sendTest(to, message);
   };
 
   // convenience: select all filtered customers
@@ -432,7 +420,9 @@ export default function CampaignBuilder() {
 // ------------------------------------------------------------------------------------
 
 function matchesSegment(customer: Customer, segment: Segment, fields: CustomField[]): boolean {
-  // AND all rules
+  if (segment.match === "any") {
+    return segment.rules.some((r) => matchesRule(customer, r, fields));
+  }
   return segment.rules.every((r) => matchesRule(customer, r, fields));
 }
 
