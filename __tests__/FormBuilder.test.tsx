@@ -37,3 +37,31 @@ test("adds text block and saves", async () => {
   const payload = (saveForm as any).mock.calls[0][0];
   expect(payload.schema_json.blocks[0].type).toBe("text");
 });
+
+test("clicking block opens inspector and updates preview", async () => {
+  render(
+    <MemoryRouter initialEntries={["/builder"]}>
+      <Routes>
+        <Route path="/builder" element={<FormList />} />
+        <Route path="/builder/:formId" element={<FormBuilder />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+  const newBtn = await screen.findByText(/New Form/i);
+  fireEvent.click(newBtn);
+
+  // Add two blocks
+  fireEvent.click(await screen.findByText("Text"));
+  fireEvent.click(await screen.findByText("Input"));
+
+  // Select first block
+  const firstBlock = screen.getAllByText("Text")[1]; // block text appears twice (palette and canvas)
+  fireEvent.click(firstBlock);
+
+  const textarea = await screen.findByDisplayValue("Text");
+  fireEvent.change(textarea, { target: { value: "Hello" } });
+
+  // Preview should update
+  expect(screen.getAllByText("Hello").length).toBeGreaterThan(0);
+});

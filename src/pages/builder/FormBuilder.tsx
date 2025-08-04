@@ -35,8 +35,45 @@ export default function FormBuilder() {
 
   const addBlock = (type: string) => {
     const id = `${type}-${Date.now()}`;
-    const block: Block = { id, type };
-    if (type === "text") block.text = "Text";
+    let block: Block = { id, type };
+    switch (type) {
+      case "text":
+        block.text = "Text";
+        break;
+      case "image":
+        block.url = "";
+        block.alt = "";
+        block.position = "center";
+        break;
+      case "input":
+        block.label = "Label";
+        block.name = `field_${Date.now()}`;
+        block.placeholder = "";
+        block.inputType = "text";
+        block.required = false;
+        break;
+      case "choice":
+        block.label = "Label";
+        block.name = `choice_${Date.now()}`;
+        block.options = ["Option 1", "Option 2"];
+        block.required = false;
+        break;
+      case "pdf":
+        block.url = "";
+        break;
+      case "link":
+        block.text = "Link";
+        block.url = "https://";
+        break;
+      case "button":
+        block.text = "Submit";
+        break;
+      case "section":
+        // no additional fields
+        break;
+      default:
+        break;
+    }
     setBlocks([...blocks, block]);
     setSelected(id);
   };
