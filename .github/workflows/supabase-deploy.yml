@@ -1,27 +1,26 @@
-# .github/workflows/supabase-deploy.yml
 name: Supabase Deploy
 
 on:
   push:
-    branches: [ main ]          # runs after every merge / push to main
+    branches: [ main ]      # run after every merge / push to main
 
 jobs:
   migrate:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Check out the repo
+      # 1 – check out the repo
       - uses: actions/checkout@v4
 
-      # 2. Set up Node (needed for the Supabase CLI)
+      # 2 – install Node (needed for the CLI)
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3. Authenticate *and* run migrations with the CLI via npx
+      # 3 – authenticate and run migrations (no global install)
       - name: Apply database migrations
         run: |
-          npx supabase@latest login --access-token "${SUPABASE_ACCESS_TOKEN}"
+          npx supabase@latest login --token "${SUPABASE_ACCESS_TOKEN}"
           npx supabase@latest db push
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
