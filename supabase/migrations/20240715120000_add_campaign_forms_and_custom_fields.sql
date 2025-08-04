@@ -14,18 +14,25 @@ create table if not exists public.campaign_forms (
 alter table public.custom_fields
     add column if not exists deleted boolean not null default false;
 
--- Enable row level security and define policies
+-- 1️⃣  NEW SECTION: campaign_templates table
+create table if not exists public.campaign_templates (
+  template_id uuid primary key references public.campaign_forms(id) on delete cascade,
+  owner_id    uuid              references auth.users(id)          on delete cascade,
+  created_at  timestamptz default now()
+);
+
+-- Enable row level security & policies on campaign_forms
 alter table public.campaign_forms enable row level security;
 
 create policy "campaign_forms_owner_access" on public.campaign_forms
-    for all using (auth.uid() = owner_id);
+  for all using (auth.uid() = owner_id);
 
 create policy "campaign_forms_admin_template_access" on public.campaign_forms
-    for all using (
-        exists (
-            select 1
-            from campaign_templates t
-            where t.id = campaign_forms.template_id
-              and t.owner_id = auth.uid()
-        )
-    );
+  for all using (
+    exists (
+      select 1
+      from campaign_templates t
+      where t.template_id = campaign_forms.template_id
+        and t.owner_id    = auth.uid()
+    )
+  );
