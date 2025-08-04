@@ -1,5 +1,2 @@
-[project]
-ref = "${SUPABASE_PROJECT_REF}"
-
-[db]
-password = "${SUPABASE_DB_PASSWORD}"
+# supabase/config.toml
+project_id = "${SUPABASE_PROJECT_REF}"
