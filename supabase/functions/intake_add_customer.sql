@@ -43,4 +43,8 @@ begin
 
   return v_customer_id;
 end;
+<<<<<<< ours
 $$;
+=======
+$$;
+>>>>>>> theirs

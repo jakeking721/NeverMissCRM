@@ -35,6 +35,7 @@ import Billing from "./pages/Settings/Billing";
 import Profile from "./pages/Profile";
 import QRCodePage from "./pages/QRCode";
 import CustomerIntake from "./pages/CustomerIntake";
+import IntakeRenderer from "./pages/intake/IntakeRenderer";
 
 import Help from "./pages/Help";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -71,6 +72,9 @@ export default function App() {
 
           {/* Public intake (legacy path kept) */}
           <Route path="/u/:username" element={<CustomerIntake />} />
+
+          {/* Dynamic campaign intake */}
+          <Route path="/intake/:campaignId/:formSlug" element={<IntakeRenderer />} />
 
           {/* Public intake (new slug-based path) */}
           <Route path="/intake/:slug" element={<CustomerIntake />} />
