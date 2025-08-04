@@ -1,0 +1,24 @@
+name: Supabase Deploy
+
+on:
+  push:
+    branches: [ main ]          # run after every merge to main
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install --global supabase
+
+      - run: supabase login --access-token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - run: supabase db push
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
