@@ -1,15 +1,23 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { FiX } from "react-icons/fi";
 
 interface Props {
   id: string;
   block: any;
   selected: boolean;
   onSelect(): void;
+  onDelete(id: string): void;
 }
 
-export default function DraggableBlock({ id, block, selected, onSelect }: Props) {
+export default function DraggableBlock({
+  id,
+  block,
+  selected,
+  onSelect,
+  onDelete,
+}: Props) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -22,10 +30,21 @@ export default function DraggableBlock({ id, block, selected, onSelect }: Props)
       {...attributes}
       {...listeners}
       onClick={onSelect}
-      className={`border rounded p-2 mb-2 bg-white cursor-move ${
+      className={`relative border rounded p-2 mb-2 bg-white cursor-move ${
         selected ? "ring-2 ring-blue-500" : ""
       }`}
     >
+      <button
+        type="button"
+        aria-label="Delete block"
+        className="absolute top-1 right-1 p-1 rounded text-gray-500 hover:text-red-600"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(id);
+        }}
+      >
+        <FiX />
+      </button>
       {renderBlock(block)}
     </div>
   );

@@ -91,6 +91,13 @@ export default function FormBuilder() {
     setBlocks(blocks.map((b) => (b.id === selected ? { ...b, ...updates } : b)));
   };
 
+  const deleteBlock = (id: string) => {
+    setBlocks((prev) => prev.filter((b) => b.id !== id));
+    if (selected === id) {
+      setSelected(null);
+    }
+  };
+
   const handleSave = async () => {
     const payload: any = { schema_json: { blocks, style } };
     if (formId && formId !== "new") payload.id = formId;
@@ -117,6 +124,7 @@ export default function FormBuilder() {
                 block={b}
                 selected={selected === b.id}
                 onSelect={() => setSelected(b.id)}
+                onDelete={deleteBlock}
               />
             ))}
           </SortableContext>

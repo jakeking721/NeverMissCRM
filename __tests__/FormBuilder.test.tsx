@@ -69,3 +69,30 @@ test("clicking block opens inspector and updates preview", async () => {
   // Preview should update
   expect(screen.getAllByText("Hello").length).toBeGreaterThan(0);
 });
+
+test("removes block when delete icon is clicked", async () => {
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={["/builder"]}>
+        <Routes>
+          <Route path="/builder" element={<FormList />} />
+          <Route path="/builder/:formId" element={<FormBuilder />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  });
+
+  const newBtn = await screen.findByText(/New Form/i);
+  fireEvent.click(newBtn);
+
+  fireEvent.click(await screen.findByText("Text"));
+
+  expect(screen.getAllByText("Text").length).toBeGreaterThan(1);
+
+  const deleteBtn = await screen.findByLabelText("Delete block");
+  fireEvent.click(deleteBtn);
+
+  await vi.waitFor(() => {
+    expect(screen.getAllByText("Text").length).toBe(1);
+  });
+});

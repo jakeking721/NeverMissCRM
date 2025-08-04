@@ -4,3 +4,4 @@
 - Investigate remaining React Router `act(...)` warnings in `__tests__/FormBuilder.test.tsx` and ensure routing updates are wrapped properly if desired.
 - Review responsive layout of the Form Builder and other pages on mobile devices; adjust Tailwind classes as needed.
 - Address npm warning about unknown `http-proxy` env config in deployment environment.
+- Block deletion in the Form Builder only updates in-memory state until a form is saved; ensure no deleted blocks remain in the database after publishing. No new temporary data was added.
