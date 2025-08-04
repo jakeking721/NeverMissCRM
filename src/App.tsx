@@ -36,6 +36,8 @@ import Profile from "./pages/Profile";
 import QRCodePage from "./pages/QRCode";
 import CustomerIntake from "./pages/CustomerIntake";
 import IntakeRenderer from "./pages/intake/IntakeRenderer";
+import FormList from "./pages/builder/FormList";
+import FormBuilder from "./pages/builder/FormBuilder";
 
 import Help from "./pages/Help";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -120,14 +122,31 @@ export default function App() {
             }
           />
 
-          <Route
-            path="/campaigns/new"
-            element={
-              <ProtectedRoute>
-                <CampaignBuilder />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/campaigns/new"
+              element={
+                <ProtectedRoute>
+                  <CampaignBuilder />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/builder"
+              element={
+                <ProtectedRoute>
+                  <FormList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/builder/:formId"
+              element={
+                <ProtectedRoute>
+                  <FormBuilder />
+                </ProtectedRoute>
+              }
+            />
 
           <Route
             path="/analytics"

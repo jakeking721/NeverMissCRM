@@ -19,6 +19,9 @@
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
+      "@dnd-kit/core": ["src/shims/dnd-kit/core"],
+      "@dnd-kit/sortable": ["src/shims/dnd-kit/sortable"],
+      "@dnd-kit/utilities": ["src/shims/dnd-kit/utilities"],
       "@utils/*": ["src/utils/*"],
       "@assets/*": ["src/assets/*"]
     }
