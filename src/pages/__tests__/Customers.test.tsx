@@ -5,12 +5,12 @@ import Customers from "../../pages/Customers";
 import { AuthProvider } from "../../context/AuthContext";
 
 describe("<Customers />", () => {
-  it("renders the title", () => {
+  it("renders the title", async () => {
     render(
       <AuthProvider>
         <Customers />
       </AuthProvider>
     );
-    expect(screen.getByText(/Customers/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Customers/i)).toBeInTheDocument();
   });
 });

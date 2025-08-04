@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { vi } from "vitest";
 
@@ -15,14 +15,16 @@ vi.mock("@/services/forms", () => ({
 import { saveForm } from "@/services/forms";
 
 test("adds text block and saves", async () => {
-  render(
-    <MemoryRouter initialEntries={["/builder"]}>
-      <Routes>
-        <Route path="/builder" element={<FormList />} />
-        <Route path="/builder/:formId" element={<FormBuilder />} />
-      </Routes>
-    </MemoryRouter>
-  );
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={["/builder"]}>
+        <Routes>
+          <Route path="/builder" element={<FormList />} />
+          <Route path="/builder/:formId" element={<FormBuilder />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  });
 
   const newBtn = await screen.findByText(/New Form/i);
   fireEvent.click(newBtn);
@@ -39,14 +41,16 @@ test("adds text block and saves", async () => {
 });
 
 test("clicking block opens inspector and updates preview", async () => {
-  render(
-    <MemoryRouter initialEntries={["/builder"]}>
-      <Routes>
-        <Route path="/builder" element={<FormList />} />
-        <Route path="/builder/:formId" element={<FormBuilder />} />
-      </Routes>
-    </MemoryRouter>
-  );
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={["/builder"]}>
+        <Routes>
+          <Route path="/builder" element={<FormList />} />
+          <Route path="/builder/:formId" element={<FormBuilder />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  });
 
   const newBtn = await screen.findByText(/New Form/i);
   fireEvent.click(newBtn);

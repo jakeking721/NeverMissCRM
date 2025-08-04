@@ -1,0 +1,6 @@
+- Replace the temporary SMS service in `src/services/smsService.ts` with a real provider (e.g., Twilio) and remove `alert` calls and localStorage logging.
+- Configure production environment variables for SMS API credentials and scheduling backend.
+- Clean up any demo SMS logs stored in localStorage before launch.
+- Investigate remaining React Router `act(...)` warnings in `__tests__/FormBuilder.test.tsx` and ensure routing updates are wrapped properly if desired.
+- Review responsive layout of the Form Builder and other pages on mobile devices; adjust Tailwind classes as needed.
+- Address npm warning about unknown `http-proxy` env config in deployment environment.
