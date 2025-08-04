@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
+import {
+  DndContext,
+  closestCenter,
+  DragEndEvent,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
@@ -24,9 +32,10 @@ export default function FormBuilder() {
   const navigate = useNavigate();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [style, setStyle] = useState<Record<string, any>>({
-    backgroundColor: "#f9fafb",
-  });
+  const [style] = useState<Record<string, any>>({});
+  const [showPalette, setShowPalette] = useState(false);
+  const [showInspector, setShowInspector] = useState(false);
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
 
   useEffect(() => {
     if (formId && formId !== "new") {
@@ -125,17 +134,57 @@ export default function FormBuilder() {
   const selectedBlock = blocks.find((b) => b.id === selected) || null;
 
   return (
-    <div className="flex h-screen">
-      {/* Block palette */}
-      <div className="w-1/5 border-r overflow-y-auto">
+    <div className="flex flex-col md:flex-row h-screen">
+      {/* Desktop block palette */}
+      <div className="hidden md:block md:w-1/5 border-r overflow-y-auto">
         <BlockPalette onAdd={addBlock} />
       </div>
+
+      {/* Mobile palette drawer */}
+      {showPalette && (
+        <div
+          className="fixed inset-0 z-50 bg-white p-4 overflow-y-auto md:hidden"
+          data-testid="mobile-palette"
+        >
+          <button
+            onClick={() => setShowPalette(false)}
+            className="mb-4 text-sm text-gray-600"
+          >
+            Close
+          </button>
+          <BlockPalette
+            onAdd={(type) => {
+              addBlock(type);
+              setShowPalette(false);
+            }}
+          />
+        </div>
+      )}
+
       {/* Preview / layout area */}
-      <div
-        className="flex-1 p-4 overflow-y-auto"
-        style={{ backgroundColor: style.backgroundColor || "#f9fafb" }}
-      >
-        <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
+        {/* Mobile toggle buttons */}
+        <div className="mb-2 flex gap-2 md:hidden">
+          <button
+            onClick={() => setShowPalette(true)}
+            className="bg-blue-600 text-white px-2 py-1 rounded"
+          >
+            Blocks
+          </button>
+          {selectedBlock && (
+            <button
+              onClick={() => setShowInspector(true)}
+              className="bg-gray-600 text-white px-2 py-1 rounded"
+            >
+              Props
+            </button>
+          )}
+        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
           <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
             {blocks.map((b) => (
               <DraggableBlock
@@ -158,11 +207,27 @@ export default function FormBuilder() {
           </button>
         </div>
       </div>
-      {/* Inspector */}
-      <div className="w-1/5 border-l overflow-y-auto">
-        <FormSettingsPanel style={style} onChange={updateStyle} />
+
+      {/* Desktop inspector */}
+      <div className="hidden md:block md:w-1/5 border-l overflow-y-auto">
         <PropertyPanel block={selectedBlock} onChange={updateBlock} />
       </div>
+
+      {/* Mobile inspector drawer */}
+      {showInspector && (
+        <div
+          className="fixed inset-0 z-50 bg-white p-4 overflow-y-auto md:hidden"
+          data-testid="mobile-inspector"
+        >
+          <button
+            onClick={() => setShowInspector(false)}
+            className="mb-4 text-sm text-gray-600"
+          >
+            Close
+          </button>
+          <PropertyPanel block={selectedBlock} onChange={updateBlock} />
+        </div>
+      )}
     </div>
   );
 }

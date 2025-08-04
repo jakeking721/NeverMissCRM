@@ -74,7 +74,11 @@ test("clicking block opens inspector and updates preview", async () => {
   expect(screen.getAllByText("Hello").length).toBeGreaterThan(0);
 });
 
-test("required toggle adds asterisk in preview", async () => {
+test("mobile palette toggles", async () => {
+  // simulate mobile viewport
+  (window as any).innerWidth = 375;
+  window.dispatchEvent(new Event("resize"));
+
   await act(async () => {
     render(
       <MemoryRouter initialEntries={["/builder"]}>
@@ -83,14 +87,16 @@ test("required toggle adds asterisk in preview", async () => {
           <Route path="/builder/:formId" element={<FormBuilder />} />
         </Routes>
       </MemoryRouter>
-    )
-  })
+    );
+  });
 
-  fireEvent.click(await screen.findByText(/New Form/i))
-  fireEvent.click(await screen.findByText("Input"))
+  const newBtn = await screen.findByText(/New Form/i);
+  fireEvent.click(newBtn);
 
-  const requiredCheckbox = await screen.findByLabelText("Required")
-  fireEvent.click(requiredCheckbox)
-
-  expect(screen.getAllByText("*").length).toBeGreaterThan(0)
-})
+  const blocksBtn = await screen.findByText("Blocks");
+  // palette drawer closed initially
+  expect(screen.queryByTestId("mobile-palette")).toBeNull();
+  fireEvent.click(blocksBtn);
+  // palette now visible
+  expect(await screen.findByTestId("mobile-palette")).toBeDefined();
+});

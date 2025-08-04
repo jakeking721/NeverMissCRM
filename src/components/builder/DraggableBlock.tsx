@@ -30,7 +30,7 @@ export default function DraggableBlock({
       {...attributes}
       {...listeners}
       onClick={onSelect}
-      className={`relative border rounded p-2 mb-2 bg-white cursor-move ${
+      className={`border rounded p-2 mb-2 bg-white select-none touch-none cursor-grab active:cursor-grabbing ${
         selected ? "ring-2 ring-blue-500" : ""
       }`}
     >

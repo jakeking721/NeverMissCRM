@@ -2,7 +2,8 @@
 - Configure production environment variables for SMS API credentials and scheduling backend.
 - Clean up any demo SMS logs stored in localStorage before launch.
 - Investigate remaining React Router `act(...)` warnings in `__tests__/FormBuilder.test.tsx` and ensure routing updates are wrapped properly if desired.
-- Review responsive layout of the Form Builder and other pages on mobile devices; adjust Tailwind classes as needed.
+- Manually verify the new mobile block palette and property panel drawers on multiple real devices and screen sizes, adjusting Tailwind styles if any layout issues arise.
+- Test touch drag-and-drop in the form builder on physical iOS/Android browsers to confirm sensors and styles handle mobile gestures.
 - Address npm warning about unknown `http-proxy` env config in deployment environment.
 - Implement server-side validation for new PDF/Link acknowledgement fields (`ack_<id>`) introduced in `IntakeRenderer.tsx`.
 - Replace placeholder acknowledgement text in intake forms with finalized copy and ensure analytics track interactions if required.
