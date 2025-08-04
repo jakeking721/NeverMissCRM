@@ -15,9 +15,6 @@ export default defineConfig({
         '@pages': path.resolve(__dirname, 'src/pages'),
         '@utils': path.resolve(__dirname, 'src/utils'),
         '@assets': path.resolve(__dirname, 'src/assets'),
-        '@dnd-kit/core': path.resolve(__dirname, 'src/shims/dnd-kit/core'),
-        '@dnd-kit/sortable': path.resolve(__dirname, 'src/shims/dnd-kit/sortable'),
-        '@dnd-kit/utilities': path.resolve(__dirname, 'src/shims/dnd-kit/utilities'),
       },
     },
   css: {
