@@ -2,8 +2,7 @@
 // -----------------------------------------------------------------------------
 // Renders a campaign intake form from JSON schema
 // - Fetches campaign_forms.schema_json by :campaignId / :formSlug
-// - Supports blocks: Text, Image, Input (text/email/phone), Checkbox, Multi-Select,
-//   Button, PDF, Link
+// - Supports blocks: Text, Image, Input (text/email/phone), Choice, Button, PDF, Link
 // - Validates inputs with Yup and submits via services/intake.submitIntake
 // -----------------------------------------------------------------------------
 
@@ -20,51 +19,53 @@ interface RouteParams {
   formSlug: string;
 }
 
-interface TextBlock { type: "text"; text: string; }
-interface ImageBlock { type: "image"; url: string; alt?: string; }
-interface InputBlock {
-  type: "input";
-  name: string;
-  label?: string;
-  inputType: "text" | "email" | "phone";
-  required?: boolean;
+interface BaseBlock { id: string; type: string }
+interface TextBlock extends BaseBlock { type: "text"; text: string }
+interface ImageBlock extends BaseBlock {
+  type: "image"
+  url: string
+  alt?: string
 }
-interface CheckboxBlock {
-  type: "checkbox";
-  name: string;
-  label?: string;
-  options: string[];
-  required?: boolean;
+interface InputBlock extends BaseBlock {
+  type: "input"
+  name: string
+  label?: string
+  inputType: "text" | "email" | "phone"
+  required?: boolean
 }
-interface MultiSelectBlock {
-  type: "multiselect";
-  name: string;
-  label?: string;
-  options: string[];
-  required?: boolean;
+interface ChoiceBlock extends BaseBlock {
+  type: "choice"
+  name: string
+  label?: string
+  options: string[]
+  required?: boolean
 }
-interface ButtonBlock { type: "button"; text: string; }
-interface PdfBlock { type: "pdf"; url: string; }
-interface LinkBlock { type: "link"; text: string; url: string; }
+interface ButtonBlock extends BaseBlock { type: "button"; text: string }
+interface PdfBlock extends BaseBlock { type: "pdf"; url: string; required?: boolean }
+interface LinkBlock extends BaseBlock {
+  type: "link"
+  text: string
+  url: string
+  required?: boolean
+}
 
 type Block =
   | TextBlock
   | ImageBlock
   | InputBlock
-  | CheckboxBlock
-  | MultiSelectBlock
+  | ChoiceBlock
   | ButtonBlock
   | PdfBlock
-  | LinkBlock;
+  | LinkBlock
 
 export default function IntakeRenderer() {
   const { campaignId, formSlug } = useParams<RouteParams>();
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [values, setValues] = useState<Record<string, any>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [blocks, setBlocks] = useState<Block[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [values, setValues] = useState<Record<string, any>>({})
+  const [submitted, setSubmitted] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let mounted = true;
@@ -82,14 +83,15 @@ export default function IntakeRenderer() {
           setLoading(false);
           return;
         }
-        const schemaBlocks: Block[] = data.schema_json?.blocks ?? [];
-        setBlocks(schemaBlocks);
-        const initVals: Record<string, any> = {};
+        const schemaBlocks: Block[] = data.schema_json?.blocks ?? []
+        setBlocks(schemaBlocks)
+        const initVals: Record<string, any> = {}
         schemaBlocks.forEach((b) => {
-          if (b.type === "input") initVals[b.name] = "";
-          if (b.type === "checkbox" || b.type === "multiselect") initVals[b.name] = [];
-        });
-        setValues(initVals);
+          if (b.type === "input" || b.type === "choice") initVals[b.name] = ""
+          if ((b.type === "pdf" || b.type === "link") && b.required)
+            initVals[`ack_${b.id}`] = false
+        })
+        setValues(initVals)
       } catch (e: any) {
         if (!mounted) return;
         setError(e?.message || "Failed to load form");
@@ -103,18 +105,26 @@ export default function IntakeRenderer() {
   }, [campaignId, formSlug]);
 
   const buildValidation = () => {
-    const shape: Record<string, any> = {};
+    const shape: Record<string, any> = {}
     blocks.forEach((b) => {
       if (b.type === "input") {
-        let validator = yup.string();
-        if (b.inputType === "email") validator = validator.email("Invalid email");
+        let validator = yup.string()
+        if (b.inputType === "email") validator = validator.email("Invalid email")
         if (b.inputType === "phone")
-          validator = validator.matches(/^[0-9()+\-\s]+$/u, "Invalid phone");
-        if (b.required) validator = validator.required("Required");
-        shape[b.name] = validator;
+          validator = validator.matches(/^[0-9()+\-\s]+$/u, "Invalid phone")
+        if (b.required) validator = validator.required("Required")
+        shape[b.name] = validator
       }
-    });
-    return yup.object().shape(shape);
+      if (b.type === "choice") {
+        let validator = yup.string()
+        if (b.required) validator = validator.required("Required")
+        shape[b.name] = validator
+      }
+      if ((b.type === "pdf" || b.type === "link") && b.required) {
+        shape[`ack_${b.id}`] = yup.boolean().oneOf([true], "Required")
+      }
+    })
+    return yup.object().shape(shape)
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -168,35 +178,34 @@ export default function IntakeRenderer() {
       <div className="bg-white w-full max-w-md p-6 rounded shadow">
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {blocks.map((block, idx) => {
+          {blocks.map((block) => {
             switch (block.type) {
               case "text":
                 return (
-                  <p key={idx} className="text-gray-700">
+                  <p key={block.id} className="text-gray-700">
                     {block.text}
                   </p>
-                );
+                )
               case "image":
                 return (
                   <img
-                    key={idx}
+                    key={block.id}
                     src={block.url}
                     alt={block.alt || ""}
                     className="w-full"
                   />
-                );
+                )
               case "input":
                 return (
-                  <div key={block.name}>
+                  <div key={block.id}>
                     {block.label && (
                       <label className="block text-sm font-medium mb-1">
                         {block.label}
+                        {block.required && <span className="text-red-500 ml-1">*</span>}
                       </label>
                     )}
                     <input
-                      type={
-                        block.inputType === "phone" ? "tel" : block.inputType
-                      }
+                      type={block.inputType === "phone" ? "tel" : block.inputType}
                       value={values[block.name] || ""}
                       onChange={(e) =>
                         setValues({ ...values, [block.name]: e.target.value })
@@ -209,62 +218,28 @@ export default function IntakeRenderer() {
                       </p>
                     )}
                   </div>
-                );
-              case "checkbox":
+                )
+              case "choice":
                 return (
-                  <div key={block.name}>
-                    {block.label && (
-                      <span className="block text-sm font-medium mb-1">
-                        {block.label}
-                      </span>
-                    )}
-                    <div className="space-y-1">
-                      {block.options.map((o, i) => (
-                        <label key={i} className="flex items-center space-x-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={values[block.name]?.includes(o)}
-                            onChange={(e) => {
-                              const current: string[] = values[block.name] || [];
-                              const next = e.target.checked
-                                ? [...current, o]
-                                : current.filter((v) => v !== o);
-                              setValues({ ...values, [block.name]: next });
-                            }}
-                          />
-                          <span>{o}</span>
-                        </label>
-                      ))}
-                    </div>
-                    {fieldErrors[block.name] && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {fieldErrors[block.name]}
-                      </p>
-                    )}
-                  </div>
-                );
-              case "multiselect":
-                return (
-                  <div key={block.name}>
+                  <div key={block.id}>
                     {block.label && (
                       <label className="block text-sm font-medium mb-1">
                         {block.label}
+                        {block.required && <span className="text-red-500 ml-1">*</span>}
                       </label>
                     )}
                     <select
-                      multiple
-                      value={values[block.name] || []}
-                      onChange={(e) => {
-                        const selected = Array.from(
-                          e.target.selectedOptions,
-                          (opt) => opt.value
-                        );
-                        setValues({ ...values, [block.name]: selected });
-                      }}
-                      className="w-full border rounded p-2 h-24"
+                      value={values[block.name] || ""}
+                      onChange={(e) =>
+                        setValues({ ...values, [block.name]: e.target.value })
+                      }
+                      className="w-full border rounded p-2"
                     >
-                      {block.options.map((o, i) => (
-                        <option key={i}>{o}</option>
+                      <option value="">Select…</option>
+                      {(block.options || []).map((o, i) => (
+                        <option key={i} value={o}>
+                          {o}
+                        </option>
                       ))}
                     </select>
                     {fieldErrors[block.name] && (
@@ -273,39 +248,78 @@ export default function IntakeRenderer() {
                       </p>
                     )}
                   </div>
-                );
+                )
               case "button":
                 return (
                   <button
-                    key={idx}
+                    key={block.id}
                     type="submit"
                     className="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800"
                   >
                     {block.text}
                   </button>
-                );
+                )
               case "pdf":
                 return (
-                  <iframe
-                    key={idx}
-                    src={block.url}
-                    className="w-full h-64 border"
-                  />
-                );
+                  <div key={block.id}>
+                    <iframe src={block.url} className="w-full h-64 border" />
+                    {block.required && (
+                      <label className="flex items-center mt-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={!!values[`ack_${block.id}`]}
+                          onChange={(e) =>
+                            setValues({
+                              ...values,
+                              [`ack_${block.id}`]: e.target.checked,
+                            })
+                          }
+                        />
+                        <span className="ml-2">I acknowledge</span>
+                      </label>
+                    )}
+                    {fieldErrors[`ack_${block.id}`] && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {fieldErrors[`ack_${block.id}`]}
+                      </p>
+                    )}
+                  </div>
+                )
               case "link":
                 return (
-                  <a
-                    key={idx}
-                    href={block.url}
-                    className="text-blue-600 underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {block.text}
-                  </a>
-                );
+                  <div key={block.id}>
+                    <a
+                      href={block.url}
+                      className="text-blue-600 underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {block.text}
+                    </a>
+                    {block.required && (
+                      <label className="flex items-center mt-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={!!values[`ack_${block.id}`]}
+                          onChange={(e) =>
+                            setValues({
+                              ...values,
+                              [`ack_${block.id}`]: e.target.checked,
+                            })
+                          }
+                        />
+                        <span className="ml-2">I acknowledge</span>
+                      </label>
+                    )}
+                    {fieldErrors[`ack_${block.id}`] && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {fieldErrors[`ack_${block.id}`]}
+                      </p>
+                    )}
+                  </div>
+                )
               default:
-                return null;
+                return null
             }
           })}
           <p className="text-[10px] text-gray-500 text-center">

@@ -66,7 +66,12 @@ function renderBlock(block: any) {
     case "input":
       return (
         <div>
-          {block.label && <label className="block text-sm mb-1">{block.label}</label>}
+          {block.label && (
+            <label className="block text-sm mb-1">
+              {block.label}
+              {block.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+          )}
           <input
             className="w-full border rounded p-1"
             placeholder={block.placeholder || ""}
@@ -78,8 +83,13 @@ function renderBlock(block: any) {
     case "choice":
       return (
         <div>
-          {block.label && <label className="block text-sm mb-1">{block.label}</label>}
-          <select className="w-full border rounded p-1">
+          {block.label && (
+            <label className="block text-sm mb-1">
+              {block.label}
+              {block.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+          )}
+          <select className="w-full border rounded p-1" disabled>
             {(block.options || []).map((o: string, i: number) => (
               <option key={i}>{o}</option>
             ))}
@@ -112,11 +122,17 @@ function renderBlock(block: any) {
         </div>
       );
     case "pdf":
-      return <div className="text-sm text-gray-600">PDF: {block.url || ""}</div>;
+      return (
+        <div className="text-sm text-gray-600">
+          PDF: {block.url || ""}
+          {block.required && <span className="text-red-500 ml-1">*</span>}
+        </div>
+      );
     case "link":
       return (
         <a href={block.url || "#"} className="text-blue-600 underline">
           {block.text || "Link"}
+          {block.required && <span className="text-red-500 ml-1">*</span>}
         </a>
       );
     case "button":

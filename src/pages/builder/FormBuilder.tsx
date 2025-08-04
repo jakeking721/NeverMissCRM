@@ -78,10 +78,12 @@ export default function FormBuilder() {
         break;
       case "pdf":
         block.url = "";
+        block.required = false;
         break;
       case "link":
         block.text = "Link";
         block.url = "https://";
+        block.required = false;
         break;
       case "button":
         block.text = "Submit";

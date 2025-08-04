@@ -74,7 +74,7 @@ test("clicking block opens inspector and updates preview", async () => {
   expect(screen.getAllByText("Hello").length).toBeGreaterThan(0);
 });
 
-test("adds checkbox and multiselect blocks and edits properties", async () => {
+test("required toggle adds asterisk in preview", async () => {
   await act(async () => {
     render(
       <MemoryRouter initialEntries={["/builder"]}>
@@ -83,21 +83,14 @@ test("adds checkbox and multiselect blocks and edits properties", async () => {
           <Route path="/builder/:formId" element={<FormBuilder />} />
         </Routes>
       </MemoryRouter>
-    );
-  });
+    )
+  })
 
-  const newBtn = await screen.findByText(/New Form/i);
-  fireEvent.click(newBtn);
+  fireEvent.click(await screen.findByText(/New Form/i))
+  fireEvent.click(await screen.findByText("Input"))
 
-  // Add checkbox block and edit label
-  fireEvent.click(await screen.findByText("Checkbox"));
-  const labelInput = await screen.findByDisplayValue("Label");
-  fireEvent.change(labelInput, { target: { value: "Pick" } });
-  expect(screen.getByText("Pick")).toBeInTheDocument();
+  const requiredCheckbox = await screen.findByLabelText("Required")
+  fireEvent.click(requiredCheckbox)
 
-  // Add multiselect block and edit options
-  fireEvent.click(await screen.findByText("Multi-Select"));
-  const optionsArea = await screen.findByDisplayValue(/Option 1/);
-  fireEvent.change(optionsArea, { target: { value: "One\nTwo" } });
-  expect(screen.getAllByText("Two").length).toBeGreaterThan(0);
-});
+  expect(screen.getAllByText("*").length).toBeGreaterThan(0)
+})

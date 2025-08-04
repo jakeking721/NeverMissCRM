@@ -168,6 +168,14 @@ export default function PropertyPanel({ block, onChange }: Props) {
             value={block.url || ""}
             onChange={(e) => onChange({ url: e.target.value })}
           />
+          <label className="inline-flex items-center space-x-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!block.required}
+              onChange={(e) => onChange({ required: e.target.checked })}
+            />
+            <span>Required</span>
+          </label>
         </div>
       );
     case "link":
@@ -185,6 +193,14 @@ export default function PropertyPanel({ block, onChange }: Props) {
             value={block.url || ""}
             onChange={(e) => onChange({ url: e.target.value })}
           />
+          <label className="inline-flex items-center space-x-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!block.required}
+              onChange={(e) => onChange({ required: e.target.checked })}
+            />
+            <span>Required</span>
+          </label>
         </div>
       );
     case "button":
