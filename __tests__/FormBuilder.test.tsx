@@ -32,12 +32,16 @@ test("adds text block and saves", async () => {
   const textBtn = await screen.findByText("Text");
   fireEvent.click(textBtn);
 
+  const colorInput = screen.getByLabelText("Background Color");
+  fireEvent.change(colorInput, { target: { value: "#ff0000" } });
+
   const saveBtn = await screen.findByText("Save");
   fireEvent.click(saveBtn);
 
   await vi.waitFor(() => expect(saveForm).toHaveBeenCalled());
   const payload = (saveForm as any).mock.calls[0][0];
   expect(payload.schema_json.blocks[0].type).toBe("text");
+  expect(payload.schema_json.style.backgroundColor).toBe("#ff0000");
 });
 
 test("clicking block opens inspector and updates preview", async () => {

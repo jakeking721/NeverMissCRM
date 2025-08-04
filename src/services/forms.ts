@@ -3,7 +3,15 @@ import { supabase } from "@/utils/supabaseClient";
 export async function fetchForms() {
   const { data, error } = await supabase.from("campaign_forms").select("*");
   if (error) throw error;
-  return data;
+  return (
+    data?.map((f: any) => ({
+      ...f,
+      schema_json: {
+        blocks: f?.schema_json?.blocks || [],
+        style: f?.schema_json?.style || {},
+      },
+    })) || []
+  );
 }
 
 export async function fetchForm(id: string) {
@@ -13,13 +21,18 @@ export async function fetchForm(id: string) {
     .eq("id", id)
     .single();
   if (error) throw error;
-  return data;
+  const blocks = data?.schema_json?.blocks || [];
+  const style = data?.schema_json?.style || {};
+  return { ...data, schema_json: { blocks, style } };
 }
 
 export async function saveForm(payload: any) {
+  const { schema_json, ...rest } = payload;
+  const blocks = schema_json?.blocks || [];
+  const style = schema_json?.style || {};
   const { data, error } = await supabase
     .from("campaign_forms")
-    .upsert(payload)
+    .upsert({ ...rest, schema_json: { blocks, style } })
     .select()
     .single();
   if (error) throw error;

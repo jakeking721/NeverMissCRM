@@ -10,6 +10,7 @@ import {
 import BlockPalette from "@/components/builder/BlockPalette";
 import DraggableBlock from "@/components/builder/DraggableBlock";
 import PropertyPanel from "@/components/builder/PropertyPanel";
+import FormSettingsPanel from "@/components/builder/FormSettingsPanel";
 import { fetchForm, saveForm } from "@/services/forms";
 
 interface Block {
@@ -23,12 +24,17 @@ export default function FormBuilder() {
   const navigate = useNavigate();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [style] = useState<Record<string, any>>({});
+  const [style, setStyle] = useState<Record<string, any>>({
+    backgroundColor: "#f9fafb",
+  });
 
   useEffect(() => {
     if (formId && formId !== "new") {
       fetchForm(formId)
-        .then((f) => setBlocks(f?.schema_json?.blocks || []))
+        .then((f) => {
+          setBlocks(f?.schema_json?.blocks || []);
+          setStyle(f?.schema_json?.style || { backgroundColor: "#f9fafb" });
+        })
         .catch(console.error);
     }
   }, [formId]);
@@ -91,11 +97,8 @@ export default function FormBuilder() {
     setBlocks(blocks.map((b) => (b.id === selected ? { ...b, ...updates } : b)));
   };
 
-  const deleteBlock = (id: string) => {
-    setBlocks((prev) => prev.filter((b) => b.id !== id));
-    if (selected === id) {
-      setSelected(null);
-    }
+  const updateStyle = (updates: Record<string, any>) => {
+    setStyle({ ...style, ...updates });
   };
 
   const handleSave = async () => {
@@ -114,7 +117,10 @@ export default function FormBuilder() {
         <BlockPalette onAdd={addBlock} />
       </div>
       {/* Preview / layout area */}
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
+      <div
+        className="flex-1 p-4 overflow-y-auto"
+        style={{ backgroundColor: style.backgroundColor || "#f9fafb" }}
+      >
         <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
             {blocks.map((b) => (
@@ -140,6 +146,7 @@ export default function FormBuilder() {
       </div>
       {/* Inspector */}
       <div className="w-1/5 border-l overflow-y-auto">
+        <FormSettingsPanel style={style} onChange={updateStyle} />
         <PropertyPanel block={selectedBlock} onChange={updateBlock} />
       </div>
     </div>
