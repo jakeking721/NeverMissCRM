@@ -86,6 +86,31 @@ function renderBlock(block: any) {
           </select>
         </div>
       );
+    case "checkbox":
+      return (
+        <div>
+          {block.label && <span className="block text-sm mb-1">{block.label}</span>}
+          <div className="space-y-1">
+            {(block.options || []).map((o: string, i: number) => (
+              <label key={i} className="flex items-center space-x-2 text-sm">
+                <input type="checkbox" disabled />
+                <span>{o}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      );
+    case "multiselect":
+      return (
+        <div>
+          {block.label && <label className="block text-sm mb-1">{block.label}</label>}
+          <select className="w-full border rounded p-1" multiple>
+            {(block.options || []).map((o: string, i: number) => (
+              <option key={i}>{o}</option>
+            ))}
+          </select>
+        </div>
+      );
     case "pdf":
       return <div className="text-sm text-gray-600">PDF: {block.url || ""}</div>;
     case "link":

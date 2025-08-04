@@ -5,6 +5,8 @@ const BLOCKS = [
   { type: "image", label: "Image" },
   { type: "input", label: "Input" },
   { type: "choice", label: "Choice" },
+  { type: "checkbox", label: "Checkbox" },
+  { type: "multiselect", label: "Multi-Select" },
   { type: "pdf", label: "PDF" },
   { type: "link", label: "Link" },
   { type: "button", label: "Button" },

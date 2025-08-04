@@ -2,7 +2,8 @@
 // -----------------------------------------------------------------------------
 // Renders a campaign intake form from JSON schema
 // - Fetches campaign_forms.schema_json by :campaignId / :formSlug
-// - Supports blocks: Text, Image, Input (text/email/phone), Button, PDF, Link
+// - Supports blocks: Text, Image, Input (text/email/phone), Checkbox, Multi-Select,
+//   Button, PDF, Link
 // - Validates inputs with Yup and submits via services/intake.submitIntake
 // -----------------------------------------------------------------------------
 
@@ -28,6 +29,20 @@ interface InputBlock {
   inputType: "text" | "email" | "phone";
   required?: boolean;
 }
+interface CheckboxBlock {
+  type: "checkbox";
+  name: string;
+  label?: string;
+  options: string[];
+  required?: boolean;
+}
+interface MultiSelectBlock {
+  type: "multiselect";
+  name: string;
+  label?: string;
+  options: string[];
+  required?: boolean;
+}
 interface ButtonBlock { type: "button"; text: string; }
 interface PdfBlock { type: "pdf"; url: string; }
 interface LinkBlock { type: "link"; text: string; url: string; }
@@ -36,6 +51,8 @@ type Block =
   | TextBlock
   | ImageBlock
   | InputBlock
+  | CheckboxBlock
+  | MultiSelectBlock
   | ButtonBlock
   | PdfBlock
   | LinkBlock;
@@ -45,7 +62,7 @@ export default function IntakeRenderer() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -67,9 +84,10 @@ export default function IntakeRenderer() {
         }
         const schemaBlocks: Block[] = data.schema_json?.blocks ?? [];
         setBlocks(schemaBlocks);
-        const initVals: Record<string, string> = {};
+        const initVals: Record<string, any> = {};
         schemaBlocks.forEach((b) => {
           if (b.type === "input") initVals[b.name] = "";
+          if (b.type === "checkbox" || b.type === "multiselect") initVals[b.name] = [];
         });
         setValues(initVals);
       } catch (e: any) {
@@ -106,6 +124,20 @@ export default function IntakeRenderer() {
     try {
       const schema = buildValidation();
       const valid = await schema.validate(values, { abortEarly: false });
+      const arrayErrors: Record<string, string> = {};
+      blocks.forEach((b) => {
+        if (
+          (b.type === "checkbox" || b.type === "multiselect") &&
+          b.required &&
+          (!values[b.name] || values[b.name].length === 0)
+        ) {
+          arrayErrors[b.name] = "Required";
+        }
+      });
+      if (Object.keys(arrayErrors).length) {
+        setFieldErrors(arrayErrors);
+        return;
+      }
       await submitIntake(valid);
       setSubmitted(true);
     } catch (err: any) {
@@ -171,6 +203,70 @@ export default function IntakeRenderer() {
                       }
                       className="w-full border rounded p-2"
                     />
+                    {fieldErrors[block.name] && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {fieldErrors[block.name]}
+                      </p>
+                    )}
+                  </div>
+                );
+              case "checkbox":
+                return (
+                  <div key={block.name}>
+                    {block.label && (
+                      <span className="block text-sm font-medium mb-1">
+                        {block.label}
+                      </span>
+                    )}
+                    <div className="space-y-1">
+                      {block.options.map((o, i) => (
+                        <label key={i} className="flex items-center space-x-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={values[block.name]?.includes(o)}
+                            onChange={(e) => {
+                              const current: string[] = values[block.name] || [];
+                              const next = e.target.checked
+                                ? [...current, o]
+                                : current.filter((v) => v !== o);
+                              setValues({ ...values, [block.name]: next });
+                            }}
+                          />
+                          <span>{o}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {fieldErrors[block.name] && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {fieldErrors[block.name]}
+                      </p>
+                    )}
+                  </div>
+                );
+              case "multiselect":
+                return (
+                  <div key={block.name}>
+                    {block.label && (
+                      <label className="block text-sm font-medium mb-1">
+                        {block.label}
+                      </label>
+                    )}
+                    <select
+                      multiple
+                      value={values[block.name] || []}
+                      onChange={(e) => {
+                        const selected = Array.from(
+                          e.target.selectedOptions,
+                          (opt) => opt.value
+                        );
+                        setValues({ ...values, [block.name]: selected });
+                      }}
+                      className="w-full border rounded p-2 h-24"
+                    >
+                      {block.options.map((o, i) => (
+                        <option key={i}>{o}</option>
+                      ))}
+                    </select>
                     {fieldErrors[block.name] && (
                       <p className="text-xs text-red-600 mt-1">
                         {fieldErrors[block.name]}

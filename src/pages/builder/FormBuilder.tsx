@@ -64,6 +64,18 @@ export default function FormBuilder() {
         block.options = ["Option 1", "Option 2"];
         block.required = false;
         break;
+      case "checkbox":
+        block.label = "Label";
+        block.name = `checkbox_${Date.now()}`;
+        block.options = ["Option 1", "Option 2"];
+        block.required = false;
+        break;
+      case "multiselect":
+        block.label = "Label";
+        block.name = `multiselect_${Date.now()}`;
+        block.options = ["Option 1", "Option 2"];
+        block.required = false;
+        break;
       case "pdf":
         block.url = "";
         break;

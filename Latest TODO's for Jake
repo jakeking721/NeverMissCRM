@@ -4,6 +4,6 @@
 - Investigate remaining React Router `act(...)` warnings in `__tests__/FormBuilder.test.tsx` and ensure routing updates are wrapped properly if desired.
 - Review responsive layout of the Form Builder and other pages on mobile devices; adjust Tailwind classes as needed.
 - Address npm warning about unknown `http-proxy` env config in deployment environment.
-- Confirm final background color for forms and replace placeholder `#f9fafb` if necessary.
-- Backfill existing `campaign_forms.schema_json` records with a `style.backgroundColor` value.
-- Test the new Form Settings panel on mobile browsers to ensure the color picker behaves correctly.
+- Replace demo option values ("Option 1", "Option 2") for new checkbox and multi-select form blocks with real choices in production.
+- Confirm backend handling and validation for checkbox and multi-select fields since client-side validation currently only checks for selections.
+- Review intake form styling for the new checkbox and multi-select blocks on mobile devices and refine as needed.

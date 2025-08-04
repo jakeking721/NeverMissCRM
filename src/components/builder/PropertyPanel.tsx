@@ -124,6 +124,41 @@ export default function PropertyPanel({ block, onChange }: Props) {
           </label>
         </div>
       );
+    case "checkbox":
+    case "multiselect":
+      return (
+        <div className="p-4 space-y-2">
+          <label className="block text-sm font-medium">Label</label>
+          <input
+            className="w-full border rounded p-1"
+            value={block.label || ""}
+            onChange={(e) => onChange({ label: e.target.value })}
+          />
+          <label className="block text-sm font-medium">Field Name</label>
+          <input
+            className="w-full border rounded p-1"
+            value={block.name || ""}
+            onChange={(e) => onChange({ name: e.target.value })}
+          />
+          <label className="block text-sm font-medium">Options (one per line)</label>
+          <textarea
+            className="w-full border rounded p-1"
+            rows={3}
+            value={(block.options || []).join("\n")}
+            onChange={(e) =>
+              onChange({ options: e.target.value.split("\n").filter(Boolean) })
+            }
+          />
+          <label className="inline-flex items-center space-x-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!block.required}
+              onChange={(e) => onChange({ required: e.target.checked })}
+            />
+            <span>Required</span>
+          </label>
+        </div>
+      );
     case "pdf":
       return (
         <div className="p-4 space-y-2">

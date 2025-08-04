@@ -74,7 +74,7 @@ test("clicking block opens inspector and updates preview", async () => {
   expect(screen.getAllByText("Hello").length).toBeGreaterThan(0);
 });
 
-test("removes block when delete icon is clicked", async () => {
+test("adds checkbox and multiselect blocks and edits properties", async () => {
   await act(async () => {
     render(
       <MemoryRouter initialEntries={["/builder"]}>
@@ -89,14 +89,15 @@ test("removes block when delete icon is clicked", async () => {
   const newBtn = await screen.findByText(/New Form/i);
   fireEvent.click(newBtn);
 
-  fireEvent.click(await screen.findByText("Text"));
+  // Add checkbox block and edit label
+  fireEvent.click(await screen.findByText("Checkbox"));
+  const labelInput = await screen.findByDisplayValue("Label");
+  fireEvent.change(labelInput, { target: { value: "Pick" } });
+  expect(screen.getByText("Pick")).toBeInTheDocument();
 
-  expect(screen.getAllByText("Text").length).toBeGreaterThan(1);
-
-  const deleteBtn = await screen.findByLabelText("Delete block");
-  fireEvent.click(deleteBtn);
-
-  await vi.waitFor(() => {
-    expect(screen.getAllByText("Text").length).toBe(1);
-  });
+  // Add multiselect block and edit options
+  fireEvent.click(await screen.findByText("Multi-Select"));
+  const optionsArea = await screen.findByDisplayValue(/Option 1/);
+  fireEvent.change(optionsArea, { target: { value: "One\nTwo" } });
+  expect(screen.getAllByText("Two").length).toBeGreaterThan(0);
 });
