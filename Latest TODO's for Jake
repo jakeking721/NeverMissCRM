@@ -1,12 +1,11 @@
 - Replace the temporary SMS service in `src/services/smsService.ts` with a real provider (e.g., Twilio) and remove `alert` calls and localStorage logging.
 - Configure production environment variables for SMS API credentials and scheduling backend.
 - Clean up any demo SMS logs stored in localStorage before launch.
-- Investigate remaining React Router `act(...)` warnings in `__tests__/FormBuilder.test.tsx` and ensure routing updates are wrapped properly if desired.
 - Manually verify the new mobile block palette and property panel drawers on multiple real devices and screen sizes, adjusting Tailwind styles if any layout issues arise.
 - Test touch drag-and-drop in the form builder on physical iOS/Android browsers to confirm sensors and styles handle mobile gestures.
-- Address npm warning about unknown `http-proxy` env config in deployment environment.
+- Address npm warning about unknown `http-proxy` env config in deployment environment. Steps: (1) Remove `http-proxy` and `https-proxy` environment variables or rename to `HTTP_PROXY`/`HTTPS_PROXY`. (2) Use `npm config set proxy <url>` if a proxy is required.
 - Replace placeholder package name `nevermisscrm_placeholder` in `package.json` and `package-lock.json`. Steps: (1) Edit both files with final name. (2) Run `npm install`.
 - Remove demo seed scripts (`src/dev/seed.ts` and `src/dev/seed.local.ts`) and delete any sample accounts from production. Steps: (1) Delete scripts. (2) Purge demo users.
-- Apply Supabase migrations in `supabase/migrations` to create `campaign_forms` table and policies. Steps: (1) Run `supabase db push` from project root. (2) Confirm table exists.
-- Set `.env` variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_PUBLIC_APP_URL` (deployed base URL without trailing slash). Steps: (1) Create/update `.env`. (2) Add values.
+- Apply Supabase migrations in `supabase/migrations` to create `campaign_forms` table and policies. Steps: (1) Run `supabase login` with a valid access token. (2) Run `supabase db push` from project root. (3) Confirm table exists.
+- Ensure `.env` variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_PUBLIC_APP_URL` are set to production values (placeholders currently committed). Steps: (1) Edit `.env` with real URLs/keys. (2) Redeploy.
 - After integrating a real SMS provider, update `src/utils/credits.ts` `DEFAULT_SMS_COST_PER_SEGMENT` and remove `src/utils/demoSMS.ts`. Steps: (1) Adjust constant to provider rate. (2) Delete file and references.

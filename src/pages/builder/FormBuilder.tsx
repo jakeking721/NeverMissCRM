@@ -32,7 +32,7 @@ export default function FormBuilder() {
   const navigate = useNavigate();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [style] = useState<Record<string, any>>({});
+  const [style, setStyle] = useState<Record<string, any>>({});
   const [showPalette, setShowPalette] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
@@ -124,6 +124,11 @@ export default function FormBuilder() {
     setStyle({ ...style, ...updates });
   };
 
+  const deleteBlock = (id: string) => {
+    setBlocks(blocks.filter((b) => b.id !== id));
+    if (selected === id) setSelected(null);
+  };
+
   const handleSave = async () => {
     const payload: any = { schema_json: { blocks, style } };
     if (formId && formId !== "new") payload.id = formId;
@@ -210,6 +215,7 @@ export default function FormBuilder() {
 
       {/* Desktop inspector */}
       <div className="hidden md:block md:w-1/5 border-l overflow-y-auto">
+        <FormSettingsPanel style={style} onChange={updateStyle} />
         <PropertyPanel block={selectedBlock} onChange={updateBlock} />
       </div>
 
@@ -225,6 +231,7 @@ export default function FormBuilder() {
           >
             Close
           </button>
+          <FormSettingsPanel style={style} onChange={updateStyle} />
           <PropertyPanel block={selectedBlock} onChange={updateBlock} />
         </div>
       )}

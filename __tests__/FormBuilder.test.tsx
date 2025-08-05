@@ -27,7 +27,9 @@ test("adds text block and saves", async () => {
   });
 
   const newBtn = await screen.findByText(/New Form/i);
-  fireEvent.click(newBtn);
+  await act(async () => {
+    fireEvent.click(newBtn);
+  });
 
   const textBtn = await screen.findByText("Text");
   fireEvent.click(textBtn);
@@ -36,9 +38,12 @@ test("adds text block and saves", async () => {
   fireEvent.change(colorInput, { target: { value: "#ff0000" } });
 
   const saveBtn = await screen.findByText("Save");
-  fireEvent.click(saveBtn);
+  await act(async () => {
+    fireEvent.click(saveBtn);
+  });
 
   await vi.waitFor(() => expect(saveForm).toHaveBeenCalled());
+  await screen.findByText(/New Form/i);
   const payload = (saveForm as any).mock.calls[0][0];
   expect(payload.schema_json.blocks[0].type).toBe("text");
   expect(payload.schema_json.style.backgroundColor).toBe("#ff0000");
@@ -57,7 +62,9 @@ test("clicking block opens inspector and updates preview", async () => {
   });
 
   const newBtn = await screen.findByText(/New Form/i);
-  fireEvent.click(newBtn);
+  await act(async () => {
+    fireEvent.click(newBtn);
+  });
 
   // Add two blocks
   fireEvent.click(await screen.findByText("Text"));
@@ -91,7 +98,9 @@ test("mobile palette toggles", async () => {
   });
 
   const newBtn = await screen.findByText(/New Form/i);
-  fireEvent.click(newBtn);
+  await act(async () => {
+    fireEvent.click(newBtn);
+  });
 
   const blocksBtn = await screen.findByText("Blocks");
   // palette drawer closed initially
