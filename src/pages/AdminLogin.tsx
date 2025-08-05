@@ -40,7 +40,7 @@ export default function AdminLogin() {
         className="fixed inset-0 z-0"
         aria-hidden="true"
         style={{
-          background: "url('/flag-bg.jpg') center center / cover no-repeat",
+          background: "url('/flag-bg.svg') center center / cover no-repeat",
           opacity: 0.12,
           pointerEvents: "none",
         }}

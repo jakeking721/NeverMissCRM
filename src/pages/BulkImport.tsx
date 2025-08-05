@@ -36,7 +36,7 @@ export default function BulkImport() {
     <div
       className="min-h-screen w-full bg-blue-50 relative overflow-x-hidden"
       style={{
-        background: `url('/flag-bg.jpg') center top / cover no-repeat, linear-gradient(to bottom right, #e0e8f8 50%, #f8fafc 100%)`,
+        background: `url('/flag-bg.svg') center top / cover no-repeat, linear-gradient(to bottom right, #e0e8f8 50%, #f8fafc 100%)`,
       }}
     >
       <Header />
