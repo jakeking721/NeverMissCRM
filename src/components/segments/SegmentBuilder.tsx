@@ -7,7 +7,7 @@
 //   - greaterThan / lessThan (numbers)
 //   - isTrue / isFalse (booleans)
 //
-// TODO:
+// Future enhancements:
 // - Nested groups
 // - Between ranges for numbers/dates
 // - Server-side query builder

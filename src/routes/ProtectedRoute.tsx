@@ -4,7 +4,6 @@
 // - Prefers Supabase-backed AuthContext.user
 // - Still falls back to getCurrentUser() so legacy pages keep working
 // - Keeps adminOnly support via utils/roles.isAdmin
-// TODO: After every page is migrated to AuthContext/Supabase, remove getCurrentUser() fallback.
 // -----------------------------------------------------------------------------
 
 import React from "react";

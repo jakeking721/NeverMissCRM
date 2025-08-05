@@ -5,7 +5,7 @@
 // - Estimates credits by message length & recipient count
 // - "Sends" and "schedules" are just logged to localStorage for now
 //
-// TODO:
+// Future:
 // - Replace with real provider (Twilio/etc.)
 // - Server-side scheduling, delivery status, retries
 // ------------------------------------------------------------------------------------

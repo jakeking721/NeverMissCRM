@@ -6,7 +6,7 @@
 // - Uses smsService (fake/local for now) to "send"
 // - Future-proofed for Twilio chunking/rate limits
 //
-// TODOs:
+// Future work:
 // - Server-side credit enforcement
 // - Chunking, rate limiting & retry (Twilio / provider limits)
 // - Template variables

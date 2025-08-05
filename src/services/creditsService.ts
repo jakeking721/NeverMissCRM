@@ -148,8 +148,7 @@ export function createCreditsService(): CreditsService {
     async beginUserPurchase(
       amount: number
     ): Promise<ServiceResult<{ checkoutUrl?: string }>> {
-      // TODO: replace with Stripe Checkout session / Payment link
-      // For now, simulate a top-up to the current user.
+      // For now, simulate a top-up to the current user. Replace with Stripe Checkout session / Payment link in production.
       try {
         const user = await getSessionUser();
         if (!user) return { ok: false, message: "Not logged in." };

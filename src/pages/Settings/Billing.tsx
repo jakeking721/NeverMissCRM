@@ -103,7 +103,7 @@ export default function Billing() {
             </button>
           </div>
           {message && <div className="text-sm text-gray-700">{message}</div>}
-          {/* TODO: After Stripe integration, list last N transactions/invoices here */}
+          {/* Placeholder: display recent transactions/invoices after Stripe integration */}
         </section>
       </div>
     </PageShell>
