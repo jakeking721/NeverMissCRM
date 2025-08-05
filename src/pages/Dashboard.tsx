@@ -132,24 +132,40 @@ export default function Dashboard() {
     const s = search.trim().toLowerCase();
     const list = customers.filter((c) => {
       if (!s) return true;
-      return (
+
+      const baseHit =
         (c.name?.toLowerCase?.().includes(s) ?? false) ||
         (c.phone?.toLowerCase?.().includes(s) ?? false) ||
-        (c.location?.toLowerCase?.().includes(s) ?? false)
-      );
+        (c.location?.toLowerCase?.().includes(s) ?? false) ||
+        (c.signupDate?.toLowerCase?.().includes(s) ?? false);
+
+      if (baseHit) return true;
+
+      for (const f of customFields) {
+        const v = (c as any)[f.key];
+        if (typeof v === "string" && v.toLowerCase().includes(s)) return true;
+        if (typeof v === "number" && String(v).includes(s)) return true;
+      }
+
+      return false;
     });
 
-    const compare = (x: any, y: any) => String(x ?? "").localeCompare(String(y ?? ""));
-
     list.sort((a, b) => {
-      if (sortBy === "name") return ascending ? compare(a.name, b.name) : compare(b.name, a.name);
-      if (sortBy === "location")
-        return ascending ? compare(a.location, b.location) : compare(b.location, a.location);
-      return ascending ? compare(a.signupDate, b.signupDate) : compare(b.signupDate, a.signupDate);
+      if (sortBy === "signupDate") {
+        const at = new Date(a.signupDate).getTime();
+        const bt = new Date(b.signupDate).getTime();
+        return ascending ? at - bt : bt - at;
+      }
+
+      const av = (a as any)[sortBy];
+      const bv = (b as any)[sortBy];
+      return ascending
+        ? String(av ?? "").localeCompare(String(bv ?? ""))
+        : String(bv ?? "").localeCompare(String(av ?? ""));
     });
 
     return list.slice(0, 10);
-  }, [customers, search, sortBy, ascending]);
+  }, [customers, search, sortBy, ascending, customFields]);
 
   const baseFields = [
     { key: "name", label: "Name", type: "text" as const, required: true },

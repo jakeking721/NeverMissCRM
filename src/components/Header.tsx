@@ -20,13 +20,13 @@ export default function Header() {
       <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="Logo" className="h-8 w-8" />
+          <img src="/NeverMissCRM_Logo.png" alt="Logo" className="h-8 w-8" />
           <span className="text-xl font-bold text-blue-700">NeverMiss</span>
           <span className="text-sm text-gray-600">CRM</span>
         </Link>
 
         {/* Nav links */}
-        <nav className="hidden md:flex gap-6 text-sm font-medium text-gray-700">
+        <nav className="hidden md:flex gap-6 text-md font-bold text-gray-700">
           <Link to="/" className="hover:text-blue-600">
             Home
           </Link>

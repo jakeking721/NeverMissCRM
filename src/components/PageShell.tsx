@@ -16,8 +16,8 @@ export default function PageShell({ children, faintFlag = false }: Props) {
           aria-hidden="true"
           className="fixed inset-0 z-0"
           style={{
-            background: "url('/flag-bg.svg') center center / cover no-repeat",
-            opacity: 0.12,
+            background: "url('/patriot-banner.jpg') center center / cover no-repeat",
+            opacity: 0.25,
             pointerEvents: "none",
           }}
         />
