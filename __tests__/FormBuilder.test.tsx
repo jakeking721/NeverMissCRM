@@ -14,7 +14,7 @@ vi.mock("@/services/forms", () => ({
 
 import { saveForm } from "@/services/forms";
 
-test("adds text block and saves", async () => {
+test("adds title block and saves", async () => {
   await act(async () => {
     render(
       <MemoryRouter initialEntries={["/builder"]}>
@@ -31,8 +31,8 @@ test("adds text block and saves", async () => {
     fireEvent.click(newBtn);
   });
 
-  const textBtn = await screen.findByText("Text");
-  fireEvent.click(textBtn);
+  const titleBtn = await screen.findByText("Form Title");
+  fireEvent.click(titleBtn);
 
   const colorInput = screen.getByLabelText("Background Color");
   fireEvent.change(colorInput, { target: { value: "#ff0000" } });
@@ -45,7 +45,7 @@ test("adds text block and saves", async () => {
   await vi.waitFor(() => expect(saveForm).toHaveBeenCalled());
   await screen.findByText(/New Form/i);
   const payload = (saveForm as any).mock.calls[0][0];
-  expect(payload.schema_json.blocks[0].type).toBe("text");
+  expect(payload.schema_json.blocks[0].type).toBe("title");
   expect(payload.schema_json.style.backgroundColor).toBe("#ff0000");
 });
 
@@ -67,15 +67,15 @@ test("clicking block opens inspector and updates preview", async () => {
   });
 
   // Add two blocks
-  fireEvent.click(await screen.findByText("Text"));
-  fireEvent.click(await screen.findByText("Input"));
+  fireEvent.click(await screen.findByText("Form Title"));
+  fireEvent.click(await screen.findByText("Text Input"));
 
   // Select first block
-  const firstBlock = screen.getAllByText("Text")[1]; // block text appears twice (palette and canvas)
+  const firstBlock = screen.getAllByText("Form Title")[1];
   fireEvent.click(firstBlock);
 
-  const textarea = await screen.findByDisplayValue("Text");
-  fireEvent.change(textarea, { target: { value: "Hello" } });
+  const input = await screen.findByDisplayValue("Form Title");
+  fireEvent.change(input, { target: { value: "Hello" } });
 
   // Preview should update
   expect(screen.getAllByText("Hello").length).toBeGreaterThan(0);

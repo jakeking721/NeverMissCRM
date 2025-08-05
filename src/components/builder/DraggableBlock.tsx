@@ -52,17 +52,10 @@ export default function DraggableBlock({
 
 function renderBlock(block: any) {
   switch (block.type) {
-    case "text":
-      return <div>{block.text || "Text"}</div>;
-    case "image":
-      return (
-        <img
-          src={block.url || ""}
-          alt={block.alt || ""}
-          className="w-full"
-          style={{ objectPosition: block.position || "center" }}
-        />
-      );
+    case "title":
+      return <h2 className="text-lg font-semibold">{block.text || "Title"}</h2>;
+    case "description":
+      return <p className="text-sm text-gray-600">{block.text || "Description"}</p>;
     case "input":
       return (
         <div>
@@ -72,15 +65,24 @@ function renderBlock(block: any) {
               {block.required && <span className="text-red-500 ml-1">*</span>}
             </label>
           )}
-          <input
-            className="w-full border rounded p-1"
-            placeholder={block.placeholder || ""}
-            type={block.inputType === "phone" ? "tel" : block.inputType || "text"}
-            readOnly
-          />
+          {block.fieldType === "textarea" ? (
+            <textarea
+              className="w-full border rounded p-1"
+              placeholder={block.placeholder || ""}
+              rows={3}
+              readOnly
+            />
+          ) : (
+            <input
+              className="w-full border rounded p-1"
+              placeholder={block.placeholder || ""}
+              type={block.fieldType === "phone" ? "tel" : block.fieldType || "text"}
+              readOnly
+            />
+          )}
         </div>
       );
-    case "choice":
+    case "dropdown":
       return (
         <div>
           {block.label && (
@@ -98,35 +100,19 @@ function renderBlock(block: any) {
       );
     case "checkbox":
       return (
-        <div>
-          {block.label && <span className="block text-sm mb-1">{block.label}</span>}
-          <div className="space-y-1">
-            {(block.options || []).map((o: string, i: number) => (
-              <label key={i} className="flex items-center space-x-2 text-sm">
-                <input type="checkbox" disabled />
-                <span>{o}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+        <label className="flex items-center space-x-2 text-sm">
+          <input type="checkbox" disabled />
+          <span>
+            {block.label}
+            {block.required && <span className="text-red-500 ml-1">*</span>}
+          </span>
+        </label>
       );
-    case "multiselect":
-      return (
-        <div>
-          {block.label && <label className="block text-sm mb-1">{block.label}</label>}
-          <select className="w-full border rounded p-1" multiple>
-            {(block.options || []).map((o: string, i: number) => (
-              <option key={i}>{o}</option>
-            ))}
-          </select>
-        </div>
-      );
-    case "pdf":
-      return (
-        <div className="text-sm text-gray-600">
-          PDF: {block.url || ""}
-          {block.required && <span className="text-red-500 ml-1">*</span>}
-        </div>
+    case "image":
+      return block.url ? (
+        <img src={block.url} alt={block.alt || ""} className="w-full" />
+      ) : (
+        <div className="text-sm text-gray-400">No image selected</div>
       );
     case "link":
       return (
@@ -135,14 +121,32 @@ function renderBlock(block: any) {
           {block.required && <span className="text-red-500 ml-1">*</span>}
         </a>
       );
-    case "button":
+    case "pdf":
       return (
-        <button className="bg-blue-600 text-white px-3 py-1 rounded" type="button">
-          {block.text || "Button"}
-        </button>
+        <div className="space-y-2">
+          {block.displayStyle === "link" && (
+            <a href={block.url || "#"} className="text-blue-600 underline">
+              View PDF
+            </a>
+          )}
+          {block.displayStyle !== "link" && block.url && (
+            <iframe
+              src={block.url}
+              className={
+                block.displayStyle === "embed"
+                  ? "w-full h-96 border"
+                  : "w-full h-48 border"
+              }
+            />
+          )}
+          {block.requireAccept && (
+            <label className="flex items-center space-x-2 text-sm">
+              <input type="checkbox" disabled />
+              <span>I have read and accept</span>
+            </label>
+          )}
+        </div>
       );
-    case "section":
-      return <hr />;
     default:
       return <div>{block.type}</div>;
   }

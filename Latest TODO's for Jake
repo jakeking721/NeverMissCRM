@@ -9,3 +9,6 @@
 - Apply Supabase migrations in `supabase/migrations` to create `campaign_forms` table and policies. Steps: (1) Run `supabase login` with a valid access token. (2) Run `supabase db push` from project root. (3) Confirm table exists.
 - Ensure `.env` variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_PUBLIC_APP_URL` are set to production values (placeholders currently committed). Steps: (1) Edit `.env` with real URLs/keys. (2) Redeploy.
 - After integrating a real SMS provider, update `src/utils/credits.ts` `DEFAULT_SMS_COST_PER_SEGMENT` and remove `src/utils/demoSMS.ts`. Steps: (1) Adjust constant to provider rate. (2) Delete file and references.
+- Replace local object URL handling for image and PDF uploads in the form builder with real Supabase storage uploads and persist returned URLs in `schema_json`.
+- Verify PDF waiver display styles and acceptance checkbox in production browsers; add backend validation and storage for uploaded files.
+- Add server-side URL validation/sanitization for website link blocks; client-side check is not sufficient.

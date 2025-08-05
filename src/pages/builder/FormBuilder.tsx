@@ -8,17 +8,19 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { v4 as uuidv4 } from "uuid";
 
+import PageShell from "@/components/PageShell";
 import BlockPalette from "@/components/builder/BlockPalette";
 import DraggableBlock from "@/components/builder/DraggableBlock";
 import PropertyPanel from "@/components/builder/PropertyPanel";
-import FormSettingsPanel from "@/components/builder/FormSettingsPanel";
 import { fetchForm, saveForm } from "@/services/forms";
 
 interface Block {
@@ -32,10 +34,11 @@ export default function FormBuilder() {
   const navigate = useNavigate();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [style, setStyle] = useState<Record<string, any>>({});
+  const [style, setStyle] = useState<Record<string, any>>({ backgroundColor: "#ffffff" });
   const [showPalette, setShowPalette] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
+  const { setNodeRef: setCanvasRef } = useDroppable({ id: "canvas" });
 
   useEffect(() => {
     if (formId && formId !== "new") {
@@ -48,80 +51,140 @@ export default function FormBuilder() {
     }
   }, [formId]);
 
-  const addBlock = (type: string) => {
-    const id = `${type}-${Date.now()}`;
-    let block: Block = { id, type };
-    switch (type) {
+  const createBlock = (paletteType: string): Block => {
+    const id = uuidv4();
+    let block: Block = { id };
+    switch (paletteType) {
+      case "title":
+        block = { id, type: "title", text: "Form Title" };
+        break;
+      case "description":
+        block = { id, type: "description", text: "Form description" };
+        break;
       case "text":
-        block.text = "Text";
+        block = {
+          id,
+          type: "input",
+          fieldType: "text",
+          label: "Text",
+          name: `field_${id}`,
+          placeholder: "",
+          required: false,
+        };
         break;
-      case "image":
-        block.url = "";
-        block.alt = "";
-        block.position = "center";
+      case "email":
+        block = {
+          id,
+          type: "input",
+          fieldType: "email",
+          label: "Email",
+          name: `email_${id}`,
+          placeholder: "",
+          required: false,
+        };
         break;
-      case "input":
-        block.label = "Label";
-        block.name = `field_${Date.now()}`;
-        block.placeholder = "";
-        block.inputType = "text";
-        block.required = false;
+      case "phone":
+        block = {
+          id,
+          type: "input",
+          fieldType: "phone",
+          label: "Phone",
+          name: `phone_${id}`,
+          placeholder: "",
+          required: false,
+        };
         break;
-      case "choice":
-        block.label = "Label";
-        block.name = `choice_${Date.now()}`;
-        block.options = ["Option 1", "Option 2"];
-        block.required = false;
+      case "dropdown":
+        block = {
+          id,
+          type: "dropdown",
+          label: "Dropdown",
+          name: `dropdown_${id}`,
+          options: ["Option 1"],
+          required: false,
+        };
+        break;
+      case "textarea":
+        block = {
+          id,
+          type: "input",
+          fieldType: "textarea",
+          label: "Textarea",
+          name: `textarea_${id}`,
+          placeholder: "",
+          required: false,
+        };
         break;
       case "checkbox":
-        block.label = "Label";
-        block.name = `checkbox_${Date.now()}`;
-        block.options = ["Option 1", "Option 2"];
-        block.required = false;
+        block = {
+          id,
+          type: "checkbox",
+          label: "Checkbox",
+          name: `checkbox_${id}`,
+          required: false,
+        };
         break;
-      case "multiselect":
-        block.label = "Label";
-        block.name = `multiselect_${Date.now()}`;
-        block.options = ["Option 1", "Option 2"];
-        block.required = false;
-        break;
-      case "pdf":
-        block.url = "";
-        block.required = false;
+      case "image":
+        block = { id, type: "image", url: "", alt: "" };
         break;
       case "link":
-        block.text = "Link";
-        block.url = "https://";
-        block.required = false;
+        block = {
+          id,
+          type: "link",
+          text: "Website",
+          url: "https://",
+          required: false,
+        };
         break;
-      case "button":
-        block.text = "Submit";
-        break;
-      case "section":
-        // no additional fields
+      case "pdf":
+        block = {
+          id,
+          type: "pdf",
+          url: "",
+          displayStyle: "scroll",
+          requireAccept: false,
+          promptDownload: false,
+        };
         break;
       default:
-        break;
+        block = { id, type: paletteType };
     }
+    return block;
+  };
+
+  const addBlock = (paletteType: string) => {
+    const block = createBlock(paletteType);
     setBlocks([...blocks, block]);
-    setSelected(id);
+    setSelected(block.id);
   };
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const oldIndex = blocks.findIndex((b) => b.id === active.id);
-    const newIndex = blocks.findIndex((b) => b.id === over.id);
-    setBlocks(arrayMove(blocks, oldIndex, newIndex));
+    if (!over) return;
+    const activeData: any = active.data.current;
+    if (activeData?.from === "palette") {
+      const block = createBlock(activeData.type);
+      let index = blocks.length;
+      if (over.id !== "canvas") {
+        index = blocks.findIndex((b) => b.id === over.id);
+        if (index === -1) index = blocks.length;
+      }
+      const newBlocks = [...blocks];
+      newBlocks.splice(index, 0, block);
+      setBlocks(newBlocks);
+      setSelected(block.id);
+    } else {
+      if (active.id === over.id) return;
+      const oldIndex = blocks.findIndex((b) => b.id === active.id);
+      let newIndex = blocks.findIndex((b) => b.id === over.id);
+      if (over.id === "canvas") newIndex = blocks.length - 1;
+      setBlocks(arrayMove(blocks, oldIndex, newIndex));
+    }
   };
 
   const updateBlock = (updates: Record<string, any>) => {
     if (!selected) return;
     setBlocks(blocks.map((b) => (b.id === selected ? { ...b, ...updates } : b)));
-  };
-
-  const updateStyle = (updates: Record<string, any>) => {
-    setStyle({ ...style, ...updates });
   };
 
   const deleteBlock = (id: string) => {
@@ -139,102 +202,122 @@ export default function FormBuilder() {
   const selectedBlock = blocks.find((b) => b.id === selected) || null;
 
   return (
-    <div className="flex flex-col md:flex-row h-screen">
-      {/* Desktop block palette */}
-      <div className="hidden md:block md:w-1/5 border-r overflow-y-auto">
-        <BlockPalette onAdd={addBlock} />
-      </div>
-
-      {/* Mobile palette drawer */}
-      {showPalette && (
-        <div
-          className="fixed inset-0 z-50 bg-white p-4 overflow-y-auto md:hidden"
-          data-testid="mobile-palette"
-        >
-          <button
-            onClick={() => setShowPalette(false)}
-            className="mb-4 text-sm text-gray-600"
-          >
-            Close
-          </button>
+    <PageShell faintFlag>
+      <div className="flex flex-col md:flex-row h-full">
+        {/* Sidebar palette */}
+        <div className="hidden md:block md:w-1/4 border-r overflow-y-auto bg-gray-50">
           <BlockPalette
-            onAdd={(type) => {
-              addBlock(type);
-              setShowPalette(false);
-            }}
+            onAdd={addBlock}
+            background={style.backgroundColor || "#ffffff"}
+            onBackgroundChange={(value) => setStyle({ ...style, backgroundColor: value })}
           />
         </div>
-      )}
 
-      {/* Preview / layout area */}
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
-        {/* Mobile toggle buttons */}
-        <div className="mb-2 flex gap-2 md:hidden">
-          <button
-            onClick={() => setShowPalette(true)}
-            className="bg-blue-600 text-white px-2 py-1 rounded"
+        {/* Mobile palette drawer */}
+        {showPalette && (
+          <div
+            className="fixed inset-0 z-50 bg-white p-4 overflow-y-auto md:hidden"
+            data-testid="mobile-palette"
           >
-            Blocks
-          </button>
-          {selectedBlock && (
             <button
-              onClick={() => setShowInspector(true)}
-              className="bg-gray-600 text-white px-2 py-1 rounded"
+              onClick={() => setShowPalette(false)}
+              className="mb-4 text-sm text-gray-600"
             >
-              Props
+              Close
             </button>
-          )}
-        </div>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-            {blocks.map((b) => (
-              <DraggableBlock
-                key={b.id}
-                id={b.id}
-                block={b}
-                selected={selected === b.id}
-                onSelect={() => setSelected(b.id)}
-                onDelete={deleteBlock}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
-        <div className="mt-4">
-          <button
-            onClick={handleSave}
-            className="bg-green-600 text-white px-4 py-2 rounded"
-          >
-            Save
-          </button>
-        </div>
-      </div>
+            <BlockPalette
+              onAdd={(type) => {
+                addBlock(type);
+                setShowPalette(false);
+              }}
+              background={style.backgroundColor || "#ffffff"}
+              onBackgroundChange={(value) =>
+                setStyle({ ...style, backgroundColor: value })
+              }
+            />
+          </div>
+        )}
 
-      {/* Desktop inspector */}
-      <div className="hidden md:block md:w-1/5 border-l overflow-y-auto">
-        <FormSettingsPanel style={style} onChange={updateStyle} />
-        <PropertyPanel block={selectedBlock} onChange={updateBlock} />
-      </div>
-
-      {/* Mobile inspector drawer */}
-      {showInspector && (
-        <div
-          className="fixed inset-0 z-50 bg-white p-4 overflow-y-auto md:hidden"
-          data-testid="mobile-inspector"
-        >
-          <button
-            onClick={() => setShowInspector(false)}
-            className="mb-4 text-sm text-gray-600"
+        {/* Preview area */}
+        <div className="flex-1 flex flex-col bg-blue-50 md:p-6 overflow-y-auto">
+          <div className="mb-2 flex gap-2 md:hidden">
+            <button
+              onClick={() => setShowPalette(true)}
+              className="bg-blue-600 text-white px-2 py-1 rounded"
+            >
+              Blocks
+            </button>
+            {selectedBlock && (
+              <button
+                onClick={() => setShowInspector(true)}
+                className="bg-gray-600 text-white px-2 py-1 rounded"
+              >
+                Props
+              </button>
+            )}
+          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
           >
-            Close
-          </button>
-          <FormSettingsPanel style={style} onChange={updateStyle} />
+            <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+              <div ref={setCanvasRef} id="canvas" className="flex-1 flex justify-center">
+                <div
+                  className="w-full max-w-md bg-white rounded-xl p-4 shadow-sm"
+                  style={{ backgroundColor: style.backgroundColor }}
+                >
+                  {blocks.map((b) => (
+                    <DraggableBlock
+                      key={b.id}
+                      id={b.id}
+                      block={b}
+                      selected={selected === b.id}
+                      onSelect={() => setSelected(b.id)}
+                      onDelete={deleteBlock}
+                    />
+                  ))}
+                  {blocks.length === 0 && (
+                    <p className="text-center text-sm text-gray-500">
+                      Drag fields here
+                    </p>
+                  )}
+                  <div className="mt-4">
+                    <button
+                      onClick={handleSave}
+                      className="bg-green-600 text-white px-4 py-2 rounded"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+
+        {/* Desktop inspector */}
+        <div className="hidden md:block md:w-1/4 border-l overflow-y-auto bg-white">
           <PropertyPanel block={selectedBlock} onChange={updateBlock} />
         </div>
-      )}
-    </div>
+
+        {/* Mobile inspector drawer */}
+        {showInspector && (
+          <div
+            className="fixed inset-0 z-50 bg-white p-4 overflow-y-auto md:hidden"
+            data-testid="mobile-inspector"
+          >
+            <button
+              onClick={() => setShowInspector(false)}
+              className="mb-4 text-sm text-gray-600"
+            >
+              Close
+            </button>
+            <PropertyPanel block={selectedBlock} onChange={updateBlock} />
+          </div>
+        )}
+      </div>
+    </PageShell>
   );
 }
+

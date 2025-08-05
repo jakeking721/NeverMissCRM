@@ -5,48 +5,30 @@ interface Props {
   onChange(updates: Record<string, any>): void;
 }
 
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export default function PropertyPanel({ block, onChange }: Props) {
   if (!block) {
     return <div className="p-4 text-sm text-gray-500">Select a block</div>;
   }
   switch (block.type) {
-    case "text":
+    case "title":
+    case "description":
       return (
         <div className="p-4 space-y-2">
           <label className="block text-sm font-medium">Text</label>
-          <textarea
+          <input
             className="w-full border rounded p-1"
-            rows={3}
             value={block.text || ""}
             onChange={(e) => onChange({ text: e.target.value })}
           />
-        </div>
-      );
-    case "image":
-      return (
-        <div className="p-4 space-y-2">
-          <label className="block text-sm font-medium">Image URL</label>
-          <input
-            className="w-full border rounded p-1"
-            value={block.url || ""}
-            onChange={(e) => onChange({ url: e.target.value })}
-          />
-          <label className="block text-sm font-medium">Alt text</label>
-          <input
-            className="w-full border rounded p-1"
-            value={block.alt || ""}
-            onChange={(e) => onChange({ alt: e.target.value })}
-          />
-          <label className="block text-sm font-medium">Position</label>
-          <select
-            className="w-full border rounded p-1"
-            value={block.position || "center"}
-            onChange={(e) => onChange({ position: e.target.value })}
-          >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-          </select>
         </div>
       );
     case "input":
@@ -70,16 +52,16 @@ export default function PropertyPanel({ block, onChange }: Props) {
             value={block.placeholder || ""}
             onChange={(e) => onChange({ placeholder: e.target.value })}
           />
-          <label className="block text-sm font-medium">Type</label>
-          <select
-            className="w-full border rounded p-1"
-            value={block.inputType || "text"}
-            onChange={(e) => onChange({ inputType: e.target.value })}
-          >
-            <option value="text">Text</option>
-            <option value="email">Email</option>
-            <option value="phone">Phone</option>
-          </select>
+          {block.fieldType && block.fieldType !== "textarea" && (
+            <div>
+              <label className="block text-sm font-medium">Field Type</label>
+              <input
+                className="w-full border rounded p-1 bg-gray-100"
+                value={block.fieldType}
+                readOnly
+              />
+            </div>
+          )}
           <label className="inline-flex items-center space-x-2 text-sm">
             <input
               type="checkbox"
@@ -90,7 +72,7 @@ export default function PropertyPanel({ block, onChange }: Props) {
           </label>
         </div>
       );
-    case "choice":
+    case "dropdown":
       return (
         <div className="p-4 space-y-2">
           <label className="block text-sm font-medium">Label</label>
@@ -110,9 +92,7 @@ export default function PropertyPanel({ block, onChange }: Props) {
             className="w-full border rounded p-1"
             rows={3}
             value={(block.options || []).join("\n")}
-            onChange={(e) =>
-              onChange({ options: e.target.value.split("\n").filter(Boolean) })
-            }
+            onChange={(e) => onChange({ options: e.target.value.split("\n").filter(Boolean) })}
           />
           <label className="inline-flex items-center space-x-2 text-sm">
             <input
@@ -125,7 +105,6 @@ export default function PropertyPanel({ block, onChange }: Props) {
         </div>
       );
     case "checkbox":
-    case "multiselect":
       return (
         <div className="p-4 space-y-2">
           <label className="block text-sm font-medium">Label</label>
@@ -140,15 +119,57 @@ export default function PropertyPanel({ block, onChange }: Props) {
             value={block.name || ""}
             onChange={(e) => onChange({ name: e.target.value })}
           />
-          <label className="block text-sm font-medium">Options (one per line)</label>
-          <textarea
-            className="w-full border rounded p-1"
-            rows={3}
-            value={(block.options || []).join("\n")}
-            onChange={(e) =>
-              onChange({ options: e.target.value.split("\n").filter(Boolean) })
-            }
+          <label className="inline-flex items-center space-x-2 text-sm">
+            <input
+              type="checkbox"
+              checked={!!block.required}
+              onChange={(e) => onChange({ required: e.target.checked })}
+            />
+            <span>Required</span>
+          </label>
+        </div>
+      );
+    case "image":
+      return (
+        <div className="p-4 space-y-2">
+          <label className="block text-sm font-medium">Upload Image</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const url = URL.createObjectURL(file);
+                onChange({ url });
+              }
+            }}
           />
+          {block.url && <img src={block.url} alt="preview" className="mt-2 max-h-40" />}
+          <label className="block text-sm font-medium">Alt text</label>
+          <input
+            className="w-full border rounded p-1"
+            value={block.alt || ""}
+            onChange={(e) => onChange({ alt: e.target.value })}
+          />
+        </div>
+      );
+    case "link":
+      const valid = !block.url || isValidUrl(block.url);
+      return (
+        <div className="p-4 space-y-2">
+          <label className="block text-sm font-medium">Text</label>
+          <input
+            className="w-full border rounded p-1"
+            value={block.text || ""}
+            onChange={(e) => onChange({ text: e.target.value })}
+          />
+          <label className="block text-sm font-medium">URL</label>
+          <input
+            className={`w-full border rounded p-1 ${valid ? "" : "border-red-500"}`}
+            value={block.url || ""}
+            onChange={(e) => onChange({ url: e.target.value })}
+          />
+          {!valid && <p className="text-xs text-red-500">Invalid URL</p>}
           <label className="inline-flex items-center space-x-2 text-sm">
             <input
               type="checkbox"
@@ -162,56 +183,44 @@ export default function PropertyPanel({ block, onChange }: Props) {
     case "pdf":
       return (
         <div className="p-4 space-y-2">
-          <label className="block text-sm font-medium">PDF URL</label>
+          <label className="block text-sm font-medium">Upload PDF</label>
           <input
-            className="w-full border rounded p-1"
-            value={block.url || ""}
-            onChange={(e) => onChange({ url: e.target.value })}
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const url = URL.createObjectURL(file);
+                onChange({ url });
+              }
+            }}
           />
+          <label className="block text-sm font-medium">Display Style</label>
+          <select
+            className="w-full border rounded p-1"
+            value={block.displayStyle || "scroll"}
+            onChange={(e) => onChange({ displayStyle: e.target.value })}
+          >
+            <option value="scroll">Scrollable Box</option>
+            <option value="link">Download Link</option>
+            <option value="embed">Full Embedded View</option>
+          </select>
           <label className="inline-flex items-center space-x-2 text-sm">
             <input
               type="checkbox"
-              checked={!!block.required}
-              onChange={(e) => onChange({ required: e.target.checked })}
+              checked={!!block.requireAccept}
+              onChange={(e) => onChange({ requireAccept: e.target.checked })}
             />
-            <span>Required</span>
+            <span>Require checkbox to accept</span>
           </label>
-        </div>
-      );
-    case "link":
-      return (
-        <div className="p-4 space-y-2">
-          <label className="block text-sm font-medium">Text</label>
-          <input
-            className="w-full border rounded p-1"
-            value={block.text || ""}
-            onChange={(e) => onChange({ text: e.target.value })}
-          />
-          <label className="block text-sm font-medium">URL</label>
-          <input
-            className="w-full border rounded p-1"
-            value={block.url || ""}
-            onChange={(e) => onChange({ url: e.target.value })}
-          />
           <label className="inline-flex items-center space-x-2 text-sm">
             <input
               type="checkbox"
-              checked={!!block.required}
-              onChange={(e) => onChange({ required: e.target.checked })}
+              checked={!!block.promptDownload}
+              onChange={(e) => onChange({ promptDownload: e.target.checked })}
             />
-            <span>Required</span>
+            <span>Prompt for optional download</span>
           </label>
-        </div>
-      );
-    case "button":
-      return (
-        <div className="p-4 space-y-2">
-          <label className="block text-sm font-medium">Text</label>
-          <input
-            className="w-full border rounded p-1"
-            value={block.text || ""}
-            onChange={(e) => onChange({ text: e.target.value })}
-          />
         </div>
       );
     default:
