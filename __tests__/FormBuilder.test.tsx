@@ -37,6 +37,9 @@ test("adds title block and saves", async () => {
   const colorInput = screen.getByLabelText("Background Color");
   fireEvent.change(colorInput, { target: { value: "#ff0000" } });
 
+  const slugInput = screen.getByLabelText(/Slug/i);
+  fireEvent.change(slugInput, { target: { value: "test-form" } });
+
   const saveBtn = await screen.findByText("Save");
   await act(async () => {
     fireEvent.click(saveBtn);
@@ -47,6 +50,7 @@ test("adds title block and saves", async () => {
   const payload = (saveForm as any).mock.calls[0][0];
   expect(payload.schema_json.blocks[0].type).toBe("title");
   expect(payload.schema_json.style.backgroundColor).toBe("#ff0000");
+  expect(payload.slug).toBe("test-form");
 });
 
 test("clicking block opens inspector and updates preview", async () => {

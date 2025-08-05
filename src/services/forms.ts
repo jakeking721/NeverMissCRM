@@ -27,6 +27,9 @@ export async function fetchForm(id: string) {
 }
 
 export async function saveForm(payload: any) {
+  if (!payload?.slug) {
+    throw new Error("Slug is required");
+  }
   const { schema_json, ...rest } = payload;
   const blocks = schema_json?.blocks || [];
   const style = schema_json?.style || {};

@@ -35,6 +35,8 @@ export default function FormBuilder() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [style, setStyle] = useState<Record<string, any>>({ backgroundColor: "#ffffff" });
+  const [slug, setSlug] = useState("");
+  const [campaignId, setCampaignId] = useState<string | null>(null);
   const [showPalette, setShowPalette] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
@@ -46,6 +48,8 @@ export default function FormBuilder() {
         .then((f) => {
           setBlocks(f?.schema_json?.blocks || []);
           setStyle(f?.schema_json?.style || { backgroundColor: "#f9fafb" });
+          setSlug(f?.slug || "");
+          setCampaignId(f?.campaign_id || null);
         })
         .catch(console.error);
     }
@@ -193,10 +197,15 @@ export default function FormBuilder() {
   };
 
   const handleSave = async () => {
-    const payload: any = { schema_json: { blocks, style } };
+    const payload: any = { schema_json: { blocks, style }, slug };
+    if (campaignId) payload.campaign_id = campaignId;
     if (formId && formId !== "new") payload.id = formId;
-    await saveForm(payload);
-    navigate("/builder");
+    try {
+      await saveForm(payload);
+      navigate("/builder");
+    } catch (e: any) {
+      alert(e?.message || "Failed to save form");
+    }
   };
 
   const selectedBlock = blocks.find((b) => b.id === selected) || null;
@@ -240,6 +249,18 @@ export default function FormBuilder() {
 
         {/* Preview area */}
         <div className="flex-1 flex flex-col bg-blue-50 md:p-6 overflow-y-auto">
+          <div className="mb-4 p-4 bg-white rounded shadow-sm">
+            <label htmlFor="form-slug" className="block text-sm font-medium mb-1">
+              Slug
+            </label>
+            <input
+              id="form-slug"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="unique-form-slug"
+              className="w-full border rounded px-2 py-1"
+            />
+          </div>
           <div className="mb-2 flex gap-2 md:hidden">
             <button
               onClick={() => setShowPalette(true)}
