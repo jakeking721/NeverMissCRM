@@ -1,3 +1,6 @@
+-- Migration: add intake_add_customer function and form-uploads bucket
+
+-- Create or replace intake_add_customer function
 create or replace function public.intake_add_customer(payload jsonb)
 returns uuid
 language plpgsql
@@ -44,3 +47,8 @@ begin
   return v_customer_id;
 end;
 $$;
+
+-- Ensure storage bucket exists for form uploads
+insert into storage.buckets (id, name, public)
+select 'form-uploads', 'form-uploads', false
+where not exists (select 1 from storage.buckets where id = 'form-uploads');
