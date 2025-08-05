@@ -1,4 +1,5 @@
 import React from "react";
+import FadeIn from "@/components/FadeIn";
 
 export default function FeatureGrid() {
   return (
@@ -6,7 +7,10 @@ export default function FeatureGrid() {
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           {/* CARD 1 */}
-          <div className="flex flex-col items-center max-w-sm p-8 mx-auto border-2 border-blue-100 rounded-2xl shadow-sm">
+          <FadeIn
+            delay={0}
+            className="flex flex-col items-center max-w-sm p-8 mx-auto border-2 border-blue-100 rounded-2xl shadow-sm"
+          >
             <span className="mb-2 text-3xl text-blue-700">📲</span>
             <span className="mb-1 text-lg font-bold text-blue-800">Easy Lead Capture</span>
             <ul className="text-base text-left text-gray-700 list-disc list-inside">
@@ -15,9 +19,12 @@ export default function FeatureGrid() {
               <li>Zero tech skills needed</li>
               <li>Create custom fields</li>
             </ul>
-          </div>
+          </FadeIn>
           {/* CARD 2 */}
-          <div className="flex flex-col items-center max-w-sm p-8 mx-auto border-2 border-blue-100 rounded-2xl shadow-sm">
+          <FadeIn
+            delay={150}
+            className="flex flex-col items-center max-w-sm p-8 mx-auto border-2 border-blue-100 rounded-2xl shadow-sm"
+          >
             <span className="mb-2 text-3xl text-blue-700">🎯</span>
             <span className="mb-1 text-lg font-bold text-center text-blue-800">
               Always Hit Targeting
@@ -29,9 +36,12 @@ export default function FeatureGrid() {
               <li>Send updates or promotions</li>
               <li>Create your own!</li>
             </ul>
-          </div>
+          </FadeIn>
           {/* CARD 3 */}
-          <div className="flex flex-col items-center max-w-sm p-8 mx-auto border-2 border-blue-100 rounded-2xl shadow-sm">
+          <FadeIn
+            delay={300}
+            className="flex flex-col items-center max-w-sm p-8 mx-auto border-2 border-blue-100 rounded-2xl shadow-sm"
+          >
             <span className="mb-2 text-3xl text-blue-700">💬</span>
             <span className="mb-1 text-lg font-bold text-blue-800">Text Customers Anytime</span>
             <ul className="text-base text-left text-gray-700 list-disc list-inside">
@@ -40,9 +50,9 @@ export default function FeatureGrid() {
               <li>Customize mass SMS campaigns</li>
               <li>Fast, simple, reliable delivery</li>
             </ul>
-          </div>
+          </FadeIn>
         </div>
-      </div>
-    </section>
+      </div >
+    </section >
   );
 }
