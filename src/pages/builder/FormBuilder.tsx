@@ -10,11 +10,7 @@ import {
   useSensors,
   useDroppable,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { v4 as uuidv4 } from "uuid";
 
 import PageShell from "@/components/PageShell";
@@ -228,10 +224,7 @@ export default function FormBuilder() {
             className="fixed inset-0 z-50 bg-white p-4 overflow-y-auto md:hidden"
             data-testid="mobile-palette"
           >
-            <button
-              onClick={() => setShowPalette(false)}
-              className="mb-4 text-sm text-gray-600"
-            >
+            <button onClick={() => setShowPalette(false)} className="mb-4 text-sm text-gray-600">
               Close
             </button>
             <BlockPalette
@@ -240,9 +233,7 @@ export default function FormBuilder() {
                 setShowPalette(false);
               }}
               background={style.backgroundColor || "#ffffff"}
-              onBackgroundChange={(value) =>
-                setStyle({ ...style, backgroundColor: value })
-              }
+              onBackgroundChange={(value) => setStyle({ ...style, backgroundColor: value })}
             />
           </div>
         )}
@@ -277,11 +268,7 @@ export default function FormBuilder() {
               </button>
             )}
           </div>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={onDragEnd}
-          >
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
               <div ref={setCanvasRef} id="canvas" className="flex-1 flex justify-center">
                 <div
@@ -299,9 +286,7 @@ export default function FormBuilder() {
                     />
                   ))}
                   {blocks.length === 0 && (
-                    <p className="text-center text-sm text-gray-500">
-                      Drag fields here
-                    </p>
+                    <p className="text-center text-sm text-gray-500">Drag fields here</p>
                   )}
                   <div className="mt-4">
                     <button
@@ -328,10 +313,7 @@ export default function FormBuilder() {
             className="fixed inset-0 z-50 bg-white p-4 overflow-y-auto md:hidden"
             data-testid="mobile-inspector"
           >
-            <button
-              onClick={() => setShowInspector(false)}
-              className="mb-4 text-sm text-gray-600"
-            >
+            <button onClick={() => setShowInspector(false)} className="mb-4 text-sm text-gray-600">
               Close
             </button>
             <PropertyPanel block={selectedBlock} onChange={updateBlock} />
@@ -341,4 +323,3 @@ export default function FormBuilder() {
     </PageShell>
   );
 }
-

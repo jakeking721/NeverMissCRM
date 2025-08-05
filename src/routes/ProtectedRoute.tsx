@@ -17,10 +17,7 @@ type ProtectedProps = {
   adminOnly?: boolean;
 };
 
-export default function ProtectedRoute({
-  children,
-  adminOnly = false,
-}: ProtectedProps) {
+export default function ProtectedRoute({ children, adminOnly = false }: ProtectedProps) {
   const { user } = useAuth();
   const effectiveUser = user ?? getCurrentUser(); // TEMP fallback
 

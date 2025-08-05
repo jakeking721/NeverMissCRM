@@ -87,24 +87,14 @@ export default function Profile() {
     <PageShell faintFlag>
       <div className="max-w-2xl mx-auto px-6 py-16">
         <div className="bg-white/95 p-8 rounded-2xl shadow-xl">
-          <h1 className="text-2xl font-extrabold text-blue-900 mb-6">
-            Edit Profile
-          </h1>
+          <h1 className="text-2xl font-extrabold text-blue-900 mb-6">Edit Profile</h1>
 
-          {err && (
-            <div className="mb-4 text-red-600 text-sm text-center">{err}</div>
-          )}
-          {message && (
-            <div className="mb-4 text-green-600 text-sm text-center">
-              {message}
-            </div>
-          )}
+          {err && <div className="mb-4 text-red-600 text-sm text-center">{err}</div>}
+          {message && <div className="mb-4 text-green-600 text-sm text-center">{message}</div>}
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col">
-              <label className="font-semibold text-sm text-blue-700">
-                Email
-              </label>
+              <label className="font-semibold text-sm text-blue-700">Email</label>
               <input
                 className="border px-4 py-2 rounded-xl"
                 type="email"
@@ -128,9 +118,7 @@ export default function Profile() {
             </div>
 
             <div className="flex flex-col">
-              <label className="font-semibold text-sm text-blue-700">
-                Avatar (Optional)
-              </label>
+              <label className="font-semibold text-sm text-blue-700">Avatar (Optional)</label>
               <input type="file" accept="image/*" onChange={handleAvatarChange} />
               {preview && (
                 <img

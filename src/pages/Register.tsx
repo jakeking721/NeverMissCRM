@@ -46,9 +46,7 @@ export default function Register() {
 
     // If "Confirm email" is enabled, show message instead of redirect
     if (data?.user && !data.session) {
-      setInfo(
-        "Check your email to confirm your account. You can sign in after confirming."
-      );
+      setInfo("Check your email to confirm your account. You can sign in after confirming.");
       return;
     }
 
@@ -76,13 +74,9 @@ export default function Register() {
           className="bg-white/90 backdrop-blur rounded-2xl shadow-xl px-8 py-8 w-full max-w-sm"
           onSubmit={handleSubmit}
         >
-          <h2 className="text-2xl font-extrabold text-center mb-6 text-blue-800">
-            Create Account
-          </h2>
+          <h2 className="text-2xl font-extrabold text-center mb-6 text-blue-800">Create Account</h2>
 
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Username
-          </label>
+          <label className="block mb-2 text-sm font-medium text-gray-700">Username</label>
           <input
             className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-200 mb-4"
             value={username}
@@ -91,9 +85,7 @@ export default function Register() {
             autoFocus
           />
 
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Email
-          </label>
+          <label className="block mb-2 text-sm font-medium text-gray-700">Email</label>
           <input
             className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-200 mb-4"
             type="email"
@@ -102,9 +94,7 @@ export default function Register() {
             required
           />
 
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Password
-          </label>
+          <label className="block mb-2 text-sm font-medium text-gray-700">Password</label>
           <input
             className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-200 mb-6"
             type="password"
@@ -113,13 +103,9 @@ export default function Register() {
             required
           />
 
-          {error && (
-            <div className="mb-4 text-red-600 text-sm text-center">{error}</div>
-          )}
+          {error && <div className="mb-4 text-red-600 text-sm text-center">{error}</div>}
 
-          {info && (
-            <div className="mb-4 text-green-600 text-sm text-center">{info}</div>
-          )}
+          {info && <div className="mb-4 text-green-600 text-sm text-center">{info}</div>}
 
           <button
             type="submit"

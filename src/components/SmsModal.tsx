@@ -118,7 +118,6 @@ export default function SmsModal({ customer, onClose }: Props) {
             Send
           </button>
         </div>
-
       </div>
     </div>
   );

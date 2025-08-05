@@ -72,8 +72,8 @@ export default function Billing() {
         <header>
           <h1 className="text-2xl font-semibold mb-2">Billing & Credits</h1>
           <p className="text-sm text-gray-600">
-            This is a stub integration. A real checkout (Stripe, etc.) will replace this, and credits
-            will be updated via webhooks.
+            This is a stub integration. A real checkout (Stripe, etc.) will replace this, and
+            credits will be updated via webhooks.
           </p>
         </header>
 

@@ -105,12 +105,12 @@ export default function App() {
           />
 
           <Route
-          path="/customers"
-          element={
-            <ProtectedRoute>
-              <Customers />
-            </ProtectedRoute>
-          }
+            path="/customers"
+            element={
+              <ProtectedRoute>
+                <Customers />
+              </ProtectedRoute>
+            }
           />
 
           <Route
@@ -122,31 +122,31 @@ export default function App() {
             }
           />
 
-            <Route
-              path="/campaigns/new"
-              element={
-                <ProtectedRoute>
-                  <CampaignBuilder />
-                </ProtectedRoute>
-              }
-            />
+          <Route
+            path="/campaigns/new"
+            element={
+              <ProtectedRoute>
+                <CampaignBuilder />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/builder"
-              element={
-                <ProtectedRoute>
-                  <FormList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/builder/:formId"
-              element={
-                <ProtectedRoute>
-                  <FormBuilder />
-                </ProtectedRoute>
-              }
-            />
+          <Route
+            path="/builder"
+            element={
+              <ProtectedRoute>
+                <FormList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/builder/:formId"
+            element={
+              <ProtectedRoute>
+                <FormBuilder />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/analytics"

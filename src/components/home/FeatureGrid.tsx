@@ -52,7 +52,7 @@ export default function FeatureGrid() {
             </ul>
           </FadeIn>
         </div>
-      </div >
-    </section >
+      </div>
+    </section>
   );
 }

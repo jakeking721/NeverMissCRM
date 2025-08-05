@@ -46,8 +46,8 @@ export default function BulkImport() {
         </h1>
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <p className="mb-4 text-sm text-gray-600">
-            Upload a CSV file with columns like <code>name</code>, <code>phone</code>,
-            and optional additional fields. Existing contacts will be replaced.
+            Upload a CSV file with columns like <code>name</code>, <code>phone</code>, and optional
+            additional fields. Existing contacts will be replaced.
           </p>
           <input
             type="file"

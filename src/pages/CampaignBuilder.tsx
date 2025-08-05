@@ -11,19 +11,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import PageShell from "@/components/PageShell";
 import { useAuth } from "@/context/AuthContext";
 import { v4 as uuid } from "uuid";
-import {
-  Campaign,
-  getCampaigns,
-  addCampaign,
-} from "@/services/campaignService";
+import { Campaign, getCampaigns, addCampaign } from "@/services/campaignService";
 import { getCustomers } from "@/services/customerService";
 import { getFields, CustomField } from "@/services/fieldsService";
 import { creditsService } from "@/services/creditsService";
 import { getSmsService } from "@/services/smsService";
-import SegmentBuilder, {
-  Segment,
-  SegmentRule,
-} from "@/components/segments/SegmentBuilder";
+import SegmentBuilder, { Segment, SegmentRule } from "@/components/segments/SegmentBuilder";
 import { FiSave } from "react-icons/fi";
 
 type AnyValue = string | number | boolean | null | undefined;
@@ -58,10 +51,7 @@ export default function CampaignBuilder() {
 
   const [segment, setSegment] = useState<Segment>({ rules: [], match: "all" });
 
-  const sms = useMemo(
-    () => getSmsService(user?.username ?? user?.email ?? null),
-    [user]
-  );
+  const sms = useMemo(() => getSmsService(user?.username ?? user?.email ?? null), [user]);
 
   // Initial load
   useEffect(() => {
@@ -75,7 +65,7 @@ export default function CampaignBuilder() {
         const existing = await getCampaigns();
         const maybeUpdated = existing.map((c) => {
           if (c.status === "scheduled" && c.scheduledFor && new Date(c.scheduledFor) <= now) {
-          // NOTE: If you move to Supabase, do this in the DB or a job; we leave as-is for local demo parity
+            // NOTE: If you move to Supabase, do this in the DB or a job; we leave as-is for local demo parity
             return { ...c, status: "sent" };
           }
           return c;

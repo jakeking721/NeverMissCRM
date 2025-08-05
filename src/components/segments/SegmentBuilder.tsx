@@ -165,7 +165,6 @@ export default function SegmentBuilder({ fields, segment, onChange }: Props) {
           })}
         </div>
       )}
-
     </div>
   );
 }

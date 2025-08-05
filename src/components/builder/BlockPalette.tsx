@@ -70,4 +70,3 @@ export default function BlockPalette({ onAdd, background, onBackgroundChange }: 
     </div>
   );
 }
-

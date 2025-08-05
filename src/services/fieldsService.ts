@@ -132,6 +132,10 @@ export async function updateField(updated: CustomField): Promise<void> {
 export async function removeField(id: string): Promise<void> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Not logged in.");
-  const { error } = await supabase.from("custom_fields").delete().eq("id", id).eq("user_id", userId);
+  const { error } = await supabase
+    .from("custom_fields")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
   if (error) throw error;
 }

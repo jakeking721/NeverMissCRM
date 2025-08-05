@@ -6,31 +6,20 @@
 // - Hydrates from Supabase on mount and listens to onAuthStateChange to stay in sync.
 // -----------------------------------------------------------------------------
 
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import {
-  getCurrentUser,
-  refreshCurrentUser,
-  logoutUser,
-  User,
-} from "../utils/auth";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { getCurrentUser, refreshCurrentUser, logoutUser, User } from "../utils/auth";
 import { supabase } from "@/utils/supabaseClient";
 
 type AuthContextShape = {
   user: User | null;
   refresh: () => void; // kept as void for backwards compatibility
-  logout: () => void;  // kept as void for backwards compatibility
+  logout: () => void; // kept as void for backwards compatibility
 };
 
 const AuthContext = createContext<AuthContextShape>({
   user: null,
-  refresh: () => { },
-  logout: () => { },
+  refresh: () => {},
+  logout: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -71,11 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refresh, doRefresh]);
 
-  return (
-    <AuthContext.Provider value={{ user, refresh, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, refresh, logout }}>{children}</AuthContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

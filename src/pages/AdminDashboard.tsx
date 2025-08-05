@@ -58,9 +58,7 @@ export default function AdminDashboard() {
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (!s) return users;
-    return users.filter((u) =>
-      (u.username ?? u.email ?? "").toLowerCase().includes(s)
-    );
+    return users.filter((u) => (u.username ?? u.email ?? "").toLowerCase().includes(s));
   }, [users, search]);
 
   const onAddCredits = async (id: string) => {

@@ -15,11 +15,7 @@ export async function fetchForms() {
 }
 
 export async function fetchForm(id: string) {
-  const { data, error } = await supabase
-    .from("campaign_forms")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data, error } = await supabase.from("campaign_forms").select("*").eq("id", id).single();
   if (error) throw error;
   const blocks = data?.schema_json?.blocks || [];
   const style = data?.schema_json?.style || {};
@@ -43,9 +39,6 @@ export async function saveForm(payload: any) {
 }
 
 export async function deleteForm(id: string) {
-  const { error } = await supabase
-    .from("campaign_forms")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("campaign_forms").delete().eq("id", id);
   if (error) throw error;
 }

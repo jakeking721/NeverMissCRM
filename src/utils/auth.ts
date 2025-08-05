@@ -78,28 +78,28 @@ export async function refreshCurrentUser(): Promise<User | null> {
       return null;
     }
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", sUser.id)
-    .single();
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", sUser.id)
+      .single();
 
-  if (error || !profile) {
-    writeProfileCache(null);
-    return null;
-  }
+    if (error || !profile) {
+      writeProfileCache(null);
+      return null;
+    }
 
-  const u: User = {
-    id: sUser.id,
-    username: profile.username,
-    email: sUser.email,
-    role: (profile.role as Role) ?? "user",
-    credits: profile.credits ?? 0,
-    avatar: profile.avatar ?? null,
-  };
+    const u: User = {
+      id: sUser.id,
+      username: profile.username,
+      email: sUser.email,
+      role: (profile.role as Role) ?? "user",
+      credits: profile.credits ?? 0,
+      avatar: profile.avatar ?? null,
+    };
 
-  writeProfileCache(u);
-  return u;
+    writeProfileCache(u);
+    return u;
   } catch {
     writeProfileCache(null);
     return null;

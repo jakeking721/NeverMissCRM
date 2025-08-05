@@ -9,11 +9,7 @@
 import React, { useEffect, useState } from "react";
 import PageShell from "@/components/PageShell";
 import { Link } from "react-router-dom";
-import {
-  getCampaigns,
-  removeCampaign,
-  Campaign,
-} from "@/services/campaignService";
+import { getCampaigns, removeCampaign, Campaign } from "@/services/campaignService";
 import { creditsService } from "@/services/creditsService";
 
 export default function Campaigns() {
@@ -112,9 +108,7 @@ export default function Campaigns() {
                         {new Date(c.createdAt).toLocaleTimeString()}
                       </td>
                       <td className="py-2">
-                        {c.scheduledFor
-                          ? new Date(c.scheduledFor).toLocaleString()
-                          : "—"}
+                        {c.scheduledFor ? new Date(c.scheduledFor).toLocaleString() : "—"}
                       </td>
                       <td className="py-2 text-right">
                         <button
@@ -134,8 +128,8 @@ export default function Campaigns() {
 
         {/* Footer Info */}
         <p className="text-xs text-gray-500 text-center">
-          Campaigns are currently stored in Supabase (or locally if stubbed).
-          Future versions will support drafts, analytics, and Twilio scheduling.
+          Campaigns are currently stored in Supabase (or locally if stubbed). Future versions will
+          support drafts, analytics, and Twilio scheduling.
         </p>
       </div>
     </PageShell>

@@ -15,7 +15,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../../utils/auth", async () => {
-  const actual = await vi.importActual("../../utils/auth") as any;
+  const actual = (await vi.importActual("../../utils/auth")) as any;
   return { ...actual, refreshCurrentUser: () => Promise.resolve(null) };
 });
 
@@ -37,7 +37,7 @@ describe("<Login />", () => {
     fireEvent.click(screen.getByRole("button", { name: /log in/i }));
 
     await waitFor(() => {
-      expect((supabase.auth.signInWithPassword as any)).toHaveBeenCalled();
+      expect(supabase.auth.signInWithPassword as any).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith("/dashboard", { replace: true });
     });
   });

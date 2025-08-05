@@ -212,10 +212,7 @@ function ScreenWrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PrimaryButton({
-  children,
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+function PrimaryButton({ children, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...rest}

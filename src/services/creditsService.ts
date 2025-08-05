@@ -31,21 +31,13 @@ async function getSessionUser() {
 async function getMyProfile() {
   const user = await getSessionUser();
   if (!user) return null;
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   if (error) throw error;
   return data;
 }
 
 async function getProfileById(userId: string) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
   if (error) throw error;
   return data;
 }
@@ -145,9 +137,7 @@ export function createCreditsService(): CreditsService {
       }
     },
 
-    async beginUserPurchase(
-      amount: number
-    ): Promise<ServiceResult<{ checkoutUrl?: string }>> {
+    async beginUserPurchase(amount: number): Promise<ServiceResult<{ checkoutUrl?: string }>> {
       // For now, simulate a top-up to the current user. Replace with Stripe Checkout session / Payment link in production.
       try {
         const user = await getSessionUser();

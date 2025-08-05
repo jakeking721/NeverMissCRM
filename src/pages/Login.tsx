@@ -40,19 +40,17 @@ export default function Login() {
 
       if (userId) {
         // 🧩 Upsert profile to ensure row exists
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert(
-            {
-              id: userId,
-              username: id.split("@")[0],
-              role: "user",
-              credits: 0,
-              avatar: "",
-              public_slug: null,
-            },
-            { onConflict: "id" }
-          );
+        const { error: profileError } = await supabase.from("profiles").upsert(
+          {
+            id: userId,
+            username: id.split("@")[0],
+            role: "user",
+            credits: 0,
+            avatar: "",
+            public_slug: null,
+          },
+          { onConflict: "id" }
+        );
 
         if (profileError) {
           console.error("Profile insert error:", profileError);
@@ -77,13 +75,9 @@ export default function Login() {
           className="bg-white/90 backdrop-blur rounded-2xl shadow-xl px-8 py-8 w-full max-w-sm"
           onSubmit={handleSubmit}
         >
-          <h2 className="text-2xl font-extrabold text-center mb-6 text-blue-800">
-            Log in
-          </h2>
+          <h2 className="text-2xl font-extrabold text-center mb-6 text-blue-800">Log in</h2>
 
-          {error && (
-            <div className="mb-4 text-red-600 text-sm text-center">{error}</div>
-          )}
+          {error && <div className="mb-4 text-red-600 text-sm text-center">{error}</div>}
 
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Email</label>

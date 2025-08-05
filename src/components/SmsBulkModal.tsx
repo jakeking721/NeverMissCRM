@@ -99,8 +99,7 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
         </div>
 
         <div className="mb-3 text-xs text-gray-600">
-          Credits required: <strong>{creditsNeeded}</strong> | Available:{" "}
-          <strong>{balance}</strong>
+          Credits required: <strong>{creditsNeeded}</strong> | Available: <strong>{balance}</strong>
         </div>
 
         <textarea
@@ -115,14 +114,13 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
             <div>Preview recipients:</div>
             <ul className="list-disc ml-5">
               {(showAll ? customers : customers.slice(0, 5)).map((c) => (
-                <li key={c.id}>{c.name ?? "Unknown"} ({c.phone ?? ""})</li>
+                <li key={c.id}>
+                  {c.name ?? "Unknown"} ({c.phone ?? ""})
+                </li>
               ))}
             </ul>
             {customers.length > 5 && !showAll && (
-              <button
-                onClick={() => setShowAll(true)}
-                className="text-blue-600 underline"
-              >
+              <button onClick={() => setShowAll(true)} className="text-blue-600 underline">
                 Show all
               </button>
             )}
@@ -148,7 +146,6 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
             Send
           </button>
         </div>
-
       </div>
     </div>
   );

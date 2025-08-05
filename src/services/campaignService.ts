@@ -14,8 +14,8 @@ export type Campaign = {
   message: string;
   recipients: string[];
   status: "draft" | "scheduled" | "sent";
-  createdAt: string;       // ISO
-  scheduledFor?: string;   // ISO | undefined
+  createdAt: string; // ISO
+  scheduledFor?: string; // ISO | undefined
 };
 
 function requireUserId(): string {
@@ -81,21 +81,14 @@ export async function addCampaign(c: Campaign): Promise<void> {
  */
 export async function removeCampaign(id: string): Promise<void> {
   const userId = requireUserId();
-  const { error } = await supabase
-    .from("campaigns")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
+  const { error } = await supabase.from("campaigns").delete().eq("id", id).eq("user_id", userId);
   if (error) throw error;
 }
 
 /**
  * Update status for a campaign you own.
  */
-export async function updateCampaignStatus(
-  id: string,
-  status: Campaign["status"]
-): Promise<void> {
+export async function updateCampaignStatus(id: string, status: Campaign["status"]): Promise<void> {
   const userId = requireUserId();
   const { error } = await supabase
     .from("campaigns")

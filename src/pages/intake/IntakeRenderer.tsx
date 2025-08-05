@@ -19,53 +19,59 @@ interface RouteParams {
   formSlug: string;
 }
 
-interface BaseBlock { id: string; type: string }
-interface TextBlock extends BaseBlock { type: "text"; text: string }
+interface BaseBlock {
+  id: string;
+  type: string;
+}
+interface TextBlock extends BaseBlock {
+  type: "text";
+  text: string;
+}
 interface ImageBlock extends BaseBlock {
-  type: "image"
-  url: string
-  alt?: string
+  type: "image";
+  url: string;
+  alt?: string;
 }
 interface InputBlock extends BaseBlock {
-  type: "input"
-  name: string
-  label?: string
-  inputType: "text" | "email" | "phone"
-  required?: boolean
+  type: "input";
+  name: string;
+  label?: string;
+  inputType: "text" | "email" | "phone";
+  required?: boolean;
 }
 interface ChoiceBlock extends BaseBlock {
-  type: "choice"
-  name: string
-  label?: string
-  options: string[]
-  required?: boolean
+  type: "choice";
+  name: string;
+  label?: string;
+  options: string[];
+  required?: boolean;
 }
-interface ButtonBlock extends BaseBlock { type: "button"; text: string }
-interface PdfBlock extends BaseBlock { type: "pdf"; url: string; required?: boolean }
+interface ButtonBlock extends BaseBlock {
+  type: "button";
+  text: string;
+}
+interface PdfBlock extends BaseBlock {
+  type: "pdf";
+  url: string;
+  required?: boolean;
+}
 interface LinkBlock extends BaseBlock {
-  type: "link"
-  text: string
-  url: string
-  required?: boolean
+  type: "link";
+  text: string;
+  url: string;
+  required?: boolean;
 }
 
-type Block =
-  | TextBlock
-  | ImageBlock
-  | InputBlock
-  | ChoiceBlock
-  | ButtonBlock
-  | PdfBlock
-  | LinkBlock
+type Block = TextBlock | ImageBlock | InputBlock | ChoiceBlock | ButtonBlock | PdfBlock | LinkBlock;
 
 export default function IntakeRenderer() {
   const { campaignId, formSlug } = useParams<RouteParams>();
-  const [blocks, setBlocks] = useState<Block[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [values, setValues] = useState<Record<string, any>>({})
-  const [submitted, setSubmitted] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [values, setValues] = useState<Record<string, any>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -83,15 +89,15 @@ export default function IntakeRenderer() {
           setLoading(false);
           return;
         }
-        const schemaBlocks: Block[] = data.schema_json?.blocks ?? []
-        setBlocks(schemaBlocks)
-        const initVals: Record<string, any> = {}
+        const schemaBlocks: Block[] = data.schema_json?.blocks ?? [];
+        setBlocks(schemaBlocks);
+        const initVals: Record<string, any> = {};
         schemaBlocks.forEach((b) => {
-          if (b.type === "input" || b.type === "choice") initVals[b.name] = ""
+          if (b.type === "input" || b.type === "choice") initVals[b.name] = "";
           if ((b.type === "pdf" || b.type === "link") && b.required)
-            initVals[`ack_${b.id}`] = false
-        })
-        setValues(initVals)
+            initVals[`ack_${b.id}`] = false;
+        });
+        setValues(initVals);
       } catch (e: any) {
         if (!mounted) return;
         setError(e?.message || "Failed to load form");
@@ -105,26 +111,26 @@ export default function IntakeRenderer() {
   }, [campaignId, formSlug]);
 
   const buildValidation = () => {
-    const shape: Record<string, any> = {}
+    const shape: Record<string, any> = {};
     blocks.forEach((b) => {
       if (b.type === "input") {
-        let validator = yup.string()
-        if (b.inputType === "email") validator = validator.email("Invalid email")
+        let validator = yup.string();
+        if (b.inputType === "email") validator = validator.email("Invalid email");
         if (b.inputType === "phone")
-          validator = validator.matches(/^[0-9()+\-\s]+$/u, "Invalid phone")
-        if (b.required) validator = validator.required("Required")
-        shape[b.name] = validator
+          validator = validator.matches(/^[0-9()+\-\s]+$/u, "Invalid phone");
+        if (b.required) validator = validator.required("Required");
+        shape[b.name] = validator;
       }
       if (b.type === "choice") {
-        let validator = yup.string()
-        if (b.required) validator = validator.required("Required")
-        shape[b.name] = validator
+        let validator = yup.string();
+        if (b.required) validator = validator.required("Required");
+        shape[b.name] = validator;
       }
       if ((b.type === "pdf" || b.type === "link") && b.required) {
-        shape[`ack_${b.id}`] = yup.boolean().oneOf([true], "Required")
+        shape[`ack_${b.id}`] = yup.boolean().oneOf([true], "Required");
       }
-    })
-    return yup.object().shape(shape)
+    });
+    return yup.object().shape(shape);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,9 +170,7 @@ export default function IntakeRenderer() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">Loading…</div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
   }
 
   if (submitted) {
@@ -185,16 +189,11 @@ export default function IntakeRenderer() {
                   <p key={block.id} className="text-gray-700">
                     {block.text}
                   </p>
-                )
+                );
               case "image":
                 return (
-                  <img
-                    key={block.id}
-                    src={block.url}
-                    alt={block.alt || ""}
-                    className="w-full"
-                  />
-                )
+                  <img key={block.id} src={block.url} alt={block.alt || ""} className="w-full" />
+                );
               case "input":
                 return (
                   <div key={block.id}>
@@ -207,18 +206,14 @@ export default function IntakeRenderer() {
                     <input
                       type={block.inputType === "phone" ? "tel" : block.inputType}
                       value={values[block.name] || ""}
-                      onChange={(e) =>
-                        setValues({ ...values, [block.name]: e.target.value })
-                      }
+                      onChange={(e) => setValues({ ...values, [block.name]: e.target.value })}
                       className="w-full border rounded p-2"
                     />
                     {fieldErrors[block.name] && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {fieldErrors[block.name]}
-                      </p>
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors[block.name]}</p>
                     )}
                   </div>
-                )
+                );
               case "choice":
                 return (
                   <div key={block.id}>
@@ -230,9 +225,7 @@ export default function IntakeRenderer() {
                     )}
                     <select
                       value={values[block.name] || ""}
-                      onChange={(e) =>
-                        setValues({ ...values, [block.name]: e.target.value })
-                      }
+                      onChange={(e) => setValues({ ...values, [block.name]: e.target.value })}
                       className="w-full border rounded p-2"
                     >
                       <option value="">Select…</option>
@@ -243,12 +236,10 @@ export default function IntakeRenderer() {
                       ))}
                     </select>
                     {fieldErrors[block.name] && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {fieldErrors[block.name]}
-                      </p>
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors[block.name]}</p>
                     )}
                   </div>
-                )
+                );
               case "button":
                 return (
                   <button
@@ -258,7 +249,7 @@ export default function IntakeRenderer() {
                   >
                     {block.text}
                   </button>
-                )
+                );
               case "pdf":
                 return (
                   <div key={block.id}>
@@ -279,12 +270,10 @@ export default function IntakeRenderer() {
                       </label>
                     )}
                     {fieldErrors[`ack_${block.id}`] && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {fieldErrors[`ack_${block.id}`]}
-                      </p>
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors[`ack_${block.id}`]}</p>
                     )}
                   </div>
-                )
+                );
               case "link":
                 return (
                   <div key={block.id}>
@@ -312,14 +301,12 @@ export default function IntakeRenderer() {
                       </label>
                     )}
                     {fieldErrors[`ack_${block.id}`] && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {fieldErrors[`ack_${block.id}`]}
-                      </p>
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors[`ack_${block.id}`]}</p>
                     )}
                   </div>
-                )
+                );
               default:
-                return null
+                return null;
             }
           })}
           <p className="text-[10px] text-gray-500 text-center">

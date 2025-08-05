@@ -68,13 +68,13 @@ export default function AdminLogin() {
               required
             />
             {error && <div className="mb-4 text-red-600 text-sm text-center">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl transition disabled:opacity-50"
-          >
-            {loading ? "Logging in…" : "Log In as Admin"}
-          </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl transition disabled:opacity-50"
+            >
+              {loading ? "Logging in…" : "Log In as Admin"}
+            </button>
           </form>
         </div>
       </div>

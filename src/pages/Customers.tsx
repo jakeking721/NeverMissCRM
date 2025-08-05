@@ -253,27 +253,21 @@ export default function Customers() {
     ];
 
     // Map each header in the uploaded file to a known key (or null if unknown)
-    const headerToKey = parsed.headers.reduce<Record<string, string | null>>(
-      (acc, h) => {
-        const normalized = h.trim().toLowerCase();
-        const match = knownKeys.find((k) => k.toLowerCase() === normalized);
-        acc[h] = match || null;
-        return acc;
-      },
-      {}
-    );
+    const headerToKey = parsed.headers.reduce<Record<string, string | null>>((acc, h) => {
+      const normalized = h.trim().toLowerCase();
+      const match = knownKeys.find((k) => k.toLowerCase() === normalized);
+      acc[h] = match || null;
+      return acc;
+    }, {});
 
     const unmatchedHeaders = Object.entries(headerToKey)
       .filter(([, v]) => !v)
       .map(([h]) => h);
 
-    const addFlags = unmatchedHeaders.reduce<Record<string, boolean>>(
-      (acc, h) => {
-        acc[h] = true;
-        return acc;
-      },
-      {}
-    );
+    const addFlags = unmatchedHeaders.reduce<Record<string, boolean>>((acc, h) => {
+      acc[h] = true;
+      return acc;
+    }, {});
 
     setCsvPreview({
       headers: parsed.headers,
@@ -309,7 +303,7 @@ export default function Customers() {
 
       // --- 2.  Create any brand-new custom fields --------------------------
       if (fieldsToAdd.length > 0) {
-        const existing = await getFields();          // read current set
+        const existing = await getFields(); // read current set
         let order = existing.length;
 
         for (const label of fieldsToAdd) {
@@ -324,7 +318,7 @@ export default function Customers() {
             visibleOn: { dashboard: true, customers: true, campaigns: true },
             archived: false,
           };
-          await addField(field);                     // inserts into custom_fields
+          await addField(field); // inserts into custom_fields
         }
 
         // refresh local custom-field cache
@@ -354,8 +348,8 @@ export default function Customers() {
 
       // --- 4.  Upsert customers & refresh list -----------------------------
       const next = [...customers, ...mapped];
-      await replaceCustomers(next);   // <- Supabase upsert
-      await reloadCustomers();        // <- GET latest list
+      await replaceCustomers(next); // <- Supabase upsert
+      await reloadCustomers(); // <- GET latest list
       alert(`Imported ${mapped.length} customers.`);
 
       // close modal & clear preview

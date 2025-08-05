@@ -405,7 +405,7 @@ export default function Dashboard() {
           </div>
 
           {loadingCustomers ? (
-          <p className="text-sm text-gray-500">Loading customers…</p>
+            <p className="text-sm text-gray-500">Loading customers…</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -431,9 +431,7 @@ export default function Dashboard() {
                         <td className="py-2">{c.name}</td>
                         <td className="py-2">{c.phone}</td>
                         <td className="py-2">{c.location}</td>
-                        <td className="py-2">
-                          {new Date(c.signupDate).toLocaleDateString()}
-                        </td>
+                        <td className="py-2">{new Date(c.signupDate).toLocaleDateString()}</td>
                         <td className="py-2 text-right">
                           <button
                             onClick={() => onOpenSms(c)}

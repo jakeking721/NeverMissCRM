@@ -33,4 +33,3 @@ export default function FormSettingsPanel({ style, onChange }: Props) {
     </div>
   );
 }
-

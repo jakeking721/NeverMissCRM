@@ -11,13 +11,7 @@ interface Props {
   onDelete(id: string): void;
 }
 
-export default function DraggableBlock({
-  id,
-  block,
-  selected,
-  onSelect,
-  onDelete,
-}: Props) {
+export default function DraggableBlock({ id, block, selected, onSelect, onDelete }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -133,9 +127,7 @@ function renderBlock(block: any) {
             <iframe
               src={block.url}
               className={
-                block.displayStyle === "embed"
-                  ? "w-full h-96 border"
-                  : "w-full h-48 border"
+                block.displayStyle === "embed" ? "w-full h-96 border" : "w-full h-48 border"
               }
             />
           )}
