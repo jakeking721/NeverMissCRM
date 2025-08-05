@@ -19,9 +19,6 @@
 - Implement server-side scheduling, delivery status tracking, and retries for SMS once a provider is integrated. Steps: (1) Use provider API/webhooks to track status. (2) Persist message logs in database. (3) Retry failed sends according to carrier guidelines.
 - Improve form builder slug UX and campaign selection. Steps: (1) Enhance slug input to auto-generate/validate unique slugs and prevent duplicates. (2) Provide UI to choose a campaign and ensure `campaign_id` is included when saving new forms.
 - Replace the alert in `FormBuilder` error handling with a toast/snackbar component. Steps: (1) Install a toast library (e.g., react-toastify). (2) Display a toast on save failure instead of using `alert`.
-<<<<<<< ours
-
-- Swap placeholder hero image in `src/components/home/HeroSection.tsx` with production-ready media. Steps: (1) Add final hero image or video to `public/` (e.g., `public/hero-media.jpg` or `hero-media.mp4`). (2) Update `HERO_MEDIA` constant in `HeroSection.tsx` to point to the new file. (3) Verify appearance on mobile and desktop after replacement.
-=======
-- Replace placeholder `public/stars-band.png` with final high-resolution design if updated artwork becomes available. Steps: (1) Obtain production-ready star band asset matching design specifications. (2) Save/overwrite `public/stars-band.png`. (3) Validate `/stars-band.png` loads in browsers on desktop and mobile. (4) Remove this TODO after final asset is in place.
->>>>>>> theirs
+- Install Tailwind CSS forms and typography plugins. Steps: (1) Run `npm install -D @tailwindcss/forms @tailwindcss/typography` in the project root to fetch packages and update `package-lock.json`. (2) Re-run `npm run build` to ensure the plugins load without warnings.
+- Confirm Inter font loads in production and host locally if external requests are restricted. Steps: (1) Visit the deployed app and verify the font in browser dev tools. (2) If blocked, download the Inter font files and serve them from the app's assets directory.
+- Resolve Vite build error about `boolean` import from `src/utils/yup.ts`. Steps: (1) Export the `boolean` helper from `src/utils/yup.ts` or adjust the import in `src/pages/intake/IntakeRenderer.tsx` to a valid schema helper. (2) Re-run `npm run build` to confirm the dev build succeeds.
