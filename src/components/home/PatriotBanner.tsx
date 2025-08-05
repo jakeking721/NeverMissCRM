@@ -1,7 +1,7 @@
 import React from "react";
 
-const PEOPLE_IMG =
-  "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&w=900&q=80";
+// Local banner image of people collaborating
+const PEOPLE_IMG = "/patriot-banner.jpg";
 
 export default function PatriotBanner() {
   return (

@@ -1,9 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-// Placeholder hero media. Replace with production image or video.
-const HERO_MEDIA =
-  "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&w=1600&q=80";
+// Local hero background image
+const HERO_MEDIA = "/hero-media.jpg";
 
 export default function HeroSection() {
   const navigate = useNavigate();
