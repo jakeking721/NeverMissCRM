@@ -1,4 +1,24 @@
--- Migration: add campaign_forms table and deleted flag on custom_fields
+-- Migration: create custom_fields and campaign_forms tables
+
+-- Create custom_fields table
+create table if not exists public.custom_fields (
+    id uuid primary key,
+    user_id uuid not null references auth.users(id) on delete cascade,
+    key text not null,
+    label text not null,
+    type text not null,
+    options jsonb not null default '[]',
+    required boolean not null default false,
+    "order" integer not null default 0,
+    visible_on jsonb not null default '{"dashboard":false,"customers":false,"campaigns":false}',
+    archived boolean not null default false,
+    unique (user_id, key)
+);
+
+alter table public.custom_fields enable row level security;
+
+create policy "custom_fields_owner" on public.custom_fields
+    for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Create campaign_forms table
 create table if not exists public.campaign_forms (
@@ -12,11 +32,7 @@ create table if not exists public.campaign_forms (
     unique (campaign_id, slug)
 );
 
--- Add deleted boolean column to custom_fields
-alter table public.custom_fields
-    add column if not exists deleted boolean not null default false;
-
--- Enable row level security and define policies
+-- Enable row level security and define policies for campaign_forms
 alter table public.campaign_forms enable row level security;
 
 create policy "campaign_forms_owner_access" on public.campaign_forms
