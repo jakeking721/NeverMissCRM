@@ -3,7 +3,6 @@
 /* -------------------------------------------------------------------------- */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { v4 as uuid } from "uuid";
 
 import PageShell from "@/components/PageShell";
@@ -17,6 +16,7 @@ import {
 } from "@/services/customerService";
 import { getFields, addField, type CustomField } from "@/services/fieldsService";
 import { toKeySlug } from "@/utils/slug";
+import { JSX } from "react/jsx-runtime";
 
 /* -------------------------------------------------------------------------- */
 /*                                   Types                                    */
@@ -90,8 +90,6 @@ function parseCSV(
 
 export default function Customers(): JSX.Element {
   const { user } = useAuth();
-  const navigate = useNavigate();
-
   /* ----------------------------- Local state ----------------------------- */
 
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -227,6 +225,30 @@ export default function Customers(): JSX.Element {
     const a = Object.assign(document.createElement("a"), {
       href: url,
       download: "customers_export.json",
+    });
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+    /** Export table as CSV */
+  const onExportCSV = () => {
+    const headers = columns.map((c) => c.label);
+    const rows = customers.map((c) =>
+      columns
+        .map((col) => {
+          const raw = formatValue((c as Record<string, AnyValue>)[col.key]);
+          // escape double quotes by doubling them
+          const escaped = raw.replace(/"/g, '""');
+          return `"${escaped}"`;
+        })
+        .join(","),
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), {
+      href: url,
+      download: "customers_export.csv",
     });
     a.click();
     URL.revokeObjectURL(url);
@@ -497,7 +519,7 @@ export default function Customers(): JSX.Element {
             <button onClick={onExportJSON} className="btn">
               Export JSON
             </button>
-            <button onClick={exportCSV} className="btn">
+            <button onClick={onExportCSV} className="btn">
               Export CSV
             </button>
 
