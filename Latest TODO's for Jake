@@ -7,12 +7,10 @@
 - Test touch drag-and-drop in the form builder on physical iOS/Android browsers to confirm sensors and styles handle mobile gestures.
   - Address npm warning about unknown `http-proxy` env config in deployment environment. Steps: (1) Remove `http-proxy` and `https-proxy` environment variables or rename to `HTTP_PROXY`/`HTTPS_PROXY`. (2) Use `npm config set proxy <url>` if a proxy is required.
   - Remove demo seed scripts (`src/dev/seed.ts` and `src/dev/seed.local.ts`) and delete any sample accounts from production. Steps: (1) Delete scripts. (2) Purge demo users.
-- Apply Supabase migrations in `supabase/migrations` to create `campaign_forms` table, `intake_add_customer` function, and form upload storage bucket. Steps: (1) Run `supabase login` with a valid access token. (2) Run `supabase db push` from project root. (3) Confirm table, function, and bucket exist.
 - Ensure `.env` variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_PUBLIC_APP_URL` are set to production values (placeholders currently committed). Steps: (1) Edit `.env` with real URLs/keys. (2) Redeploy.
 - After integrating a real SMS provider, update `src/utils/credits.ts` `DEFAULT_SMS_COST_PER_SEGMENT` and remove `src/utils/demoSMS.ts`. Steps: (1) Adjust constant to provider rate. (2) Delete file and references.
 - Replace local object URL handling for image and PDF uploads in the form builder with real Supabase storage uploads and persist returned URLs in `schema_json`.
 - Verify PDF waiver display styles and acceptance checkbox in production browsers; add backend validation and storage for uploaded files.
-- Add server-side URL validation/sanitization for website link blocks; client-side check is not sufficient.
 - Remove legacy `getCurrentUser` fallback in `src/routes/ProtectedRoute.tsx` once all pages rely on `useAuth`. Steps: (1) Audit remaining pages using `getCurrentUser`. (2) Delete fallback logic.
 - Expand segment builder capabilities with nested groups, range filters for numbers/dates, and a server-side query builder. Steps: (1) Update UI to support grouped rules. (2) Implement filtering logic. (3) Expose backend query endpoint.
 - For bulk SMS, add server-side credit enforcement, chunking/rate limiting with retries, and template variable parsing. Steps: (1) Verify credits on backend before sending. (2) Split sends into provider-compliant batches and retry on failures. (3) Parse variables before dispatch.
@@ -22,4 +20,4 @@
   - Replace the alert in `FormBuilder` error handling with a toast/snackbar component. Steps: (1) Install a toast library (e.g., react-toastify). (2) Display a toast on save failure instead of using `alert`.
   - Confirm Inter font loads in production and host locally if external requests are restricted. Steps: (1) Visit the deployed app and verify the font in browser dev tools. (2) If blocked, download the Inter font files and serve them from the app's assets directory.
 - Resolve Vite build error about `boolean` import from `src/utils/yup.ts`. Steps: (1) Export the `boolean` helper from `src/utils/yup.ts` or adjust the import in `src/pages/intake/IntakeRenderer.tsx` to a valid schema helper. (2) Re-run `npm run build` to confirm the dev build succeeds.
-- Optional: Allow forms without campaigns. Steps: (1) In the Supabase SQL editor or CLI, run `alter table public.campaign_forms alter column campaign_id drop not null;`. (2) From the project root, execute `supabase db push` to apply the migration.
+- Optional: Allow forms without campaigns. Steps: (1) In the Supabase SQL editor or CLI, run `alter table public.campaign_forms alter column campaign_id drop not null;`. (2) From the project root, execute `supabase db push` to apply the migration. [i did this step, now nullable?]
