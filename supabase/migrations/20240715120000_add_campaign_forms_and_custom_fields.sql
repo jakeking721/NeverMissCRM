@@ -17,7 +17,7 @@ create table if not exists public.custom_fields (
 
 alter table public.custom_fields enable row level security;
 
-create policy "custom_fields_owner" on public.custom_fields
+create or replace policy "custom_fields_owner" on public.custom_fields
     for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Create campaign_forms table
@@ -35,7 +35,7 @@ create table if not exists public.campaign_forms (
 -- Enable row level security and define policies for campaign_forms
 alter table public.campaign_forms enable row level security;
 
-create policy "campaign_forms_owner_access" on public.campaign_forms
+create or replace policy "campaign_forms_owner_access" on public.campaign_forms
     for all using (
         exists (
             select 1
@@ -45,7 +45,7 @@ create policy "campaign_forms_owner_access" on public.campaign_forms
         )
     );
 
-create policy "campaign_forms_admin_template_access" on public.campaign_forms
+create or replace policy "campaign_forms_admin_template_access" on public.campaign_forms
     for all using (
         exists (
             select 1
