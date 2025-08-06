@@ -12,7 +12,15 @@ vi.mock("@/services/forms", () => ({
   deleteForm: vi.fn(),
 }));
 
+vi.mock("@/services/campaignService", () => ({
+  getCampaigns: vi.fn().mockResolvedValue([
+    { id: "c1", name: "Test Campaign", message: "", recipients: [], status: "draft", createdAt: "" },
+  ]),
+}));
+
 import { saveForm } from "@/services/forms";
+
+vi.spyOn(window, "alert").mockImplementation(() => {});
 
 test("adds title block and saves", async () => {
   await act(async () => {
@@ -39,6 +47,9 @@ test("adds title block and saves", async () => {
 
   const slugInput = screen.getByLabelText(/Slug/i);
   fireEvent.change(slugInput, { target: { value: "test-form" } });
+
+  const campaignSelect = await screen.findByLabelText(/Campaign/i);
+  fireEvent.change(campaignSelect, { target: { value: "c1" } });
 
   const saveBtn = await screen.findByText("Save");
   await act(async () => {
