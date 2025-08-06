@@ -1,45 +1,66 @@
-// src/pages/Customers.tsx
-// ------------------------------------------------------------------------------------
-// Customers page (Supabase-backed services)
-// - Dynamic columns from custom fields
-// - Bulk selection + SmsBulkModal
-// - Import/Export JSON + CSV stubs (client-side)
-// ------------------------------------------------------------------------------------
+/* -------------------------------------------------------------------------- */
+/*  src/pages/Customers.tsx – customer list with bulk SMS & CSV / JSON import */
+/* -------------------------------------------------------------------------- */
 
-import React from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuid } from "uuid";
+
 import PageShell from "@/components/PageShell";
-import { useAuth } from "@/context/AuthContext";
 import SmsBulkModal from "@/components/SmsBulkModal";
+import { useAuth } from "@/context/AuthContext";
 
 import {
   getCustomers,
   replaceCustomers,
-  Customer as SbcCustomer,
+  type Customer as SbcCustomer,
 } from "@/services/customerService";
-
-import { getFields, addField, CustomField } from "@/services/fieldsService";
+import { getFields, addField, type CustomField } from "@/services/fieldsService";
 import { toKeySlug } from "@/utils/slug";
+
+/* -------------------------------------------------------------------------- */
+/*                                   Types                                    */
+/* -------------------------------------------------------------------------- */
 
 type AnyValue = string | number | boolean | null | undefined;
 type Customer = SbcCustomer;
 
-// ---- CSV helpers (no external deps) -----------------------------------------
-function parseCSV(text: string, delimiter = ","): { headers: string[]; rows: string[][] } {
+interface CsvPreview {
+  headers: string[];
+  rows: string[][];
+  headerToKey: Record<string, string | null>;
+  unmatchedHeaders: string[];
+  addFlags: Record<string, boolean>;
+}
+
+interface JsonPreview {
+  customers: Record<string, AnyValue>[];
+  unknownKeys: string[];
+  addFlags: Record<string, boolean>;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              CSV helper (vanilla)                          */
+/* -------------------------------------------------------------------------- */
+
+function parseCSV(
+  text: string,
+  delimiter = ","
+): { headers: string[]; rows: string[][] } {
   const lines = text.split(/\r?\n/).filter(Boolean);
   if (lines.length === 0) return { headers: [], rows: [] };
 
-  const parseLine = (line: string) => {
+  const parseLine = (line: string): string[] => {
     const out: string[] = [];
     let cur = "";
     let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
+
+    for (let i = 0; i < line.length; i += 1) {
       const ch = line[i];
       if (ch === '"') {
         if (inQuotes && line[i + 1] === '"') {
           cur += '"';
-          i++;
+          i += 1;
         } else {
           inQuotes = !inQuotes;
         }
@@ -58,96 +79,74 @@ function parseCSV(text: string, delimiter = ","): { headers: string[]; rows: str
   const rows = lines
     .slice(1)
     .map(parseLine)
-    .filter((r) => r.some((v) => v && v.length > 0));
+    .filter((r) => r.some((v) => v));
 
   return { headers, rows };
 }
 
-type CsvPreview = {
-  headers: string[];
-  rows: string[][];
-  headerToKey: Record<string, string | null>;
-  unmatchedHeaders: string[];
-  addFlags: Record<string, boolean>;
-  errors: string[];
-};
+/* -------------------------------------------------------------------------- */
+/*                               Component                                    */
+/* -------------------------------------------------------------------------- */
 
-type JsonPreview = {
-  customers: any[];
-  unknownKeys: string[];
-  addFlags: Record<string, boolean>;
-};
-
-export default function Customers() {
+export default function Customers(): JSX.Element {
   const { user } = useAuth();
-  let navigate: (path: string) => void = () => {};
-  try {
-    navigate = useNavigate();
-  } catch {
-    // ignore when not inside a router (e.g., unit tests)
-  }
+  const navigate = useNavigate();
 
-  const [customers, setCustomers] = React.useState<Customer[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
+  /* ----------------------------- Local state ----------------------------- */
 
-  const [search, setSearch] = React.useState("");
-  const [sortBy, setSortBy] = React.useState<string>("signupDate");
-  const [ascending, setAscending] = React.useState<boolean>(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [customFields, setCustomFields] = React.useState<CustomField[]>([]);
-  const [bulkOpen, setBulkOpen] = React.useState(false);
-  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string>("signupDate");
+  const [ascending, setAscending] = useState(false);
 
-  // Fetch fields (still localStorage-backed for now)
-  React.useEffect(() => {
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  /* ---------------------------- Meta (fetch) ----------------------------- */
+
+  /** refresh field meta */
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       const list = await getFields();
       if (cancelled) return;
-      const all = list
-        .filter((f) => !f.archived && f.visibleOn.customers)
-        .sort((a, b) => a.order - b.order);
-      setCustomFields(all);
+
+      setCustomFields(
+        list
+          .filter((f) => !f.archived && f.visibleOn.customers)
+          .sort((a, b) => a.order - b.order)
+      );
     })();
     return () => {
       cancelled = true;
     };
   }, [user?.id]);
 
-  // Initial load of customers
-  React.useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (!user?.id) {
-        setCustomers([]);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
-        const list = await getCustomers();
-        if (mounted) setCustomers(list);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
+  /** load customers */
+  const loadCustomers = useCallback(async () => {
+    if (!user?.id) {
+      setCustomers([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      setCustomers(await getCustomers());
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id]);
 
-  const reloadCustomers = React.useCallback(async () => {
-    try {
-      const list = await getCustomers();
-      setCustomers(list);
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  useEffect(() => {
+    loadCustomers();
+  }, [loadCustomers]);
 
-  const baseColumns = React.useMemo(
+  /* --------------------------- Column helpers ---------------------------- */
+
+  const baseColumns = useMemo(
     () =>
       [
         { key: "name", label: "Name" },
@@ -158,99 +157,109 @@ export default function Customers() {
     []
   );
 
-  const columns = React.useMemo(
+  const columns = useMemo(
     () => [...baseColumns, ...customFields.map((f) => ({ key: f.key, label: f.label }))],
     [baseColumns, customFields]
   );
 
   const onSort = (key: string) => {
-    if (sortBy === key) {
-      setAscending((v) => !v);
-    } else {
+    if (sortBy === key) setAscending((v) => !v);
+    else {
       setSortBy(key);
       setAscending(true);
     }
   };
 
-  const filtered = React.useMemo(() => {
-    const s = search.trim().toLowerCase();
-    const list = customers.filter((c) => {
-      if (!s) return true;
+  /* ----------------------------- Filter + sort --------------------------- */
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    const matches = (c: Customer): boolean => {
+      if (!q) return true;
       const baseHit =
-        (c.name?.toLowerCase?.().includes(s) ?? false) ||
-        (c.phone?.toLowerCase?.().includes(s) ?? false) ||
-        (c.location?.toLowerCase?.().includes(s) ?? false) ||
-        (c.signupDate?.toLowerCase?.().includes(s) ?? false);
+        c.name?.toLowerCase().includes(q) ||
+        c.phone?.toLowerCase().includes(q) ||
+        c.location?.toLowerCase().includes(q) ||
+        c.signupDate?.toLowerCase().includes(q);
 
       if (baseHit) return true;
 
-      for (const f of customFields) {
-        const v = (c as any)[f.key];
-        if (typeof v === "string" && v.toLowerCase().includes(s)) return true;
-        if (typeof v === "number" && String(v).includes(s)) return true;
-      }
-      return false;
-    });
+      return customFields.some((f) => {
+        const v = (c as Record<string, AnyValue>)[f.key];
+        return (
+          (typeof v === "string" && v.toLowerCase().includes(q)) ||
+          (typeof v === "number" && String(v).includes(q))
+        );
+      });
+    };
 
-    const sorted = list.slice().sort((a, b) => {
-      const av = (a as any)[sortBy];
-      const bv = (b as any)[sortBy];
+    const list = customers.filter(matches);
 
-      if (av == null && bv == null) return 0;
-      if (av == null) return ascending ? -1 : 1;
-      if (bv == null) return ascending ? 1 : -1;
+    return list.sort((a, b) => {
+      const av = (a as Record<string, AnyValue>)[sortBy];
+      const bv = (b as Record<string, AnyValue>)[sortBy];
 
-      if (typeof av === "number" && typeof bv === "number") {
+      if (av == null || bv == null) return av == null ? (ascending ? -1 : 1) : ascending ? 1 : -1;
+      if (typeof av === "number" && typeof bv === "number")
         return ascending ? av - bv : bv - av;
-      }
+
       return ascending
         ? String(av).localeCompare(String(bv))
         : String(bv).localeCompare(String(av));
     });
-
-    return sorted;
   }, [customers, search, sortBy, ascending, customFields]);
 
-  // ---- JSON Export -----------------------------------------------------------
+  /* ------------------------------ Export JSON ---------------------------- */
+
   const onExportJSON = () => {
-    const payload = {
-      customers,
-      exportedAt: new Date().toISOString(),
-      customFields,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          { customers, exportedAt: new Date().toISOString(), customFields },
+          null,
+          2
+        ),
+      ],
+      { type: "application/json" }
+    );
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "customers_export.json";
+    const a = Object.assign(document.createElement("a"), {
+      href: url,
+      download: "customers_export.json",
+    });
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // ---- CSV Import/Export (with dry-run preview) ------------------------------
-  const [csvPreview, setCsvPreview] = React.useState<CsvPreview | null>(null);
-  const [csvModalOpen, setCsvModalOpen] = React.useState(false);
-  const csvInputRef = React.useRef<HTMLInputElement | null>(null);
+  /* ------------------------- CSV / JSON import UI ------------------------ */
 
-  const [jsonPreview, setJsonPreview] = React.useState<JsonPreview | null>(null);
-  const [jsonModalOpen, setJsonModalOpen] = React.useState(false);
+  /** CSV preview modal */
+  const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
+  /** JSON preview modal */
+  const [jsonPreview, setJsonPreview] = useState<JsonPreview | null>(null);
+  const [jsonModalOpen, setJsonModalOpen] = useState(false);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
 
   const onImportCsvClick = () => csvInputRef.current?.click();
+  const onImportJsonClick = () => jsonInputRef.current?.click();
+
+  /* ----------------------------- CSV handler ----------------------------- */
 
   const onImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const text = await file.text();
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    const delimiter = ext === "tsv" ? "\t" : ",";
-    const parsed = parseCSV(text, delimiter);
-    if (!parsed.headers.length) {
+
+    const delimiter = file.name.toLowerCase().endsWith(".tsv") ? "\t" : ",";
+    const { headers, rows } = parseCSV(await file.text(), delimiter);
+    if (headers.length === 0) {
       alert("CSV appears empty.");
       return;
     }
+
     const knownKeys = [
       "name",
       "phone",
@@ -259,202 +268,48 @@ export default function Customers() {
       ...customFields.map((f) => f.key),
     ];
 
-    // Map each header in the uploaded file to a known key (or null if unknown)
-    const headerToKey = parsed.headers.reduce<Record<string, string | null>>((acc, h) => {
-      const normalized = h.trim().toLowerCase();
-      const match = knownKeys.find((k) => k.toLowerCase() === normalized);
-      acc[h] = match || null;
-      return acc;
-    }, {});
+    const headerToKey: Record<string, string | null> = {};
+    headers.forEach((h) => {
+      headerToKey[h] =
+        knownKeys.find((k) => k.toLowerCase() === h.trim().toLowerCase()) ?? null;
+    });
 
-    const unmatchedHeaders = Object.entries(headerToKey)
-      .filter(([, v]) => !v)
-      .map(([h]) => h);
-
-    const addFlags = unmatchedHeaders.reduce<Record<string, boolean>>((acc, h) => {
-      acc[h] = true;
-      return acc;
-    }, {});
+    const unmatched = headers.filter((h) => !headerToKey[h]);
+    const addFlags = Object.fromEntries(unmatched.map((h) => [h, true]));
 
     setCsvPreview({
-      headers: parsed.headers,
-      rows: parsed.rows,
+      headers,
+      rows,
       headerToKey,
-      unmatchedHeaders,
+      unmatchedHeaders: unmatched,
       addFlags,
-      errors: [],
     });
     setCsvModalOpen(true);
-    if (e.target) e.target.value = "";
+    e.target.value = "";
   };
 
-  // -----------------------------------------------------------------------------
-  // Replace the old confirmCsvImport with everything below
-  // -----------------------------------------------------------------------------
   const confirmCsvImport = async () => {
-    if (!csvPreview) return;
+    if (!csvPreview || !user) return;
 
     try {
-      // --- 1.  Map CSV headers -> field keys -------------------------------
-      const headerToKey: Record<string, string | null> = { ...csvPreview.headerToKey };
-      const fieldsToAdd: string[] = [];
+      /* create custom-fields for any checked unmatched header */
+      let order = customFields.length;
+      const headerToKey: Record<string, string> = {};
 
-      // add new custom-field labels the user checked
-      for (const h of csvPreview.unmatchedHeaders) {
+      for (const h of csvPreview.headers) {
+        const existing = csvPreview.headerToKey[h];
+        if (existing) {
+          headerToKey[h] = existing;
+          continue;
+        }
+
         if (csvPreview.addFlags[h]) {
           const key = toKeySlug(h);
           headerToKey[h] = key;
-          fieldsToAdd.push(h);
-        }
-      }
 
-      // --- 2.  Create any brand-new custom fields --------------------------
-      if (fieldsToAdd.length > 0) {
-        const existing = await getFields(); // read current set
-        let order = existing.length;
-
-        for (const label of fieldsToAdd) {
           const field: CustomField = {
             id: uuid(),
-            user_id: user!.id,
-            key: toKeySlug(label),
-            label,
-            type: "text",
-            order: order++,
-            options: [],
-            required: false,
-            visibleOn: { dashboard: true, customers: true, campaigns: true },
-            archived: false,
-          };
-          await addField(field); // inserts into custom_fields
-        }
-
-        // refresh local custom-field cache
-        const refreshed = await getFields();
-        const visible = refreshed
-          .filter((f) => !f.archived && f.visibleOn.customers)
-          .sort((a, b) => a.order - b.order);
-        setCustomFields(visible);
-      }
-
-      // --- 3.  Transform CSV rows into customer objects --------------------
-      const mapped = csvPreview.rows.map((row, idx) => {
-        const obj: any = {
-          id: uuid(),
-          user_id: user!.id,
-          signupDate: new Date().toISOString(),
-        };
-
-        csvPreview.headers.forEach((h, i) => {
-          const key = headerToKey[h];
-          if (key) obj[key] = row[i];
-        });
-
-        if (obj.phone) obj.phone = String(obj.phone).replace(/[^0-9+]/g, "");
-        if (!obj.name) obj.name = `Imported #${idx + 1}`;
-        return obj;
-      });
-
-      // --- 4.  Upsert customers & refresh list -----------------------------
-      const next = [...customers, ...mapped].map((c) => ({ ...c, user_id: user!.id }));
-      await replaceCustomers(next); // <- Supabase upsert
-      await reloadCustomers(); // <- GET latest list
-      navigate("/customers");
-      alert(`Imported ${mapped.length} customers.`);
-
-      // close modal & clear preview
-      setCsvModalOpen(false);
-      setCsvPreview(null);
-    } catch (err: any) {
-      // ---- Surface *any* failure transparently ---------------------------
-      console.error("IMPORT FAILED >>>", err);
-      alert(`Import failed: ${err?.message ?? err}`);
-      // (modal stays open so the user can retry / untick fields)
-    }
-  };
-
-  const exportCSV = () => {
-    const cols = ["name", "phone", "location", "signupDate", ...customFields.map((f) => f.key)];
-    const header = cols.join(",");
-    const lines = customers.map((c) =>
-      cols
-        .map((k) => {
-          const v = (c as any)[k];
-          const s = v == null ? "" : String(v).replace(/"/g, '""');
-          return /[,\n"]/.test(s) ? `"${s}"` : s;
-        })
-        .join(",")
-    );
-    const out = [header, ...lines].join("\n");
-    const blob = new Blob([out], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "customers_export.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // ---- JSON Import -----------------------------------------------------------
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-  const onImportClick = () => fileInputRef.current?.click();
-
-  const onImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const json = JSON.parse(text);
-      if (!Array.isArray(json.customers)) {
-        alert("Invalid file format (missing .customers array).");
-        return;
-      }
-      const knownKeys = [
-        "name",
-        "phone",
-        "location",
-        "signupDate",
-        ...customFields.map((f) => f.key),
-      ];
-      const unknown = new Set<string>();
-      json.customers.forEach((c: any) => {
-        Object.keys(c).forEach((k) => {
-          if (!knownKeys.includes(k)) unknown.add(k);
-        });
-      });
-      const addFlags = Array.from(unknown).reduce<Record<string, boolean>>((acc, k) => {
-        acc[k] = true;
-        return acc;
-      }, {});
-      setJsonPreview({ customers: json.customers, unknownKeys: Array.from(unknown), addFlags });
-      setJsonModalOpen(true);
-    } catch (err) {
-      console.error(err);
-      alert("Import failed.");
-    } finally {
-      if (e.target) e.target.value = "";
-    }
-  };
-
-  const confirmJsonImport = async () => {
-    if (!jsonPreview) return;
-    try {
-      const fieldsToAdd: string[] = [];
-      for (const k of jsonPreview.unknownKeys) {
-        if (jsonPreview.addFlags[k]) {
-          fieldsToAdd.push(k);
-        }
-      }
-      const headerToKey: Record<string, string> = {};
-      if (fieldsToAdd.length > 0) {
-        const existing = await getFields();
-        let order = existing.length;
-        for (const h of fieldsToAdd) {
-          const key = toKeySlug(h);
-          headerToKey[h] = key;
-          const field: CustomField = {
-            id: uuid(),
-            user_id: user!.id,
+            user_id: user.id,
             key,
             label: h,
             type: "text",
@@ -466,85 +321,169 @@ export default function Customers() {
           };
           await addField(field);
         }
-        const newList = await getFields();
-        const all = newList
-          .filter((f) => !f.archived && f.visibleOn.customers)
-          .sort((a, b) => a.order - b.order);
-        setCustomFields(all);
       }
 
-      const mapped = jsonPreview.customers.map((row: any, idx: number) => {
-        const obj: any = {
-          id: row.id ?? uuid(),
-          user_id: user!.id,
-          signupDate: row.signupDate ?? new Date().toISOString(),
+      /* transform rows */
+      const mapped: Customer[] = csvPreview.rows.map((row, idx) => {
+        const obj: Record<string, AnyValue> = {
+          id: uuid(),
+          user_id: user.id,
+          signupDate: new Date().toISOString(),
+        };
+        csvPreview.headers.forEach((h, i) => {
+          const key = headerToKey[h];
+          if (key) obj[key] = row[i];
+        });
+        if (!obj.name) obj.name = `Imported #${idx + 1}`;
+        if (obj.phone) obj.phone = String(obj.phone).replace(/[^0-9+]/g, "");
+        return obj as Customer;
+      });
+
+      await replaceCustomers(mapped);
+      await loadCustomers();
+
+      setCsvModalOpen(false);
+      setCsvPreview(null);
+      alert(`Imported ${mapped.length} customers.`);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Import failed: ${err?.message ?? err}`);
+    }
+  };
+
+  /* ----------------------------- JSON handler ---------------------------- */
+
+  const onImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const json = JSON.parse(await file.text());
+      if (!Array.isArray(json.customers)) throw new Error("Missing .customers array");
+
+      const knownKeys = [
+        "name",
+        "phone",
+        "location",
+        "signupDate",
+        ...customFields.map((f) => f.key),
+      ];
+      const unknown = new Set<string>();
+      json.customers.forEach((c: Record<string, AnyValue>) =>
+        Object.keys(c).forEach((k) => {
+          if (!knownKeys.includes(k)) unknown.add(k);
+        })
+      );
+
+      setJsonPreview({
+        customers: json.customers,
+        unknownKeys: Array.from(unknown),
+        addFlags: Object.fromEntries(Array.from(unknown).map((k) => [k, true])),
+      });
+      setJsonModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert("Import failed.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const confirmJsonImport = async () => {
+    if (!jsonPreview || !user) return;
+
+    try {
+      const headerToKey: Record<string, string> = {};
+      let order = customFields.length;
+
+      for (const k of jsonPreview.unknownKeys) {
+        if (!jsonPreview.addFlags[k]) continue;
+        const key = toKeySlug(k);
+        headerToKey[k] = key;
+
+        const field: CustomField = {
+          id: uuid(),
+          user_id: user.id,
+          key,
+          label: k,
+          type: "text",
+          order: order++,
+          options: [],
+          required: false,
+          visibleOn: { dashboard: true, customers: true, campaigns: true },
+          archived: false,
+        };
+        await addField(field);
+      }
+
+      const mapped: Customer[] = jsonPreview.customers.map((row, idx) => {
+        const obj: Record<string, AnyValue> = {
+          id: (row as any).id ?? uuid(),
+          user_id: user.id,
+          signupDate: (row as any).signupDate ?? new Date().toISOString(),
         };
         Object.entries(row).forEach(([k, v]) => {
           if (k === "id" || k === "signupDate") return;
           if (jsonPreview.unknownKeys.includes(k) && !jsonPreview.addFlags[k]) return;
-          const key = headerToKey[k] ?? k;
-          obj[key] = v;
+          obj[headerToKey[k] ?? k] = v;
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
-        return obj;
+        return obj as Customer;
       });
 
-      const next = [...customers, ...mapped].map((c) => ({ ...c, user_id: user!.id }));
-      await replaceCustomers(next);
-      await reloadCustomers();
-      navigate("/customers");
-      alert(`Imported ${mapped.length} customers.`);
-    } catch (e) {
-      console.error(e);
-      alert("Import failed.");
-    } finally {
+      await replaceCustomers(mapped);
+      await loadCustomers();
+
       setJsonModalOpen(false);
       setJsonPreview(null);
+      alert(`Imported ${mapped.length} customers.`);
+    } catch (err) {
+      console.error(err);
+      alert("Import failed.");
     }
   };
 
-  // Bulk selection
+  /* --------------------------- Selection helpers ------------------------- */
+
   const isAllSelected = filtered.length > 0 && selectedIds.length === filtered.length;
-  const toggleAll = () => {
-    if (isAllSelected) setSelectedIds([]);
-    else setSelectedIds(filtered.map((c) => c.id));
-  };
-  const toggleOne = (id: string) => {
+  const toggleAll = () =>
+    setSelectedIds(isAllSelected ? [] : filtered.map((c) => c.id));
+  const toggleOne = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-  const selectedCustomers = React.useMemo(
+
+  const selectedCustomers = useMemo(
     () => customers.filter((c) => selectedIds.includes(c.id)),
     [customers, selectedIds]
   );
 
+  /* ------------------------------ Renderer ------------------------------- */
+
   return (
     <PageShell faintFlag>
+      {/* header / action bar */}
       <div className="max-w-6xl mx-auto space-y-6">
+        {/* Top row */}
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-semibold mb-1">Customers</h1>
-            <p className="text-sm text-gray-600">Full list with dynamic columns and bulk SMS.</p>
+            <p className="text-sm text-gray-600">
+              Full list with dynamic columns and bulk SMS.
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={onImportClick}
-              className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
-            >
+            {/* import / export buttons */}
+            <button onClick={onImportJsonClick} className="btn">
               Import JSON
             </button>
             <input
-              ref={fileInputRef}
+              ref={jsonInputRef}
               type="file"
               accept="application/json"
               onChange={onImportJSON}
-              className="hidden"
+              hidden
             />
 
-            <button
-              onClick={onImportCsvClick}
-              className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
-            >
+            <button onClick={onImportCsvClick} className="btn">
               Import CSV
             </button>
             <input
@@ -552,20 +491,13 @@ export default function Customers() {
               type="file"
               accept=".csv,text/csv"
               onChange={onImportCSV}
-              className="hidden"
+              hidden
             />
 
-            <button
-              onClick={onExportJSON}
-              className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
-            >
+            <button onClick={onExportJSON} className="btn">
               Export JSON
             </button>
-
-            <button
-              onClick={exportCSV}
-              className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
-            >
+            <button onClick={exportCSV} className="btn">
               Export CSV
             </button>
 
@@ -580,18 +512,16 @@ export default function Customers() {
           </div>
         </div>
 
-        {/* Controls */}
+        {/* search / sort controls */}
         <div className="p-4 bg-white rounded-md shadow border">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search customers…"
-                className="border rounded px-3 py-2 text-sm"
-              />
-            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search customers…"
+              className="border rounded px-3 py-2 text-sm"
+            />
 
             <div className="flex items-center gap-2">
               <label className="text-sm">Sort by:</label>
@@ -606,17 +536,14 @@ export default function Customers() {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={() => setAscending((v) => !v)}
-                className="px-2 py-1 text-xs border rounded hover:bg-gray-50"
-              >
+              <button onClick={() => setAscending((v) => !v)} className="px-2 py-1 text-xs border rounded hover:bg-gray-50">
                 {ascending ? "▲" : "▼"}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Table */}
+        {/* table */}
         <div className="p-4 bg-white rounded-md shadow border">
           {loading ? (
             <p className="text-sm text-gray-500">Loading customers…</p>
@@ -635,7 +562,7 @@ export default function Customers() {
                         onClick={() => onSort(c.key)}
                       >
                         {c.label}
-                        {sortBy === c.key ? (ascending ? " ▲" : " ▼") : ""}
+                        {sortBy === c.key && (ascending ? " ▲" : " ▼")}
                       </th>
                     ))}
                   </tr>
@@ -657,14 +584,11 @@ export default function Customers() {
                             onChange={() => toggleOne(c.id)}
                           />
                         </td>
-                        {columns.map((col) => {
-                          const v = (c as any)[col.key];
-                          return (
-                            <td key={col.key} className="py-2 align-middle">
-                              {formatValue(v)}
-                            </td>
-                          );
-                        })}
+                        {columns.map((col) => (
+                          <td key={col.key} className="py-2 align-middle">
+                            {formatValue((c as Record<string, AnyValue>)[col.key])}
+                          </td>
+                        ))}
                       </tr>
                     ))
                   )}
@@ -674,157 +598,169 @@ export default function Customers() {
           )}
 
           <p className="text-xs text-gray-400 mt-3 text-center">
-            Import/export options are only visible on this page.
+            Import / export options are only visible on this page.
           </p>
         </div>
       </div>
 
-      <SmsBulkModal
-        isOpen={bulkOpen}
-        onClose={() => setBulkOpen(false)}
-        customers={selectedCustomers}
-      />
+      {/* bulk SMS modal */}
+      <SmsBulkModal isOpen={bulkOpen} onClose={() => setBulkOpen(false)} customers={selectedCustomers} />
 
+      {/* ---------- CSV preview modal ---------- */}
       {csvModalOpen && csvPreview && (
-        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
-            <h3 className="text-lg font-semibold">CSV Import Preview</h3>
-            {csvPreview.unmatchedHeaders.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
-                <p>Unknown columns detected. Check any you wish to add as custom fields.</p>
-                {csvPreview.unmatchedHeaders.map((h) => (
-                  <label key={h} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={csvPreview.addFlags[h]}
-                      onChange={(e) =>
-                        setCsvPreview((prev) =>
-                          prev
-                            ? { ...prev, addFlags: { ...prev.addFlags, [h]: e.target.checked } }
-                            : prev
-                        )
-                      }
-                    />
-                    {h}
-                  </label>
-                ))}
-              </div>
-            )}
-            <div className="max-h-60 overflow-auto border rounded">
-              <table className="min-w-full text-xs">
-                <thead>
-                  <tr>
-                    {csvPreview.headers.map((h) => (
-                      <th key={h} className="px-2 py-1 border-b text-left">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {csvPreview.rows.slice(0, 10).map((row, i) => (
-                    <tr key={i} className="border-b">
-                      {row.map((cell, j) => (
-                        <td key={j} className="px-2 py-1">
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="text-sm text-gray-600">
-              Previewing first 10 of {csvPreview.rows.length} rows.
-            </div>
-            <div className="text-sm text-gray-600">
-              Successful rows: {csvPreview.rows.length - (csvPreview.errors?.length ?? 0)}
-              {(csvPreview.errors?.length ?? 0) > 0 && (
-                <> | Failed: {csvPreview.errors?.length ?? 0}</>
-              )}
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setCsvModalOpen(false);
-                  setCsvPreview(null);
-                }}
-                className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmCsvImport}
-                className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800"
-              >
-                Confirm Import
-              </button>
-            </div>
-          </div>
-        </div>
+        <CsvPreviewModal
+          preview={csvPreview}
+          onCancel={() => {
+            setCsvModalOpen(false);
+            setCsvPreview(null);
+          }}
+          onConfirm={confirmCsvImport}
+        />
       )}
 
+      {/* ---------- JSON preview modal ---------- */}
       {jsonModalOpen && jsonPreview && (
-        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
-            <h3 className="text-lg font-semibold">JSON Import Preview</h3>
-            {jsonPreview.unknownKeys.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
-                <p>Unknown fields detected. Check any you wish to add as custom fields.</p>
-                {jsonPreview.unknownKeys.map((k) => (
-                  <label key={k} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={jsonPreview.addFlags[k]}
-                      onChange={(e) =>
-                        setJsonPreview((prev) =>
-                          prev
-                            ? { ...prev, addFlags: { ...prev.addFlags, [k]: e.target.checked } }
-                            : prev
-                        )
-                      }
-                    />
-                    {k}
-                  </label>
-                ))}
-              </div>
-            )}
-            <div className="max-h-60 overflow-auto border rounded text-xs">
-              <pre className="p-2 whitespace-pre-wrap">
-                {JSON.stringify(jsonPreview.customers.slice(0, 5), null, 2)}
-              </pre>
-            </div>
-            <div className="text-sm text-gray-600">
-              Previewing first {Math.min(5, jsonPreview.customers.length)} of{" "}
-              {jsonPreview.customers.length} entries.
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setJsonModalOpen(false);
-                  setJsonPreview(null);
-                }}
-                className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmJsonImport}
-                className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800"
-              >
-                Confirm Import
-              </button>
-            </div>
-          </div>
-        </div>
+        <JsonPreviewModal
+          preview={jsonPreview}
+          onCancel={() => {
+            setJsonModalOpen(false);
+            setJsonPreview(null);
+          }}
+          onConfirm={confirmJsonImport}
+        />
       )}
     </PageShell>
   );
 }
 
-// ------------------------------------------
+/* -------------------------------------------------------------------------- */
+/*                 Small presentational helpers (modals)                      */
+/* -------------------------------------------------------------------------- */
 
-function formatValue(v: AnyValue) {
+interface CsvPreviewModalProps {
+  preview: CsvPreview;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+function CsvPreviewModal({ preview, onCancel, onConfirm }: CsvPreviewModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
+        <h3 className="text-lg font-semibold">CSV Import Preview</h3>
+
+        {preview.unmatchedHeaders.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
+            <p>Unknown columns detected. Check any you wish to add as custom fields.</p>
+            {preview.unmatchedHeaders.map((h) => (
+              <label key={h} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={preview.addFlags[h]}
+                  onChange={(e) => (preview.addFlags[h] = e.target.checked)}
+                />
+                {h}
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div className="max-h-60 overflow-auto border rounded">
+          <table className="min-w-full text-xs">
+            <thead>
+              <tr>
+                {preview.headers.map((h) => (
+                  <th key={h} className="px-2 py-1 border-b text-left">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {preview.rows.slice(0, 10).map((row, i) => (
+                <tr key={i} className="border-b">
+                  {row.map((cell, j) => (
+                    <td key={j} className="px-2 py-1">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-sm text-gray-600">
+          Previewing first 10 of {preview.rows.length} rows.
+        </p>
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onCancel} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800">
+            Confirm Import
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface JsonPreviewModalProps {
+  preview: JsonPreview;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+function JsonPreviewModal({ preview, onCancel, onConfirm }: JsonPreviewModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
+        <h3 className="text-lg font-semibold">JSON Import Preview</h3>
+
+        {preview.unknownKeys.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
+            <p>Unknown fields detected. Check any you wish to add as custom fields.</p>
+            {preview.unknownKeys.map((k) => (
+              <label key={k} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={preview.addFlags[k]}
+                  onChange={(e) => (preview.addFlags[k] = e.target.checked)}
+                />
+                {k}
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div className="max-h-60 overflow-auto border rounded text-xs">
+          <pre className="p-2 whitespace-pre-wrap">
+            {JSON.stringify(preview.customers.slice(0, 5), null, 2)}
+          </pre>
+        </div>
+
+        <p className="text-sm text-gray-600">
+          Previewing first {Math.min(5, preview.customers.length)} of {preview.customers.length} entries.
+        </p>
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onCancel} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800">
+            Confirm Import
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- Util helpers ------------------------------ */
+
+function formatValue(v: AnyValue): string {
   if (v == null) return "—";
   if (typeof v === "boolean") return v ? "Yes" : "No";
   return String(v);
