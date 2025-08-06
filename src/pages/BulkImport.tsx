@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { v4 as uuid } from "uuid";
 import { replaceCustomers, Customer } from "@/services/customerService";
 
 export default function BulkImport() {
@@ -84,7 +85,7 @@ function parseCsv(text: string): Customer[] {
     });
     const { name = "", phone = "", location = "", ...extra } = obj;
     return {
-      id: crypto.randomUUID(),
+      id: uuid(),
       name,
       phone,
       location,
