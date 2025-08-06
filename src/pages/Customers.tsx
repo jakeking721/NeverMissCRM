@@ -7,6 +7,7 @@
 // ------------------------------------------------------------------------------------
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { v4 as uuid } from "uuid";
 import PageShell from "@/components/PageShell";
 import { useAuth } from "@/context/AuthContext";
@@ -79,6 +80,12 @@ type JsonPreview = {
 
 export default function Customers() {
   const { user } = useAuth();
+  let navigate: (path: string) => void = () => {};
+  try {
+    navigate = useNavigate();
+  } catch {
+    // ignore when not inside a router (e.g., unit tests)
+  }
 
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -349,9 +356,10 @@ export default function Customers() {
       });
 
       // --- 4.  Upsert customers & refresh list -----------------------------
-      const next = [...customers, ...mapped];
+      const next = [...customers, ...mapped].map((c) => ({ ...c, user_id: user!.id }));
       await replaceCustomers(next); // <- Supabase upsert
       await reloadCustomers(); // <- GET latest list
+      navigate("/customers");
       alert(`Imported ${mapped.length} customers.`);
 
       // close modal & clear preview
@@ -481,9 +489,10 @@ export default function Customers() {
         return obj;
       });
 
-      const next = [...customers, ...mapped];
+      const next = [...customers, ...mapped].map((c) => ({ ...c, user_id: user!.id }));
       await replaceCustomers(next);
       await reloadCustomers();
+      navigate("/customers");
       alert(`Imported ${mapped.length} customers.`);
     } catch (e) {
       console.error(e);

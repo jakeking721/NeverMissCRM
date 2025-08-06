@@ -113,3 +113,8 @@
     1. Build and deploy the app.
     2. Test Bulk Import in an older browser lacking `crypto.randomUUID` support.
     3. Confirm contact IDs are generated and import succeeds.
+- [NEW] Manually verify in Supabase that imported customer rows are associated with the correct `user_id` and remove any placeholder/demo data.
+  Steps:
+    1. In the Supabase dashboard, open the Table editor for the `customers` table.
+    2. Filter by your user ID and ensure each imported row has that `user_id` value.
+    3. Delete any placeholder or demo contacts (e.g., rows named "Imported #1" or other sample data).

@@ -25,6 +25,8 @@ export default function BulkImport() {
       } else {
         await replaceCustomers(customers);
         alert(`Imported ${customers.length} contacts.`);
+        navigate("/customers");
+        setTimeout(() => window.location.reload(), 0);
       }
     } catch (err: any) {
       console.error(err);
