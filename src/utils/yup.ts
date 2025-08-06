@@ -53,6 +53,35 @@ class StringSchema {
   }
 }
 
+class BooleanSchema {
+  private _required = false;
+  private _msgRequired = "Required";
+  private _oneOf?: any[];
+  private _msgOneOf = "Invalid";
+
+  required(msg: string) {
+    this._required = true;
+    this._msgRequired = msg;
+    return this;
+  }
+
+  oneOf(values: any[], msg: string) {
+    this._oneOf = values;
+    this._msgOneOf = msg;
+    return this;
+  }
+
+  async validate(value: any): Promise<boolean> {
+    if (this._required && value === undefined) {
+      throw new Error(this._msgRequired);
+    }
+    if (this._oneOf && !this._oneOf.includes(value)) {
+      throw new Error(this._msgOneOf);
+    }
+    return value;
+  }
+}
+
 class ObjectSchema {
   constructor(private shape: Record<string, any>) {}
 
@@ -82,4 +111,8 @@ export function object() {
   return {
     shape: (shape: Record<string, any>) => new ObjectSchema(shape),
   };
+}
+
+export function boolean() {
+  return new BooleanSchema();
 }
