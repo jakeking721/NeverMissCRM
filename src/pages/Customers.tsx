@@ -468,6 +468,7 @@ export default function Customers() {
       const mapped = jsonPreview.customers.map((row: any, idx: number) => {
         const obj: any = {
           id: row.id ?? uuid(),
+          user_id: user!.id,
           signupDate: row.signupDate ?? new Date().toISOString(),
         };
         Object.entries(row).forEach(([k, v]) => {

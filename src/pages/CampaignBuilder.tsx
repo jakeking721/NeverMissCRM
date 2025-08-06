@@ -23,6 +23,7 @@ type AnyValue = string | number | boolean | null | undefined;
 
 type Customer = {
   id: string;
+  user_id: string;
   name: string;
   phone: string;
   location?: string;

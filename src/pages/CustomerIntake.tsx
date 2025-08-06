@@ -10,6 +10,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/utils/supabaseClient";
+import { useAuth } from "@/context/AuthContext";
 
 type RouteParams = {
   slug?: string;
@@ -25,6 +26,7 @@ type FormState = {
 export default function CustomerIntake() {
   const { username: legacyUsernameParam, slug: slugParam } = useParams<RouteParams>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Support both routes: /intake/:slug OR /u/:username
   const slug = slugParam ?? legacyUsernameParam ?? "";
@@ -148,6 +150,7 @@ export default function CustomerIntake() {
                 p_phone: form.phone,
                 p_location: form.location || null,
                 p_extra: { source: "qr" },
+                p_user_id: user!.id,
               });
 
               if (rpcError) {

@@ -6,10 +6,12 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { v4 as uuid } from "uuid";
 import { replaceCustomers, Customer } from "@/services/customerService";
+import { useAuth } from "@/context/AuthContext";
 
 export default function BulkImport() {
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
+  const { user } = useAuth();
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -17,7 +19,7 @@ export default function BulkImport() {
     setImporting(true);
     try {
       const text = await file.text();
-      const customers = parseCsv(text);
+      const customers = parseCsv(text, user!.id);
       if (customers.length === 0) {
         alert("No rows found in CSV.");
       } else {
@@ -73,7 +75,7 @@ export default function BulkImport() {
   );
 }
 
-function parseCsv(text: string): Customer[] {
+function parseCsv(text: string, userId: string): Customer[] {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
   const headers = lines[0].split(",").map((h) => h.trim());
@@ -86,6 +88,7 @@ function parseCsv(text: string): Customer[] {
     const { name = "", phone = "", location = "", ...extra } = obj;
     return {
       id: uuid(),
+      user_id: userId,
       name,
       phone,
       location,

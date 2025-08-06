@@ -14,6 +14,7 @@ export type Role = "admin" | "user";
 
 export type Customer = {
   id: string;
+  user_id: string;
   name: string;
   phone: string;
   location?: string;

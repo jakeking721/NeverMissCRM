@@ -206,6 +206,7 @@ export default function Dashboard() {
 
     const newCustomer: Customer = {
       id: uuidv4(),
+      user_id: user!.id,
       name: String(formState.name ?? ""),
       phone: String(formState.phone ?? ""),
       location: String(formState.location ?? ""),

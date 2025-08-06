@@ -11,6 +11,7 @@ import { supabase } from "@/utils/supabaseClient";
 
 export type Customer = {
   id: string;
+  user_id: string;
   name: string;
   phone: string;
   location?: string;
@@ -43,6 +44,7 @@ export async function getCustomers(): Promise<Customer[]> {
 
   return (data ?? []).map((row: any) => ({
     id: row.id,
+    user_id: row.user_id,
     name: row.name,
     phone: row.phone,
     location: row.location ?? undefined,
@@ -59,7 +61,7 @@ export async function addCustomer(customer: Customer): Promise<void> {
 
   const payload = {
     id: customer.id,
-    user_id: userId,
+    user_id: customer.user_id ?? userId,
     name: customer.name,
     phone: customer.phone,
     location: customer.location ?? null,
@@ -137,7 +139,7 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
 
   const rows = customers.map((c) => ({
     id: c.id,
-    user_id: userId,
+    user_id: c.user_id ?? userId,
     name: c.name,
     phone: c.phone,
     location: c.location ?? null,
@@ -153,6 +155,6 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
 
 function stripBaseColumns(obj: Partial<Customer>): Record<string, any> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, name, phone, location, signupDate, extra, ...rest } = obj;
+  const { id, user_id, name, phone, location, signupDate, extra, ...rest } = obj;
   return { ...(extra ?? {}), ...rest };
 }
