@@ -1,7 +1,7 @@
 -- Migration: create customers and customer_custom_field_values tables and update intake_add_customer
 
 -- 1. Customers table
-create table if not exists public.customers (
+create or replace table if not exists public.customers (
     id uuid primary key default gen_random_uuid(),
     user_id uuid not null references auth.users(id) on delete cascade,
     name text not null default '',
@@ -25,7 +25,7 @@ create or replace policy "customers_delete" on public.customers
     for delete using (auth.uid() = user_id);
 
 -- 2. Join table for custom field values
-create table if not exists public.customer_custom_field_values (
+create or replace table if not exists public.customer_custom_field_values (
     customer_id uuid not null references public.customers(id) on delete cascade,
     field_id uuid not null references public.custom_fields(id) on delete cascade,
     value text not null default '',

@@ -1,7 +1,7 @@
 -- Migration: create custom_fields and campaign_forms tables
 
 -- Create custom_fields table
-create table if not exists public.custom_fields (
+create or replace table if not exists public.custom_fields (
     id uuid primary key,
     user_id uuid not null references auth.users(id) on delete cascade,
     key text not null,
@@ -21,7 +21,7 @@ create or replace policy "custom_fields_owner" on public.custom_fields
     for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Create campaign_forms table
-create table if not exists public.campaign_forms (
+create or replace table if not exists public.campaign_forms (
     id uuid primary key default gen_random_uuid(),
     campaign_id uuid not null,
     template_id uuid,
