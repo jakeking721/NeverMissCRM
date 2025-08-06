@@ -309,6 +309,7 @@ export default function Customers() {
         for (const label of fieldsToAdd) {
           const field: CustomField = {
             id: uuid(),
+            user_id: user!.id,
             key: toKeySlug(label),
             label,
             type: "text",
@@ -333,6 +334,7 @@ export default function Customers() {
       const mapped = csvPreview.rows.map((row, idx) => {
         const obj: any = {
           id: uuid(),
+          user_id: user!.id,
           signupDate: new Date().toISOString(),
         };
 
@@ -444,6 +446,7 @@ export default function Customers() {
           headerToKey[h] = key;
           const field: CustomField = {
             id: uuid(),
+            user_id: user!.id,
             key,
             label: h,
             type: "text",
