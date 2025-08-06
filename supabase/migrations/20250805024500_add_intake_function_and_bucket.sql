@@ -12,13 +12,23 @@ declare
   v_field_id uuid;
 begin
   -- upsert core customer record
-  insert into customers (id, data)
+  insert into customers (id, user_id, name, phone, location, signup_date, extra)
   values (
     coalesce((payload->>'id')::uuid, gen_random_uuid()),
-    payload - 'custom_fields'
+    (payload->>'user_id')::uuid,
+    coalesce(payload->>'name', ''),
+    coalesce(payload->>'phone', ''),
+    payload->>'location',
+    coalesce((payload->>'signup_date')::timestamptz, now()),
+    coalesce(payload->'extra', '{}'::jsonb)
   )
   on conflict (id) do update
-    set data = excluded.data
+    set user_id    = excluded.user_id,
+        name       = excluded.name,
+        phone      = excluded.phone,
+        location   = excluded.location,
+        signup_date= excluded.signup_date,
+        extra      = excluded.extra
   returning id into v_customer_id;
 
   -- process custom fields if provided
