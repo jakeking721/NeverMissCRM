@@ -1,4 +1,4 @@
--- Migration: create customers and customer_custom_field_values tables and update intake_add_customer
+-- Migration: create customers and customer_custom_field_values tables
 
 -- 1. Customers table
 create table if not exists public.customers (
@@ -49,25 +49,3 @@ create policy "customer_custom_field_values_owner" on public.customer_custom_fie
 
 -- Optional index for faster lookups
 create index if not exists ccfv_customer_idx on public.customer_custom_field_values(customer_id);
-
--- 3. Update intake_add_customer RPC to accept explicit params
-create or replace function public.intake_add_customer(
-    p_slug text,
-    p_name text,
-    p_phone text,
-    p_location text default null,
-    p_extra jsonb default '{}'::jsonb,
-    p_user_id uuid
-) returns uuid
-language plpgsql
-as $$
-declare
-    v_customer_id uuid;
-begin
-    insert into public.customers (user_id, name, phone, location, signup_date, extra)
-    values (p_user_id, coalesce(p_name, ''), coalesce(p_phone, ''), p_location, now(), coalesce(p_extra, '{}'::jsonb))
-    returning id into v_customer_id;
-
-    return v_customer_id;
-end;
-$$;
