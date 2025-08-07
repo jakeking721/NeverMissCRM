@@ -1,3 +1,7 @@
+- [NEW] Apply Supabase migration `20240715120000_add_campaign_forms_and_custom_fields.sql` to ensure `custom_fields` and `campaign_forms` tables and policies are updated safely.
+  Steps:
+    1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL in the Supabase dashboard's SQL editor.
+    2. In Table editor, verify both tables include all expected columns, unique constraints, and row level security policies.
 - [NEW] Apply Supabase migration `20250806030000_add_customers_table_and_values.sql` to create `customers` and `customer_custom_field_values` tables and update `intake_add_customer` RPC.
   Steps:
     1. From the project root, run `supabase db push` (requires Supabase CLI) or run the SQL from that migration in the Supabase dashboard's SQL editor.
