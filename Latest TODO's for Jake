@@ -1,3 +1,18 @@
+- [NEW] Apply Supabase migration `20240710120000_create_campaigns_table.sql` to create the `campaigns` table.
+  Steps:
+    1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL in Supabase dashboard's SQL editor.
+    2. In Table editor, confirm `campaigns` has columns `id`, `user_id`, `name`, `message`, timestamps, the index `campaigns_user_id_idx`, and RLS policy `campaigns_owner_rw`.
+
+- [NEW] Apply Supabase migration `20240710130000_create_campaign_templates_table.sql` to create the `campaign_templates` table.
+  Steps:
+    1. From the project root, run `supabase db push` or run the SQL in Supabase dashboard's SQL editor.
+    2. In Table editor, verify `campaign_templates` exists with expected columns, index `campaign_templates_user_id_idx`, and RLS policy `campaign_templates_owner_rw`.
+
+- [NEW] Apply Supabase migration `20240710140000_create_public_slugs_table.sql` to create the `public_slugs` table for public campaign links.
+  Steps:
+    1. From the project root, run `supabase db push` or execute the SQL in Supabase dashboard's SQL editor.
+    2. In Table editor, confirm `public_slugs` has columns `slug`, `user_id`, `created_at`, index `public_slugs_user_id_idx`, and RLS policies `public_slugs_owner_rw` and `public_slugs_public_select`.
+
 - [NEW] Re-run Supabase migration `20240716125959_patch_add_slug_to_campaign_forms.sql` to reset the unique constraint to `(campaign_id, slug)` until `owner_id` is added later.
   Steps:
     1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL in Supabase dashboard's SQL editor.
