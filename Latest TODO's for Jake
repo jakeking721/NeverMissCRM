@@ -1,3 +1,8 @@
+- [NEW] Re-run Supabase migration `20240716125959_patch_add_slug_to_campaign_forms.sql` to reset the unique constraint to `(campaign_id, slug)` until `owner_id` is added later.
+  Steps:
+    1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL in Supabase dashboard's SQL editor.
+    2. In Table editor for `campaign_forms`, confirm the constraint `campaign_forms_campaign_id_slug_key` exists and `owner_id` column is still absent.
+
 - [NEW] Apply Supabase migration `20240715120000_add_campaign_forms_and_custom_fields.sql` to ensure `custom_fields` and `campaign_forms` tables and policies are updated safely.
   Steps:
     1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL in the Supabase dashboard's SQL editor.

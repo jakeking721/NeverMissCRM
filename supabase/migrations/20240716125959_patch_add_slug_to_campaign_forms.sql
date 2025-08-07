@@ -14,10 +14,16 @@ BEGIN
   END IF;
 END $$;
 
--- Add / replace the unique key (drops it first if it already exists)
+-- Replace any existing slug unique key with campaign_id + slug until owner_id exists
 ALTER TABLE public.campaign_forms
   DROP CONSTRAINT IF EXISTS campaign_forms_owner_slug_key;
 
 ALTER TABLE public.campaign_forms
-  ADD  CONSTRAINT campaign_forms_owner_slug_key
-  UNIQUE (owner_id, slug);
+  DROP CONSTRAINT IF EXISTS campaign_forms_campaign_slug_unique;
+
+ALTER TABLE public.campaign_forms
+  DROP CONSTRAINT IF EXISTS campaign_forms_campaign_id_slug_key;
+
+ALTER TABLE public.campaign_forms
+  ADD  CONSTRAINT campaign_forms_campaign_id_slug_key
+  UNIQUE (campaign_id, slug);
