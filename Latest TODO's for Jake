@@ -49,3 +49,10 @@
     1. In the Supabase dashboard, open the Table editor for the `customers` table.
     2. Filter by your user ID and ensure each imported row has that `user_id` value.
     3. Delete any placeholder or demo contacts (e.g., rows named "Imported #1" or other sample data).
+
+- [NEW] Verify `intake_add_customer` RPC executes after deployment.
+  Steps:
+    1. Deploy the updated app.
+    2. Submit a test intake form to trigger the RPC.
+    3. In Supabase, open the `customers` table and confirm the test row appears with the correct `user_id` and slug.
+    4. Delete the test row once verified.

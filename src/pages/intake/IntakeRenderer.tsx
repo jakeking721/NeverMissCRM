@@ -154,7 +154,14 @@ export default function IntakeRenderer() {
         setFieldErrors(arrayErrors);
         return;
       }
-      await submitIntake(valid);
+      const { name, phone, location, ...extra } = valid as Record<string, any>;
+      await submitIntake({
+        slug: formSlug,
+        name,
+        phone,
+        location,
+        extra,
+      });
       setSubmitted(true);
     } catch (err: any) {
       if (err.name === "ValidationError") {
