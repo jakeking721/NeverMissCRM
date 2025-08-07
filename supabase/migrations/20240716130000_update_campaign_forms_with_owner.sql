@@ -7,7 +7,7 @@ alter table public.campaign_forms
   drop constraint if exists campaign_forms_campaign_id_slug_key;
 
 alter table public.campaign_forms
-  add constraint campaign_forms_owner_slug_key unique (owner_id, slug);
+  add constraint if not exists campaign_forms_owner_slug_key unique (owner_id, slug);
 
 -- Refresh row level security policies
 alter table public.campaign_forms enable row level security;

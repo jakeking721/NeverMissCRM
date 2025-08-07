@@ -12,8 +12,6 @@ create table if not exists public.campaigns (
 create index if not exists campaigns_user_id_idx on public.campaigns (user_id);
 
 alter table public.campaigns enable row level security;
-
-drop policy if exists "campaigns_owner_rw" on public.campaigns;
-create policy "campaigns_owner_rw" on public.campaigns
+create or replace policy "campaigns_owner_rw" on public.campaigns
     for all using (auth.uid() = user_id)
     with check (auth.uid() = user_id);

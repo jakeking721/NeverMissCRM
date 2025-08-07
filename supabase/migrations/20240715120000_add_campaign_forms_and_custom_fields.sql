@@ -35,9 +35,7 @@ alter table public.custom_fields
     add constraint if not exists custom_fields_user_key_unique unique (user_id, key);
 
 alter table public.custom_fields enable row level security;
-
-drop policy if exists "custom_fields_owner" on public.custom_fields;
-create policy "custom_fields_owner" on public.custom_fields
+create or replace policy "custom_fields_owner" on public.custom_fields
     for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create table if not exists public.campaign_forms (
@@ -67,9 +65,7 @@ alter table public.campaign_forms
 
 -- Enable row level security and define policies for campaign_forms
 alter table public.campaign_forms enable row level security;
-
-drop policy if exists "campaign_forms_owner_access" on public.campaign_forms;
-create policy "campaign_forms_owner_access" on public.campaign_forms
+create or replace policy "campaign_forms_owner_access" on public.campaign_forms
     for all using (
         exists (
             select 1
@@ -79,8 +75,7 @@ create policy "campaign_forms_owner_access" on public.campaign_forms
         )
     );
 
-drop policy if exists "campaign_forms_admin_template_access" on public.campaign_forms;
-create policy "campaign_forms_admin_template_access" on public.campaign_forms
+create or replace policy "campaign_forms_admin_template_access" on public.campaign_forms
     for all using (
         exists (
             select 1
