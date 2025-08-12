@@ -4,6 +4,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
+import { useNavigate } from "react-router-dom";
 
 import PageShell from "@/components/PageShell";
 import SmsBulkModal from "@/components/SmsBulkModal";
@@ -90,6 +91,7 @@ function parseCSV(
 
 export default function Customers(): JSX.Element {
   const { user } = useAuth();
+  const navigate = useNavigate();
   /* ----------------------------- Local state ----------------------------- */
 
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -104,6 +106,10 @@ export default function Customers(): JSX.Element {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   /* ---------------------------- Meta (fetch) ----------------------------- */
+
+  useEffect(() => {
+    if (!user) navigate("/login");
+  }, [user, navigate]);
 
   /** refresh field meta */
   useEffect(() => {
@@ -311,7 +317,11 @@ export default function Customers(): JSX.Element {
   };
 
   const confirmCsvImport = async () => {
-    if (!csvPreview || !user) return;
+    if (!csvPreview) return;
+    if (!user) {
+      alert("You must be logged in to import customers.");
+      return;
+    }
 
     try {
       /* create custom-fields for any checked unmatched header */
@@ -411,7 +421,11 @@ export default function Customers(): JSX.Element {
   };
 
   const confirmJsonImport = async () => {
-    if (!jsonPreview || !user) return;
+    if (!jsonPreview) return;
+    if (!user) {
+      alert("You must be logged in to import customers.");
+      return;
+    }
 
     try {
       const headerToKey: Record<string, string> = {};
@@ -637,6 +651,7 @@ export default function Customers(): JSX.Element {
             setCsvPreview(null);
           }}
           onConfirm={confirmCsvImport}
+          canConfirm={!!user}
         />
       )}
 
@@ -649,6 +664,7 @@ export default function Customers(): JSX.Element {
             setJsonPreview(null);
           }}
           onConfirm={confirmJsonImport}
+          canConfirm={!!user}
         />
       )}
     </PageShell>
@@ -663,9 +679,10 @@ interface CsvPreviewModalProps {
   preview: CsvPreview;
   onCancel: () => void;
   onConfirm: () => void;
+  canConfirm: boolean;
 }
 
-function CsvPreviewModal({ preview, onCancel, onConfirm }: CsvPreviewModalProps) {
+function CsvPreviewModal({ preview, onCancel, onConfirm, canConfirm }: CsvPreviewModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
@@ -720,8 +737,38 @@ function CsvPreviewModal({ preview, onCancel, onConfirm }: CsvPreviewModalProps)
           <button onClick={onCancel} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
             Cancel
           </button>
-          <button onClick={onConfirm} className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800">
-            Confirm Import
+          <button
+            onClick={onConfirm}
+            disabled={!canConfirm}
+            className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {canConfirm ? (
+              "Confirm Import"
+            ) : (
+              <>
+                <svg
+                  className="animate-spin h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+                Loading...
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -733,9 +780,10 @@ interface JsonPreviewModalProps {
   preview: JsonPreview;
   onCancel: () => void;
   onConfirm: () => void;
+  canConfirm: boolean;
 }
 
-function JsonPreviewModal({ preview, onCancel, onConfirm }: JsonPreviewModalProps) {
+function JsonPreviewModal({ preview, onCancel, onConfirm, canConfirm }: JsonPreviewModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
@@ -771,8 +819,38 @@ function JsonPreviewModal({ preview, onCancel, onConfirm }: JsonPreviewModalProp
           <button onClick={onCancel} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
             Cancel
           </button>
-          <button onClick={onConfirm} className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800">
-            Confirm Import
+          <button
+            onClick={onConfirm}
+            disabled={!canConfirm}
+            className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {canConfirm ? (
+              "Confirm Import"
+            ) : (
+              <>
+                <svg
+                  className="animate-spin h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+                Loading...
+              </>
+            )}
           </button>
         </div>
       </div>

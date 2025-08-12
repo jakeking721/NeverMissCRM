@@ -1,3 +1,7 @@
+- [NEW] Replace alert for missing user in `src/pages/Customers.tsx` import confirmation handlers with a toast/snackbar component.
+  Steps:
+    1. Install a toast library (e.g., `react-toastify`).
+    2. Show an error toast when a user isn't logged in instead of using `alert`.
 - [NEW] Apply Supabase migration `20240710120000_create_campaigns_table.sql` to create the `campaigns` table.
   Steps:
     1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL in Supabase dashboard's SQL editor.
