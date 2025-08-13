@@ -1,3 +1,8 @@
+- [NEW] Regenerate Supabase types in `src/types/supabase.ts` with Supabase CLI output.
+  Steps:
+    1. Run `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+    2. Ensure the generated file stays updated with future schema changes.
+
 - [NEW] Replace alert for missing user in `src/pages/Customers.tsx` import confirmation handlers with a toast/snackbar component.
   Steps:
     1. Install a toast library (e.g., `react-toastify`).
