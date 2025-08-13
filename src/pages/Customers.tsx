@@ -15,7 +15,9 @@ import {
   replaceCustomers,
   type Customer as SbcCustomer,
 } from "@/services/customerService";
-import { getFields, addField, type CustomField } from "@/services/fieldsService";
+import { getFields, type CustomField } from "@/services/fieldsService";
+import { supabase } from "@/utils/supabaseClient";
+import type { TablesInsert } from "@/types/supabase";
 import { toKeySlug } from "@/utils/slug";
 import { JSX } from "react/jsx-runtime";
 
@@ -339,7 +341,7 @@ export default function Customers(): JSX.Element {
           const key = toKeySlug(h);
           headerToKey[h] = key;
 
-          const field: CustomField = {
+          const field: TablesInsert<'custom_fields'> = {
             id: uuid(),
             user_id: user.id,
             key,
@@ -348,10 +350,10 @@ export default function Customers(): JSX.Element {
             order: order++,
             options: [],
             required: false,
-            visibleOn: { dashboard: true, customers: true, campaigns: true },
+            visible_on: { dashboard: true, customers: true, campaigns: true },
             archived: false,
           };
-          await addField(field);
+          await supabase.from('custom_fields').insert(field);
         }
       }
 
@@ -436,7 +438,7 @@ export default function Customers(): JSX.Element {
         const key = toKeySlug(k);
         headerToKey[k] = key;
 
-        const field: CustomField = {
+        const field: TablesInsert<'custom_fields'> = {
           id: uuid(),
           user_id: user.id,
           key,
@@ -445,10 +447,10 @@ export default function Customers(): JSX.Element {
           order: order++,
           options: [],
           required: false,
-          visibleOn: { dashboard: true, customers: true, campaigns: true },
+          visible_on: { dashboard: true, customers: true, campaigns: true },
           archived: false,
         };
-        await addField(field);
+        await supabase.from('custom_fields').insert(field);
       }
 
       const mapped: Customer[] = jsonPreview.customers.map((row, idx) => {
