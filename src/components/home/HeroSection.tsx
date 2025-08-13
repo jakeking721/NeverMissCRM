@@ -19,10 +19,8 @@ export default function HeroSection() {
       {/* Subtle patriotic accent line */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-white to-red-500" />
       <div className="relative z-10 flex flex-col items-center max-w-4xl px-6 py-24 text-center">
-        <h1 className="mb-6 text-4xl font-extrabold text-patriotBlue sm:text-5xl md:text-6xl">
-          <h2>
-            <img src="/NeverMissCRM_Logo.png" alt="Logo" className="h-96 w-96" /> A LEAD AGAIN
-          </h2>
+        <h1 className="mb-6 text-4xl font-extrabold text-patriotBlue sm:text-5xl md:text-6xl"> 
+          NEVER MISS A LEAD AGAIN
         </h1>
         <div className="flex items-center mb-8 space-x-4 text-blue-700">
           <span className="hidden h-px bg-blue-700 sm:block sm:w-16" />
