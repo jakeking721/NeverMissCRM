@@ -3,6 +3,11 @@
     1. Run `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
     2. Ensure the generated file stays updated with future schema changes.
 
+- [NEW] Reapply migration `20240715120000_add_campaign_forms_and_custom_fields.sql` to fix policy references from `owner_id` to `user_id`.
+  Steps:
+    1. From the project root, run `supabase db push` or execute the SQL in Supabase's SQL editor.
+    2. In the Table editor, confirm policies on `campaign_forms` reference `user_id` and no errors appear.
+
 - [NEW] Apply Supabase migration `20240710120000_create_campaigns_table.sql` to create the `campaigns` table.
   Steps:
     1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL in Supabase dashboard's SQL editor.

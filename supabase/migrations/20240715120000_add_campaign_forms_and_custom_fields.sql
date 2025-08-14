@@ -71,7 +71,7 @@ create or replace policy "campaign_forms_owner_access" on public.campaign_forms
             select 1
             from campaigns c
             where c.id = campaign_forms.campaign_id
-              and c.owner_id = auth.uid()
+              and c.user_id = auth.uid()
         )
     );
 
@@ -81,6 +81,6 @@ create or replace policy "campaign_forms_admin_template_access" on public.campai
             select 1
             from campaign_templates t
             where t.id = campaign_forms.template_id
-              and t.owner_id = auth.uid()
+              and t.user_id = auth.uid()
         )
     );
