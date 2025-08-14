@@ -654,7 +654,7 @@ export default function Customers(): JSX.Element {
             setCsvPreview(null);
           }}
           onConfirm={confirmCsvImport}
-          canConfirm={!!user}
+          canConfirm={true}
         />
       )}
 
@@ -667,7 +667,7 @@ export default function Customers(): JSX.Element {
             setJsonPreview(null);
           }}
           onConfirm={confirmJsonImport}
-          canConfirm={!!user}
+          canConfirm={true}
         />
       )}
     </PageShell>
