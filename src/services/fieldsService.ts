@@ -3,7 +3,7 @@
 // Custom fields service (Supabase-backed).
 // Each row is stored in table `custom_fields` with columns:
 //   id (uuid, PK), user_id (uuid), key, label, type, options (jsonb),
-//   required (bool), order (int), visibleOn (jsonb), archived (bool)
+//   required (bool), order (int), visible_on (jsonb), archived (bool)
 // ------------------------------------------------------------------------------------
 
 import { supabase } from "@/utils/supabaseClient";
@@ -60,7 +60,10 @@ export async function getFields(): Promise<CustomField[]> {
     console.error("getFields error:", error);
     return [];
   }
-  return (data ?? []) as CustomField[];
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    visibleOn: row.visible_on,
+  })) as CustomField[];
 }
 
 // ------------------------------------------------------------------------------------
@@ -76,10 +79,15 @@ export async function saveFields(fields: CustomField[]): Promise<void> {
 
   if (fields.length > 0) {
     const rows = fields.map((f) => ({
-      ...f,
+      id: f.id,
       user_id: userId,
+      key: f.key,
+      label: f.label,
+      type: f.type,
       options: f.options ?? [],
-      visibleOn: f.visibleOn ?? { dashboard: false, customers: false, campaigns: false },
+      required: f.required ?? false,
+      order: f.order,
+      visible_on: f.visibleOn ?? { dashboard: false, customers: false, campaigns: false },
       archived: f.archived ?? false,
     }));
     const { error: insErr } = await supabase.from("custom_fields").insert(rows);
@@ -94,10 +102,15 @@ export async function addField(f: CustomField): Promise<void> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Not logged in.");
   const { error } = await supabase.from("custom_fields").insert({
-    ...f,
+    id: f.id,
     user_id: userId,
+    key: f.key,
+    label: f.label,
+    type: f.type,
     options: f.options ?? [],
-    visibleOn: f.visibleOn ?? { dashboard: false, customers: false, campaigns: false },
+    required: f.required ?? false,
+    order: f.order,
+    visible_on: f.visibleOn ?? { dashboard: false, customers: false, campaigns: false },
     archived: f.archived ?? false,
   });
   if (error) throw error;
@@ -118,7 +131,7 @@ export async function updateField(updated: CustomField): Promise<void> {
       options: updated.options ?? [],
       required: updated.required ?? false,
       order: updated.order,
-      visibleOn: updated.visibleOn,
+      visible_on: updated.visibleOn,
       archived: updated.archived ?? false,
     })
     .eq("id", updated.id)

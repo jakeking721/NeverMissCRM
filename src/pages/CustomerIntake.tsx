@@ -10,7 +10,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/utils/supabaseClient";
-import { useAuth } from "@/context/AuthContext";
+import { submitIntake } from "@/services/intake";
 
 type RouteParams = {
   slug?: string;
@@ -26,7 +26,6 @@ type FormState = {
 export default function CustomerIntake() {
   const { username: legacyUsernameParam, slug: slugParam } = useParams<RouteParams>();
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   // Support both routes: /intake/:slug OR /u/:username
   const slug = slugParam ?? legacyUsernameParam ?? "";
@@ -144,21 +143,13 @@ export default function CustomerIntake() {
             setSubmitting(true);
 
             try {
-              const { error: rpcError } = await supabase.rpc("intake_add_customer", {
-                p_slug: slug,
-                p_name: form.name,
-                p_phone: form.phone,
-                p_location: form.location || null,
-                p_extra: { source: "qr" },
-                p_user_id: user!.id,
+              await submitIntake({
+                slug,
+                name: form.name,
+                phone: form.phone,
+                location: form.location || null,
+                extra: { source: "qr" },
               });
-
-              if (rpcError) {
-                setError(rpcError.message || "Failed to submit. Try again later.");
-                setSubmitting(false);
-                return;
-              }
-
               setSubmitted(true);
             } catch (e: any) {
               console.error(e);

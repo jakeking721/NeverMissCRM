@@ -6,7 +6,6 @@
 // ------------------------------------------------------------------------------------
 
 import { supabase } from "@/utils/supabaseClient";
-import { getCurrentUser } from "@/utils/auth";
 
 export type Campaign = {
   id: string;
@@ -18,12 +17,12 @@ export type Campaign = {
   scheduledFor?: string; // ISO | undefined
 };
 
-function requireUserId(): string {
-  const me = getCurrentUser();
-  if (!me?.id) {
+async function requireUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) {
     throw new Error("Not authenticated");
   }
-  return me.id;
+  return data.user.id;
 }
 
 function rowToCampaign(row: any): Campaign {
@@ -42,7 +41,7 @@ function rowToCampaign(row: any): Campaign {
  * Get all campaigns (newest first).
  */
 export async function getCampaigns(): Promise<Campaign[]> {
-  const userId = requireUserId();
+  const userId = await requireUserId();
 
   const { data, error } = await supabase
     .from("campaigns")
@@ -59,7 +58,7 @@ export async function getCampaigns(): Promise<Campaign[]> {
  * Insert a campaign.
  */
 export async function addCampaign(c: Campaign): Promise<void> {
-  const userId = requireUserId();
+  const userId = await requireUserId();
 
   const payload = {
     id: c.id,
@@ -80,7 +79,7 @@ export async function addCampaign(c: Campaign): Promise<void> {
  * Delete a campaign by id.
  */
 export async function removeCampaign(id: string): Promise<void> {
-  const userId = requireUserId();
+  const userId = await requireUserId();
   const { error } = await supabase.from("campaigns").delete().eq("id", id).eq("user_id", userId);
   if (error) throw error;
 }
@@ -89,7 +88,7 @@ export async function removeCampaign(id: string): Promise<void> {
  * Update status for a campaign you own.
  */
 export async function updateCampaignStatus(id: string, status: Campaign["status"]): Promise<void> {
-  const userId = requireUserId();
+  const userId = await requireUserId();
   const { error } = await supabase
     .from("campaigns")
     .update({ status })
@@ -105,7 +104,7 @@ export async function updateCampaignStatus(id: string, status: Campaign["status"
  * Returns the updated list (after mutation).
  */
 export async function markSentIfDue(): Promise<Campaign[]> {
-  const userId = requireUserId();
+  const userId = await requireUserId();
 
   const nowIso = new Date().toISOString();
 

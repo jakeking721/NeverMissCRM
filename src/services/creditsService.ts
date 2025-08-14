@@ -58,6 +58,14 @@ async function incrementCredits(userId: string, delta: number) {
   if (error) throw error;
 }
 
+async function recordLedger(userId: string, change: number, reason: string) {
+  try {
+    await supabase.from("credit_ledger").insert({ user_id: userId, change, reason });
+  } catch (e) {
+    console.error("ledger insert failed", e);
+  }
+}
+
 export function createCreditsService(): CreditsService {
   return {
     async getBalance(): Promise<number> {
@@ -87,6 +95,7 @@ export function createCreditsService(): CreditsService {
         } catch {
           await setCredits(user.id, current - amount);
         }
+        await recordLedger(user.id, -amount, "deduct");
         return { ok: true };
       } catch (e: any) {
         console.error(e);
@@ -108,6 +117,7 @@ export function createCreditsService(): CreditsService {
           const current = me.credits ?? 0;
           await setCredits(me.id, current + amount);
         }
+        await recordLedger(me.id, amount, "admin_add_self");
         return { ok: true };
       } catch (e: any) {
         console.error(e);
@@ -130,6 +140,7 @@ export function createCreditsService(): CreditsService {
           const current = userProfile.credits ?? 0;
           await setCredits(userId, current + amount);
         }
+        await recordLedger(userId, amount, "admin_add_user");
         return { ok: true };
       } catch (e: any) {
         console.error(e);
@@ -146,6 +157,7 @@ export function createCreditsService(): CreditsService {
         const me = await getProfileById(user.id);
         const current = me.credits ?? 0;
         await setCredits(user.id, current + amount);
+        await recordLedger(user.id, amount, "purchase");
 
         return {
           ok: true,

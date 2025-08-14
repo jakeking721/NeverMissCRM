@@ -1,3 +1,18 @@
+- [NEW] Apply Supabase migration `20240717120000_update_campaigns_table.sql` to add campaign scheduling columns and triggers.
+  Steps:
+    1. Run `supabase db push` or execute the SQL file in Supabase's SQL editor.
+    2. Verify `campaigns` now includes `recipients` (text[]), `status`, `scheduled_for`, and the `set_updated_at` trigger.
+
+- [NEW] Apply Supabase migration `20240717121000_add_updated_at_to_customers.sql` to track customer updates.
+  Steps:
+    1. Run `supabase db push` or execute the SQL in Supabase's SQL editor.
+    2. Confirm `customers` table has `updated_at` column and trigger.
+
+- [NEW] Apply Supabase migration `20240717122000_create_credit_ledger.sql` to enable credit history tracking.
+  Steps:
+    1. Run `supabase db push` or run the SQL file in the Supabase dashboard.
+    2. Ensure `credit_ledger` table exists with RLS policy `credit_ledger_owner_rw`.
+
 - [NEW] Regenerate Supabase types in `src/types/supabase.ts` with Supabase CLI output.
   Steps:
     1. Run `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
