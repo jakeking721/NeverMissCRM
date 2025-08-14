@@ -12,6 +12,7 @@
 
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -217,6 +218,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Footer />
+        <ToastContainer position="top-right" />
       </BrowserRouter>
     </AuthProvider>
   );

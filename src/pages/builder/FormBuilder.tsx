@@ -19,6 +19,7 @@ import DraggableBlock from "@/components/builder/DraggableBlock";
 import PropertyPanel from "@/components/builder/PropertyPanel";
 import { fetchForm, saveForm } from "@/services/forms";
 import { getCampaigns, Campaign } from "@/services/campaignService";
+import { toast } from "react-toastify";
 
 interface Block {
   id: string;
@@ -202,7 +203,7 @@ export default function FormBuilder() {
 
   const handleSave = async () => {
     if (!campaignId) {
-      alert("Please select a campaign before saving.");
+      toast.error("Please select a campaign before saving.");
       return;
     }
     const payload: any = { schema_json: { blocks, style }, slug, campaign_id: campaignId };
@@ -211,7 +212,7 @@ export default function FormBuilder() {
       await saveForm(payload);
       navigate("/builder");
     } catch (e: any) {
-      alert(e?.message || "Failed to save form");
+      toast.error(e?.message || "Failed to save form");
     }
   };
 

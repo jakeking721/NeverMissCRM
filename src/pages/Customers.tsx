@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import SmsBulkModal from "@/components/SmsBulkModal";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "react-toastify";
 
 import {
   getCustomers,
@@ -286,7 +287,7 @@ export default function Customers(): JSX.Element {
     const delimiter = file.name.toLowerCase().endsWith(".tsv") ? "\t" : ",";
     const { headers, rows } = parseCSV(await file.text(), delimiter);
     if (headers.length === 0) {
-      alert("CSV appears empty.");
+      toast.error("CSV appears empty.");
       return;
     }
 
@@ -321,7 +322,7 @@ export default function Customers(): JSX.Element {
   const confirmCsvImport = async () => {
     if (!csvPreview) return;
     if (!user) {
-      alert("You must be logged in to import customers.");
+      toast.error("You must be logged in to import customers.");
       return;
     }
 
@@ -378,10 +379,10 @@ export default function Customers(): JSX.Element {
 
       setCsvModalOpen(false);
       setCsvPreview(null);
-      alert(`Imported ${mapped.length} customers.`);
+      toast.success(`Imported ${mapped.length} customers.`);
     } catch (err: any) {
       console.error(err);
-      alert(`Import failed: ${err?.message ?? err}`);
+      toast.error(`Import failed: ${err?.message ?? err}`);
     }
   };
 
@@ -416,7 +417,7 @@ export default function Customers(): JSX.Element {
       setJsonModalOpen(true);
     } catch (err) {
       console.error(err);
-      alert("Import failed.");
+      toast.error("Import failed.");
     } finally {
       e.target.value = "";
     }
@@ -425,7 +426,7 @@ export default function Customers(): JSX.Element {
   const confirmJsonImport = async () => {
     if (!jsonPreview) return;
     if (!user) {
-      alert("You must be logged in to import customers.");
+      toast.error("You must be logged in to import customers.");
       return;
     }
 
@@ -473,10 +474,10 @@ export default function Customers(): JSX.Element {
 
       setJsonModalOpen(false);
       setJsonPreview(null);
-      alert(`Imported ${mapped.length} customers.`);
+      toast.success(`Imported ${mapped.length} customers.`);
     } catch (err) {
       console.error(err);
-      alert("Import failed.");
+      toast.error("Import failed.");
     }
   };
 
