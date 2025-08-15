@@ -10,7 +10,6 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/utils/supabaseClient"; // Fixed import path
 import { useAuth } from "../context/AuthContext";
-import { refreshCurrentUser } from "../utils/auth";
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -51,8 +50,7 @@ export default function Register() {
     }
 
     // If email confirmations are disabled, user is logged in right away
-    await refreshCurrentUser();
-    refresh();
+    await refresh();
     navigate("/dashboard");
   };
 

@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import PageShell from "../components/PageShell";
 import { useAuth } from "../context/AuthContext";
-import { getCurrentUser, refreshCurrentUser } from "../utils/auth";
 import { supabase } from "@/utils/supabaseClient";
 
 export default function Login() {
@@ -16,8 +15,7 @@ export default function Login() {
   const { refresh, user } = useAuth();
 
   useEffect(() => {
-    const me = user ?? getCurrentUser();
-    if (me) navigate("/dashboard", { replace: true });
+    if (user) navigate("/dashboard", { replace: true });
   }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +55,6 @@ export default function Login() {
         }
       }
 
-      await refreshCurrentUser();
       await refresh();
       navigate("/dashboard", { replace: true });
     } catch (err: any) {

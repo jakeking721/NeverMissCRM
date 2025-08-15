@@ -5,24 +5,23 @@
 // deductCredits) and the old helpers (getSmsCost, getUserCredits) so nothing breaks.
 // ------------------------------------------------------------------------------------
 
-import { getCurrentUser, saveCurrentUser, User } from "./auth";
+import type { User } from "./auth";
 
 // Cost per SMS segment (very naive 160-char rule).
 export const DEFAULT_SMS_COST_PER_SEGMENT = 1;
 
 // --------------------------- Public API (new) ---------------------------
 
-/** Get the current (or provided) user's credits. */
+/** Get the provided user's credits (defaults to 0). */
 export function getCredits(user?: User | null): number {
-  const u = user ?? getCurrentUser();
-  return u?.credits ?? 0;
+  return user?.credits ?? 0;
 }
 
 /** Add credits to the given (or current) user. */
 export function addCredits(user: User | null | undefined, amount: number): void {
   if (!user) return;
   user.credits = (user.credits ?? 0) + Math.max(0, amount);
-  saveCurrentUser(user);
+  // TODO: persist updated credits to Supabase profile
 }
 
 /** Deduct credits from the given (or current) user. Returns true if success. */
@@ -32,13 +31,8 @@ export function deductCredits(user: User | null | undefined, amount: number): bo
   const amt = Math.max(0, amount);
   if (current < amt) return false;
   user.credits = current - amt;
-  saveCurrentUser(user);
+  // TODO: persist updated credits to Supabase profile
   return true;
-}
-
-/** Can the current user afford `amount` credits? */
-export function canAfford(amount: number): boolean {
-  return getCredits() >= amount;
 }
 
 /** Estimate credits for a message + recipient count (naive 160-char segments). */
@@ -66,14 +60,13 @@ export function getSmsCost(): number {
  * It sometimes passed a stringified user from localStorage, so we support both.
  */
 export function getUserCredits(arg?: string | User | null): number {
-  if (!arg) return getCredits();
+  if (!arg) return 0;
   if (typeof arg === "string") {
     try {
       const parsed = JSON.parse(arg);
       return Number(parsed?.credits ?? 0);
     } catch {
-      // fallback to current user if parsing fails
-      return getCredits();
+      return 0;
     }
   }
   return Number(arg.credits ?? 0);

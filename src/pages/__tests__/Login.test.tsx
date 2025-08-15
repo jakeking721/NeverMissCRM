@@ -5,7 +5,16 @@ import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/utils/supabaseClient", () => {
   const mockSignIn = vi.fn().mockResolvedValue({ error: null });
-  return { supabase: { auth: { signInWithPassword: mockSignIn } } };
+  return {
+    supabase: {
+      auth: {
+        signInWithPassword: mockSignIn,
+        getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      },
+    },
+  };
 });
 
 const mockNavigate = vi.fn();
@@ -14,10 +23,6 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock("../../utils/auth", async () => {
-  const actual = (await vi.importActual("../../utils/auth")) as any;
-  return { ...actual, refreshCurrentUser: () => Promise.resolve(null) };
-});
 
 import { supabase } from "@/utils/supabaseClient";
 import Login from "../Login";

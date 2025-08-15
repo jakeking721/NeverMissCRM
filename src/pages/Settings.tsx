@@ -1,19 +1,31 @@
 import React from "react";
 import PageShell from "../components/PageShell";
-import { getCurrentUser } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "@/utils/supabaseClient";
 
 export default function Settings() {
-  const [user, setUser] = React.useState(getCurrentUser());
+  const { user } = useAuth();
+  const [profile, setProfile] = React.useState<{ username: string | null; email: string | null } | null>(null);
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    const current = getCurrentUser();
-    if (!current) navigate("/login");
-    else setUser(current);
-  }, []);
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    const loadProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single();
+      setProfile({ username: data?.username ?? null, email: user.email ?? null });
+    };
+    void loadProfile();
+  }, [user, navigate]);
 
-  if (!user) return null;
+  if (!user || !profile) return null;
 
   return (
     <PageShell faintFlag>
@@ -28,10 +40,10 @@ export default function Settings() {
             <h2 className="text-lg font-bold text-blue-800 mb-3">Account</h2>
             <div className="flex flex-col gap-2">
               <div className="text-sm text-gray-600">
-                <strong>Username:</strong> {user.username}
+                <strong>Username:</strong> {profile.username}
               </div>
               <div className="text-sm text-gray-600">
-                <strong>Email:</strong> {user.email}
+                <strong>Email:</strong> {profile.email}
               </div>
             </div>
             <div className="mt-4 flex gap-3">

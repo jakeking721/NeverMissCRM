@@ -69,10 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await supabase.auth.signOut();
     } finally {
-      // Clean any legacy local keys if they exist
-      try {
-        localStorage.removeItem("currentUser");
-      } catch {}
       setSession(null);
       setUser(null);
       setReady(true);

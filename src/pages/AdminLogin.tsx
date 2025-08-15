@@ -1,7 +1,8 @@
 // src/pages/AdminLogin.tsx
 import React, { useState } from "react";
-import { loginUser, getCurrentUser } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/utils/supabaseClient";
+import { useAuth } from "../context/AuthContext";
 export default function AdminLogin() {
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
@@ -9,24 +10,40 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const { refresh } = useAuth();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // loginUser now expects an object with usernameOrEmail and password
-    const result = await loginUser({ usernameOrEmail: id, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: id,
+      password,
+    });
 
     setLoading(false);
 
-    if (!result.ok) {
-      setError(result.message || "Invalid login.");
+    if (error) {
+      setError(error.message || "Invalid login.");
       return;
     }
 
-    const user = getCurrentUser();
-    if (!user || user.role !== "admin") {
+    await refresh();
+    const { data } = await supabase.auth.getUser();
+    const userId = data.user?.id;
+    if (!userId) {
       setError("You are not an admin.");
+      return;
+    }
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+    if (profile?.role !== "admin") {
+      setError("You are not an admin.");
+      await supabase.auth.signOut();
       return;
     }
 

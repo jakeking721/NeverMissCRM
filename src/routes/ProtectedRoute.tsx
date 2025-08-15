@@ -1,16 +1,14 @@
 // src/routes/ProtectedRoute.tsx
 // -----------------------------------------------------------------------------
-// Backwards-compatible ProtectedRoute
-// - Prefers Supabase-backed AuthContext.user
-// - Still falls back to getCurrentUser() so legacy pages keep working
-// - Keeps adminOnly support via utils/roles.isAdmin
+// Simplified ProtectedRoute
+// - Uses Supabase-backed AuthContext.user
+// - Fetches profile role when adminOnly is true
 // -----------------------------------------------------------------------------
 
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getCurrentUser } from "../utils/auth";
-import { isAdmin } from "../utils/roles";
+import { supabase } from "@/utils/supabaseClient";
 
 type ProtectedProps = {
   children: React.ReactNode;
@@ -18,25 +16,32 @@ type ProtectedProps = {
 };
 
 export default function ProtectedRoute({ children, adminOnly = false }: ProtectedProps) {
-  const { user } = useAuth();
-  const effectiveUser = user ?? getCurrentUser(); // TEMP fallback
+  const { user, ready } = useAuth();
+  const [isAdminUser, setIsAdminUser] = React.useState(false);
 
-  if (!effectiveUser) {
-    return <Navigate to="/login" replace />;
-  }
+  React.useEffect(() => {
+    if (!user || !adminOnly) return;
+    const check = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      setIsAdminUser(data?.role === "admin");
+    };
+    void check();
+  }, [user, adminOnly]);
 
-  if (adminOnly && !isAdmin(effectiveUser)) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (!ready) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (adminOnly && !isAdminUser) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
 }
 
 export function RedirectIfLoggedIn({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const effectiveUser = user ?? getCurrentUser(); // TEMP fallback
-  if (effectiveUser) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  const { user, ready } = useAuth();
+  if (!ready) return null;
+  if (user) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }

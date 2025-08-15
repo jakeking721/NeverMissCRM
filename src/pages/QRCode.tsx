@@ -3,19 +3,32 @@ import React, { useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react"; // <-- named export
 import PageShell from "../components/PageShell";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUser } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "@/utils/supabaseClient";
 
 export default function QRCodePage() {
-  const user = getCurrentUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [identifier, setIdentifier] = React.useState<string>("");
 
   useEffect(() => {
-    if (!user) navigate("/login");
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    const loadProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username, email")
+        .eq("id", user.id)
+        .single();
+      setIdentifier(data?.username || data?.email || user.id);
+    };
+    void loadProfile();
   }, [user, navigate]);
 
   if (!user) return null;
 
-  const identifier = user.username ?? user.email ?? user.id ?? "anonymous";
   const qrValue = `${window.location.origin}/u/${encodeURIComponent(identifier)}`;
 
   return (
