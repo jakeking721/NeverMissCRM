@@ -1,66 +1,113 @@
 // src/context/AuthContext.tsx
-// -----------------------------------------------------------------------------
-// Supabase-aware AuthContext (backwards-compatible)
-// - Keeps the same external shape: { user, refresh, logout } so nothing else breaks.
-// - Still boots from getCurrentUser() (sync) so legacy components can render immediately.
-// - Hydrates from Supabase on mount and listens to onAuthStateChange to stay in sync.
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// Supabase-only AuthContext (no legacy getCurrentUser fallback).
+// Exposes: { user, session, ready, refresh, logout }.
+// - user is null until Supabase resolves (no pretending we're logged in).
+// - ready is true after the first hydration, so routes can wait before redirect.
+// ----------------------------------------------------------------------------
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { getCurrentUser, refreshCurrentUser, logoutUser, User } from "../utils/auth";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import type { Session, User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/utils/supabaseClient";
 
-type AuthContextShape = {
-  user: User | null;
-  refresh: () => void; // kept as void for backwards compatibility
-  logout: () => void; // kept as void for backwards compatibility
+export type AuthUser = {
+  id: string;
+  email?: string | null;
 };
 
-const AuthContext = createContext<AuthContextShape>({
+type AuthContextValue = {
+  user: AuthUser | null;
+  session: Session | null;
+  ready: boolean; // true after first hydration
+  refresh: () => void; // fire-and-forget (kept void so callers don't have to await)
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue>({
   user: null,
+  session: null,
+  ready: false,
   refresh: () => {},
-  logout: () => {},
+  logout: async () => {},
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Start with whatever is cached so the app can render immediately
-  const [user, setUser] = useState<User | null>(getCurrentUser());
+function toAuthUser(u: SupaUser | null | undefined): AuthUser | null {
+  if (!u) return null;
+  return { id: u.id, email: u.email };
+}
 
-  const doRefresh = useCallback(async () => {
-    const next = await refreshCurrentUser(); // your utils/auth returns the normalized legacy User
-    setUser(next);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [ready, setReady] = useState(false);
+
+  const hydrate = useCallback(async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("[Auth] getSession error:", error);
+    }
+    const sess = data?.session ?? null;
+    setSession(sess);
+    setUser(toAuthUser(sess?.user));
+    setReady(true);
   }, []);
 
+  // public "refresh" remains void for compatibility
   const refresh = useCallback(() => {
-    // Fire-and-forget to keep the legacy void signature
-    void doRefresh();
-  }, [doRefresh]);
+    setReady(false);
+    void hydrate();
+  }, [hydrate]);
 
-  const logout = useCallback(() => {
-    void (async () => {
-      await logoutUser();
+  const logout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Clean any legacy local keys if they exist
+      try {
+        localStorage.removeItem("currentUser");
+      } catch {}
+      setSession(null);
       setUser(null);
-    })();
+      setReady(true);
+    }
   }, []);
 
   useEffect(() => {
     if (import.meta.env.VITEST) return;
-    // 1) Initial hydration from Supabase
-    refresh();
+    // Initial hydration
+    void hydrate();
 
-    // 2) Keep in sync with Supabase auth changes (login/logout/token refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async () => {
-      await doRefresh();
+    // Keep in sync with auth changes
+    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession ?? null);
+      setUser(toAuthUser(newSession?.user));
+      setReady(true);
     });
 
     return () => {
-      subscription.unsubscribe();
+      data.subscription.unsubscribe();
     };
-  }, [refresh, doRefresh]);
+  }, [hydrate]);
 
-  return <AuthContext.Provider value={{ user, refresh, logout }}>{children}</AuthContext.Provider>;
+  // (Optional) expose env/project for quick console checks in dev
+  if (import.meta.env.DEV && typeof window !== "undefined") {
+    // @ts-ignore
+    window.supabase = supabase;
+  }
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, session, ready, refresh, logout }),
+    [user, session, ready, refresh, logout]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

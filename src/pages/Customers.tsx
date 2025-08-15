@@ -93,7 +93,7 @@ function parseCSV(
 /* -------------------------------------------------------------------------- */
 
 export default function Customers(): JSX.Element {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const navigate = useNavigate();
   /* ----------------------------- Local state ----------------------------- */
 
@@ -110,10 +110,10 @@ export default function Customers(): JSX.Element {
 
   /* ---------------------------- Meta (fetch) ----------------------------- */
 
-  useEffect(() => {
-    if (!user) navigate("/login");
-  }, [user, navigate]);
-
+useEffect(() => {
+   if (!ready) return;
+   if (!user) navigate("/login");
+ }, [ready, user, navigate]);
   /** refresh field meta */
   useEffect(() => {
     let cancelled = false;
@@ -676,7 +676,7 @@ export default function Customers(): JSX.Element {
             setCsvPreview(null);
           }}
           onConfirm={confirmCsvImport}
-          canConfirm={!!user}
+          canConfirm={true}
         />
       )}
 
@@ -689,7 +689,7 @@ export default function Customers(): JSX.Element {
             setJsonPreview(null);
           }}
           onConfirm={confirmJsonImport}
-          canConfirm={!!user}
+          canConfirm={true}
         />
       )}
     </PageShell>
