@@ -275,12 +275,29 @@ export default function Customers(): JSX.Element {
   const [jsonModalOpen, setJsonModalOpen] = useState(false);
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
-  const onImportCsvClick = () => csvInputRef.current?.click();
-  const onImportJsonClick = () => jsonInputRef.current?.click();
+  const onImportCsvClick = () => {
+    if (!user) {
+      toast.error("You must be logged in to import customers.");
+      return;
+    }
+    csvInputRef.current?.click();
+  };
+  const onImportJsonClick = () => {
+    if (!user) {
+      toast.error("You must be logged in to import customers.");
+      return;
+    }
+    jsonInputRef.current?.click();
+  };
 
   /* ----------------------------- CSV handler ----------------------------- */
 
   const onImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user) {
+      toast.error("You must be logged in to import customers.");
+      e.target.value = "";
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -389,6 +406,11 @@ export default function Customers(): JSX.Element {
   /* ----------------------------- JSON handler ---------------------------- */
 
   const onImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user) {
+      toast.error("You must be logged in to import customers.");
+      e.target.value = "";
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -511,7 +533,7 @@ export default function Customers(): JSX.Element {
 
           <div className="flex items-center gap-2">
             {/* import / export buttons */}
-            <button onClick={onImportJsonClick} className="btn">
+            <button onClick={onImportJsonClick} className="btn" disabled={!user}>
               Import JSON
             </button>
             <input
@@ -522,7 +544,7 @@ export default function Customers(): JSX.Element {
               hidden
             />
 
-            <button onClick={onImportCsvClick} className="btn">
+            <button onClick={onImportCsvClick} className="btn" disabled={!user}>
               Import CSV
             </button>
             <input
@@ -654,7 +676,7 @@ export default function Customers(): JSX.Element {
             setCsvPreview(null);
           }}
           onConfirm={confirmCsvImport}
-          canConfirm={true}
+          canConfirm={!!user}
         />
       )}
 
@@ -667,7 +689,7 @@ export default function Customers(): JSX.Element {
             setJsonPreview(null);
           }}
           onConfirm={confirmJsonImport}
-          canConfirm={true}
+          canConfirm={!!user}
         />
       )}
     </PageShell>
@@ -745,33 +767,7 @@ function CsvPreviewModal({ preview, onCancel, onConfirm, canConfirm }: CsvPrevie
             disabled={!canConfirm}
             className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {canConfirm ? (
-              "Confirm Import"
-            ) : (
-              <>
-                <svg
-                  className="animate-spin h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  />
-                </svg>
-                Loading...
-              </>
-            )}
+            {canConfirm ? "Confirm Import" : "Login required"}
           </button>
         </div>
       </div>
@@ -827,33 +823,7 @@ function JsonPreviewModal({ preview, onCancel, onConfirm, canConfirm }: JsonPrev
             disabled={!canConfirm}
             className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {canConfirm ? (
-              "Confirm Import"
-            ) : (
-              <>
-                <svg
-                  className="animate-spin h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  />
-                </svg>
-                Loading...
-              </>
-            )}
+            {canConfirm ? "Confirm Import" : "Login required"}
           </button>
         </div>
       </div>
