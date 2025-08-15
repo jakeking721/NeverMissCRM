@@ -55,23 +55,11 @@ export default function App() {
           {/* -------------------- Public -------------------- */}
           <Route path="/" element={<Home />} />
 
-          <Route
-            path="/login"
-            element={
-              <RedirectIfLoggedIn>
-                <Login />
-              </RedirectIfLoggedIn>
-            }
-          />
-
-          <Route
-            path="/register"
-            element={
-              <RedirectIfLoggedIn>
-                <Register />
-              </RedirectIfLoggedIn>
-            }
-          />
+          <Route element={<RedirectIfLoggedIn />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/adminlogin" element={<AdminLogin />} />
+          </Route>
 
           {/* Public intake (legacy path kept) */}
           <Route path="/u/:username" element={<CustomerIntake />} />
@@ -85,134 +73,26 @@ export default function App() {
           {/* Public help */}
           <Route path="/help" element={<Help />} />
 
-          {/* Public admin login */}
-          <Route
-            path="/adminlogin"
-            element={
-              <RedirectIfLoggedIn>
-                <AdminLogin />
-              </RedirectIfLoggedIn>
-            }
-          />
-
           {/* -------------------- Protected (auth required) -------------------- */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/customers"
-            element={
-              <ProtectedRoute>
-                <Customers />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/campaigns"
-            element={
-              <ProtectedRoute>
-                <Campaigns />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/campaigns/new"
-            element={
-              <ProtectedRoute>
-                <CampaignBuilder />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/builder"
-            element={
-              <ProtectedRoute>
-                <FormList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/builder/:formId"
-            element={
-              <ProtectedRoute>
-                <FormBuilder />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Settings root */}
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings/fields"
-            element={
-              <ProtectedRoute>
-                <Fields />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings/billing"
-            element={
-              <ProtectedRoute>
-                <Billing />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* User profile */}
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* QR code page */}
-          <Route
-            path="/qrcode"
-            element={
-              <ProtectedRoute>
-                <QRCodePage />
-              </ProtectedRoute>
-            }
-          />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/campaigns/new" element={<CampaignBuilder />} />
+            <Route path="/builder" element={<FormList />} />
+            <Route path="/builder/:formId" element={<FormBuilder />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/fields" element={<Fields />} />
+            <Route path="/settings/billing" element={<Billing />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/qrcode" element={<QRCodePage />} />
+          </Route>
 
           {/* -------------------- Admin-only -------------------- */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute adminOnly>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
+          <Route element={<ProtectedRoute adminOnly />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
 
           {/* -------------------- 404 -------------------- */}
           <Route path="*" element={<NotFound />} />

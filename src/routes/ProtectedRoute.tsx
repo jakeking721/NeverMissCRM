@@ -6,16 +6,27 @@
 // -----------------------------------------------------------------------------
 
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "@/utils/supabaseClient";
 
 type ProtectedProps = {
-  children: React.ReactNode;
   adminOnly?: boolean;
 };
 
-export default function ProtectedRoute({ children, adminOnly = false }: ProtectedProps) {
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center p-4">
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-transparent"
+        role="status"
+      >
+        <span className="sr-only">Loading...</span>
+      </div>
+    </div>
+  );
+}
+export default function ProtectedRoute({ adminOnly = false }: ProtectedProps) {
   const { user, ready } = useAuth();
   const [isAdminUser, setIsAdminUser] = React.useState(false);
 
@@ -32,16 +43,16 @@ export default function ProtectedRoute({ children, adminOnly = false }: Protecte
     void check();
   }, [user, adminOnly]);
 
-  if (!ready) return null;
+  if (!ready) return <LoadingSpinner />;
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && !isAdminUser) return <Navigate to="/dashboard" replace />;
 
-  return <>{children}</>;
+  return <Outlet />;
 }
 
-export function RedirectIfLoggedIn({ children }: { children: React.ReactNode }) {
+export function RedirectIfLoggedIn() {
   const { user, ready } = useAuth();
-  if (!ready) return null;
+  if (!ready) return <LoadingSpinner />;
   if (user) return <Navigate to="/dashboard" replace />;
-  return <>{children}</>;
+  return <Outlet />;
 }

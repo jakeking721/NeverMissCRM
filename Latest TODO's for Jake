@@ -1,3 +1,8 @@
+- [NEW] Replace placeholder loading spinner used in `ProtectedRoute` and `RedirectIfLoggedIn` with final branded loader.
+  Steps:
+    1. Design or import a spinner component matching production branding.
+    2. Update `src/routes/ProtectedRoute.tsx` to use the new loader.
+
 - [NEW] Apply Supabase migration `20240717120000_update_campaigns_table.sql` to add campaign scheduling columns and triggers.
   Steps:
     1. Run `supabase db push` or execute the SQL file in Supabase's SQL editor.
