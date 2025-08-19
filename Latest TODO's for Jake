@@ -1,3 +1,8 @@
+- [NEW] Test revamped CSV import column mapping and clean up test data.
+  Steps:
+    1. Import a CSV with headers such as "first-name" and confirm it links automatically to matching fields.
+    2. Verify selecting an existing field disables the "Create new field" checkbox for that column.
+    3. Remove any test customers or custom fields created during the import.
 - [NEW] Verify CSV/JSON import preview modals are scrollable and buttons remain reachable on all devices.
   Steps:
     1. Open CSV and JSON import preview modals on desktop and mobile browsers.

@@ -7,7 +7,7 @@ interface Props {
   onCancel: () => void;
   onConfirm: (
     userId: string,
-    opts: { addFlags: Record<string, boolean>; headerToKey: Record<string, string | null> },
+    columns: Record<string, { addNew: boolean; linkTo: string | null }>,
   ) => Promise<void> | void;
   busy: boolean;
   setBusy: (v: boolean) => void;
@@ -22,8 +22,7 @@ export default function CsvPreviewModal({
   setBusy,
   canConfirm = true,
 }: Props) {
-  const [addFlags, setAddFlags] = useState<Record<string, boolean>>(preview.addFlags);
-  const [headerMap, setHeaderMap] = useState<Record<string, string | null>>(preview.headerToKey);
+  const [columns, setColumns] = useState(preview.columns);
 
   const handleConfirm = async () => {
     if (busy) return;
@@ -34,7 +33,7 @@ export default function CsvPreviewModal({
         alert("You must be logged in.");
         return;
       }
-      await onConfirm(data.user.id, { addFlags, headerToKey: headerMap });
+      await onConfirm(data.user.id, columns);
     } finally {
       setBusy(false);
     }
@@ -43,36 +42,49 @@ export default function CsvPreviewModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4 overflow-y-auto max-h-screen">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
-        <h3 className="text-lg font-semibold">CSV Import Preview</h3>
+        <h3 className="text-lg font-semibold">Import Customers</h3>
 
-        {preview.unmatchedHeaders.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
-            <p>Unknown columns detected. Check any you wish to add as custom fields.</p>
-            {preview.unmatchedHeaders.map((h) => (
-              <label key={h} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={addFlags[h]}
-                  onChange={(e) => setAddFlags({ ...addFlags, [h]: e.target.checked })}
-                />
-                {h}
-              </label>
-            ))}
-          </div>
-        )}
+        <p className="text-sm text-gray-700">
+          Choose how to handle each column below. You can create a new field or
+          link the column to an existing one. Columns left unlinked will be skipped.
+        </p>
 
         <div className="space-y-2 text-sm">
           {preview.headers.map((h) => (
-            <div key={h} className="flex items-center gap-2">
-              <span className="w-1/3 truncate">{h}</span>
+            <div
+              key={h}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center"
+            >
+              <span className="truncate font-medium">{h}</span>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={columns[h].addNew}
+                  disabled={!!columns[h].linkTo}
+                  onChange={(e) =>
+                    setColumns({
+                      ...columns,
+                      [h]: { ...columns[h], addNew: e.target.checked },
+                    })
+                  }
+                />
+                <span>Create new field</span>
+              </label>
               <select
-                value={headerMap[h] ?? ""}
-                onChange={(e) =>
-                  setHeaderMap({ ...headerMap, [h]: e.target.value || null })
-                }
-                className="border rounded px-2 py-1 flex-1"
+                value={columns[h].linkTo ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value || null;
+                  setColumns({
+                    ...columns,
+                    [h]: {
+                      addNew: value ? false : columns[h].addNew,
+                      linkTo: value,
+                    },
+                  });
+                }}
+                className="border rounded px-2 py-1 w-full"
               >
-                <option value="">Do not import</option>
+                <option value="">Link to existing field</option>
                 {preview.fieldOptions.map((opt) => (
                   <option key={opt.key} value={opt.key}>
                     {opt.label}

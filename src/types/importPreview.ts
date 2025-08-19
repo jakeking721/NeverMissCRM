@@ -1,11 +1,14 @@
 export type AnyValue = string | number | boolean | null | undefined;
 
+export interface CsvColumnSetting {
+  addNew: boolean;
+  linkTo: string | null;
+}
+
 export interface CsvPreview {
   headers: string[];
   rows: string[][];
-  headerToKey: Record<string, string | null>;
-  unmatchedHeaders: string[];
-  addFlags: Record<string, boolean>;
+  columns: Record<string, CsvColumnSetting>;
   fieldOptions: { key: string; label: string }[];
 }
 

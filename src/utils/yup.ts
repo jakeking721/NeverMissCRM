@@ -20,6 +20,8 @@ class StringSchema {
   private _msgRequired = "Required";
   private _msgEmail = "Invalid email";
   private _msgRegex = "Invalid";
+  private _test?: (v: any) => boolean;
+  private _msgTest = "Invalid";
 
   required(msg: string) {
     this._required = true;
@@ -39,6 +41,12 @@ class StringSchema {
     return this;
   }
 
+  test(_name: string, msg: string, fn: (v: any) => boolean) {
+    this._test = fn;
+    this._msgTest = msg;
+    return this;
+  }
+
   async validate(value: any): Promise<string> {
     if (this._required && (value === undefined || value === "")) {
       throw new Error(this._msgRequired);
@@ -48,6 +56,9 @@ class StringSchema {
     }
     if (this._regex && value && !this._regex.test(value)) {
       throw new Error(this._msgRegex);
+    }
+    if (this._test && !this._test(value)) {
+      throw new Error(this._msgTest);
     }
     return value;
   }

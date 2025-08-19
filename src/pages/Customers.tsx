@@ -323,14 +323,6 @@ useEffect(() => {
         return;
       }
 
-    const knownKeys = [
-      "name",
-      "phone",
-      "location",
-      "signupDate",
-      ...customFields.map((f) => f.key),
-    ];
-
     const fieldOptions = [
       { key: "name", label: "Name" },
       { key: "phone", label: "Phone" },
@@ -339,21 +331,22 @@ useEffect(() => {
       ...customFields.map((f) => ({ key: f.key, label: f.label })),
     ];
 
-    const headerToKey: Record<string, string | null> = {};
-    headers.forEach((h) => {
-      headerToKey[h] =
-        knownKeys.find((k) => k.toLowerCase() === h.trim().toLowerCase()) ?? null;
+    const normalize = (s: string) => toKeySlug(s).replace(/[-_]/g, "");
+    const slugToKey: Record<string, string> = {};
+    fieldOptions.forEach((opt) => {
+      slugToKey[normalize(opt.label)] = opt.key;
     });
 
-    const unmatched = headers.filter((h) => !headerToKey[h]);
-    const addFlags = Object.fromEntries(unmatched.map((h) => [h, true]));
+    const columns: Record<string, { addNew: boolean; linkTo: string | null }> = {};
+    headers.forEach((h) => {
+      const matchKey = slugToKey[normalize(h)] ?? null;
+      columns[h] = { addNew: !matchKey, linkTo: matchKey };
+    });
 
       setCsvPreview({
         headers,
         rows,
-        headerToKey,
-        unmatchedHeaders: unmatched,
-        addFlags,
+        columns,
         fieldOptions,
       });
       setCsvModalOpen(true);
@@ -365,7 +358,7 @@ useEffect(() => {
 
   const confirmCsvImport = async (
     userId: string,
-    opts: { addFlags: Record<string, boolean>; headerToKey: Record<string, string | null> },
+    columns: Record<string, { addNew: boolean; linkTo: string | null }>,
   ) => {
     if (!csvPreview) return;
     try {
@@ -373,12 +366,13 @@ useEffect(() => {
       const mapping: Record<string, string> = {};
 
       for (const h of csvPreview.headers) {
-        const selected = opts.headerToKey[h];
-        if (selected) {
-          mapping[h] = selected;
+        const col = columns[h];
+        if (!col) continue;
+        if (col.linkTo) {
+          mapping[h] = col.linkTo;
           continue;
         }
-        if (opts.addFlags[h]) {
+        if (col.addNew) {
           const key = toKeySlug(h);
           mapping[h] = key;
           const field: TablesInsert<'custom_fields'> = {
