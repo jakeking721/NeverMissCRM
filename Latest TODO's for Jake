@@ -1,3 +1,7 @@
+- [NEW] Verify CSV/JSON import preview modals are scrollable and buttons remain reachable on all devices.
+  Steps:
+    1. Open CSV and JSON import preview modals on desktop and mobile browsers.
+    2. Scroll through the content to ensure the Confirm and Cancel buttons are always reachable.
 - [NEW] Run `npm install` to fetch the new `libphonenumber-js` dependency and update `package-lock.json`.
   Steps:
     1. From the project root, execute `npm install`.

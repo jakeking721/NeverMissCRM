@@ -41,8 +41,8 @@ export default function CsvPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
+    <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4 overflow-y-auto max-h-screen">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
         <h3 className="text-lg font-semibold">CSV Import Preview</h3>
 
         {preview.unmatchedHeaders.length > 0 && (
