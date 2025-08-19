@@ -159,6 +159,44 @@ export async function clearCustomers(): Promise<void> {
 }
 
 /**
+ * Insert or update multiple customers without deleting existing rows.
+ * De-duplicates input records by phone or id before upserting.
+ */
+export async function upsertCustomers(customers: Customer[]): Promise<void> {
+  const userId = await requireUserId();
+  if (customers.length === 0) return;
+
+  const dedup = new Map<string, Customer>();
+  for (const c of customers) {
+    const phone = cleanPhone(c.phone);
+    const key = phone || c.id;
+    if (!dedup.has(key)) dedup.set(key, { ...c, phone });
+  }
+
+  const rows = Array.from(dedup.values()).map((c) => ({
+    id: c.id,
+    user_id: c.user_id ?? userId,
+    name: c.name ?? "",
+    phone: cleanPhone(c.phone),
+    location: c.location ?? null,
+    signup_date: c.signupDate ?? new Date().toISOString(),
+    extra: stripBaseColumns(c),
+  }));
+
+  const { error } = await supabase.from("customers").upsert(rows, {
+    onConflict: "id,phone",
+  });
+  if (error) throw error;
+}
+
+/**
+ * Alias for upsertCustomers for backward compatibility.
+ */
+export async function addCustomers(customers: Customer[]): Promise<void> {
+  await upsertCustomers(customers);
+}
+
+/**
  * Replace all customers for the current user.
  * (Delete then bulk insert. Not transactional from the client.)
  */

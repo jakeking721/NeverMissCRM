@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { supabase } from "@/utils/supabaseClient";
 import type { JsonPreview } from "@/types/importPreview";
 
 interface Props {
   preview: JsonPreview;
   onCancel: () => void;
-  onConfirm: (userId: string) => Promise<void> | void;
+  onConfirm: (
+    userId: string,
+    opts: { addFlags: Record<string, boolean>; keyToField: Record<string, string | null> },
+  ) => Promise<void> | void;
   busy: boolean;
   setBusy: (v: boolean) => void;
   canConfirm?: boolean;
@@ -19,6 +22,9 @@ export default function JsonPreviewModal({
   setBusy,
   canConfirm = true,
 }: Props) {
+  const [addFlags, setAddFlags] = useState<Record<string, boolean>>(preview.addFlags);
+  const [keyMap, setKeyMap] = useState<Record<string, string | null>>(preview.keyToField);
+
   const handleConfirm = async () => {
     if (busy) return;
     setBusy(true);
@@ -28,7 +34,7 @@ export default function JsonPreviewModal({
         alert("You must be logged in.");
         return;
       }
-      await onConfirm(data.user.id);
+      await onConfirm(data.user.id, { addFlags, keyToField: keyMap });
     } finally {
       setBusy(false);
     }
@@ -40,17 +46,36 @@ export default function JsonPreviewModal({
         <h3 className="text-lg font-semibold">JSON Import Preview</h3>
 
         {preview.unknownKeys.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
-            <p>Unknown fields detected. Check any you wish to add as custom fields.</p>
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-2">
+            <p>
+              Unknown fields detected. Check any you wish to add as custom fields or map to existing
+              ones.
+            </p>
             {preview.unknownKeys.map((k) => (
-              <label key={k} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={preview.addFlags[k]}
-                  onChange={(e) => (preview.addFlags[k] = e.target.checked)}
-                />
-                {k}
-              </label>
+              <div key={k} className="flex items-center gap-2">
+                <label className="flex items-center gap-2 flex-1">
+                  <input
+                    type="checkbox"
+                    checked={addFlags[k]}
+                    onChange={(e) => setAddFlags({ ...addFlags, [k]: e.target.checked })}
+                  />
+                  {k}
+                </label>
+                <select
+                  value={keyMap[k] ?? ""}
+                  onChange={(e) =>
+                    setKeyMap({ ...keyMap, [k]: e.target.value || null })
+                  }
+                  className="border rounded px-2 py-1"
+                >
+                  <option value="">Do not import</option>
+                  {preview.fieldOptions.map((opt) => (
+                    <option key={opt.key} value={opt.key}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             ))}
           </div>
         )}

@@ -159,3 +159,9 @@
     1. In the Supabase SQL editor, run:
          `update customers set phone = regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g');`
     2. Verify no `phone` values are NULL after running the update.
+
+- [NEW] Enforce unique customer phones and clean up duplicates.
+  Steps:
+    1. In Supabase SQL editor, remove or merge any duplicate rows sharing the same `user_id` and phone.
+    2. Run `alter table customers add constraint customers_user_phone_key unique (user_id, phone);`.
+    3. Re-run imports if any rows were adjusted and delete placeholder data.

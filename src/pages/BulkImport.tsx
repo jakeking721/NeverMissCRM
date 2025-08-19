@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { v4 as uuid } from "uuid";
-import { replaceCustomers, Customer, cleanPhone } from "@/services/customerService";
+import { upsertCustomers, Customer, cleanPhone } from "@/services/customerService";
 import { useAuth } from "@/context/AuthContext";
 
 export default function BulkImport() {
@@ -23,7 +23,7 @@ export default function BulkImport() {
       if (customers.length === 0) {
         alert("No rows found in CSV.");
       } else {
-        await replaceCustomers(customers);
+        await upsertCustomers(customers);
         alert(`Imported ${customers.length} contacts.`);
         navigate("/customers");
         setTimeout(() => window.location.reload(), 0);
@@ -52,7 +52,7 @@ export default function BulkImport() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <p className="mb-4 text-sm text-gray-600">
             Upload a CSV file with columns like <code>name</code>, <code>phone</code>, and optional
-            additional fields. Existing contacts will be replaced.
+            additional fields. Existing contacts will be updated or added.
           </p>
           <input
             type="file"

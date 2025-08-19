@@ -16,7 +16,7 @@ import { toast } from "react-toastify";
 
 import {
   getCustomers,
-  replaceCustomers,
+  upsertCustomers,
   removeCustomer,
   updateCustomer,
   cleanPhone,
@@ -214,10 +214,17 @@ useEffect(() => {
   /* ------------------------------ Export JSON ---------------------------- */
 
   const onExportJSON = () => {
+    const formatted = customers.map((c) => {
+      const obj: Record<string, AnyValue> = {};
+      Object.entries(c).forEach(([k, v]) => {
+        obj[k] = typeof v === "number" ? formatValue(v) : v;
+      });
+      return obj;
+    });
     const blob = new Blob(
       [
         JSON.stringify(
-          { customers, exportedAt: new Date().toISOString(), customFields },
+          { customers: formatted, exportedAt: new Date().toISOString(), customFields },
           null,
           2
         ),
@@ -324,6 +331,14 @@ useEffect(() => {
       ...customFields.map((f) => f.key),
     ];
 
+    const fieldOptions = [
+      { key: "name", label: "Name" },
+      { key: "phone", label: "Phone" },
+      { key: "location", label: "Location" },
+      { key: "signupDate", label: "Signup" },
+      ...customFields.map((f) => ({ key: f.key, label: f.label })),
+    ];
+
     const headerToKey: Record<string, string | null> = {};
     headers.forEach((h) => {
       headerToKey[h] =
@@ -339,6 +354,7 @@ useEffect(() => {
         headerToKey,
         unmatchedHeaders: unmatched,
         addFlags,
+        fieldOptions,
       });
       setCsvModalOpen(true);
     } finally {
@@ -347,24 +363,24 @@ useEffect(() => {
     }
   };
 
-  const confirmCsvImport = async (userId: string) => {
+  const confirmCsvImport = async (
+    userId: string,
+    opts: { addFlags: Record<string, boolean>; headerToKey: Record<string, string | null> },
+  ) => {
     if (!csvPreview) return;
     try {
-      /* create custom-fields for any checked unmatched header */
       let order = customFields.length;
-      const headerToKey: Record<string, string> = {};
+      const mapping: Record<string, string> = {};
 
       for (const h of csvPreview.headers) {
-        const existing = csvPreview.headerToKey[h];
-        if (existing) {
-          headerToKey[h] = existing;
+        const selected = opts.headerToKey[h];
+        if (selected) {
+          mapping[h] = selected;
           continue;
         }
-
-        if (csvPreview.addFlags[h]) {
+        if (opts.addFlags[h]) {
           const key = toKeySlug(h);
-          headerToKey[h] = key;
-
+          mapping[h] = key;
           const field: TablesInsert<'custom_fields'> = {
             id: uuid(),
             user_id: userId,
@@ -381,7 +397,6 @@ useEffect(() => {
         }
       }
 
-      /* transform rows */
       const mapped: Customer[] = csvPreview.rows.map((row, idx) => {
         const obj: Record<string, AnyValue> = {
           id: uuid(),
@@ -389,7 +404,7 @@ useEffect(() => {
           signupDate: new Date().toISOString(),
         };
         csvPreview.headers.forEach((h, i) => {
-          const key = headerToKey[h];
+          const key = mapping[h];
           if (key) obj[key] = row[i];
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
@@ -397,7 +412,13 @@ useEffect(() => {
         return obj as Customer;
       });
 
-      await replaceCustomers(mapped);
+      await upsertCustomers(mapped);
+      const list = await getFields();
+      setCustomFields(
+        list
+          .filter((f) => !f.archived && f.visibleOn.customers)
+          .sort((a, b) => a.order - b.order),
+      );
       await loadCustomers();
 
       setCsvModalOpen(false);
@@ -438,10 +459,20 @@ useEffect(() => {
         })
       );
 
+      const fieldOptions = [
+        { key: "name", label: "Name" },
+        { key: "phone", label: "Phone" },
+        { key: "location", label: "Location" },
+        { key: "signupDate", label: "Signup" },
+        ...customFields.map((f) => ({ key: f.key, label: f.label })),
+      ];
+      const unknownArr = Array.from(unknown);
       setJsonPreview({
         customers: json.customers,
-        unknownKeys: Array.from(unknown),
-        addFlags: Object.fromEntries(Array.from(unknown).map((k) => [k, true])),
+        unknownKeys: unknownArr,
+        addFlags: Object.fromEntries(unknownArr.map((k) => [k, true])),
+        keyToField: Object.fromEntries(unknownArr.map((k) => [k, null])),
+        fieldOptions,
       });
       setJsonModalOpen(true);
     } catch (err) {
@@ -453,30 +484,38 @@ useEffect(() => {
     }
   };
 
-  const confirmJsonImport = async (userId: string) => {
+  const confirmJsonImport = async (
+    userId: string,
+    opts: { addFlags: Record<string, boolean>; keyToField: Record<string, string | null> },
+  ) => {
     if (!jsonPreview) return;
     try {
-      const headerToKey: Record<string, string> = {};
+      const mapping: Record<string, string> = {};
       let order = customFields.length;
 
       for (const k of jsonPreview.unknownKeys) {
-        if (!jsonPreview.addFlags[k]) continue;
-        const key = toKeySlug(k);
-        headerToKey[k] = key;
-
-        const field: TablesInsert<'custom_fields'> = {
-          id: uuid(),
-          user_id: userId,
-          key,
-          label: k,
-          type: "text",
-          order: order++,
-          options: [],
-          required: false,
-          visible_on: { dashboard: true, customers: true, campaigns: true },
-          archived: false,
-        };
-        await supabase.from('custom_fields').insert(field);
+        const selected = opts.keyToField[k];
+        if (selected) {
+          mapping[k] = selected;
+          continue;
+        }
+        if (opts.addFlags[k]) {
+          const key = toKeySlug(k);
+          mapping[k] = key;
+          const field: TablesInsert<'custom_fields'> = {
+            id: uuid(),
+            user_id: userId,
+            key,
+            label: k,
+            type: "text",
+            order: order++,
+            options: [],
+            required: false,
+            visible_on: { dashboard: true, customers: true, campaigns: true },
+            archived: false,
+          };
+          await supabase.from('custom_fields').insert(field);
+        }
       }
 
       const mapped: Customer[] = jsonPreview.customers.map((row, idx) => {
@@ -487,14 +526,25 @@ useEffect(() => {
         };
         Object.entries(row).forEach(([k, v]) => {
           if (k === "id" || k === "signupDate") return;
-          if (jsonPreview.unknownKeys.includes(k) && !jsonPreview.addFlags[k]) return;
-          obj[headerToKey[k] ?? k] = v;
+          if (jsonPreview.unknownKeys.includes(k)) {
+            const key = mapping[k];
+            if (key) obj[key] = v;
+          } else {
+            obj[k] = v;
+          }
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
+        obj.phone = cleanPhone(obj.phone);
         return obj as Customer;
       });
 
-      await replaceCustomers(mapped);
+      await upsertCustomers(mapped);
+      const list = await getFields();
+      setCustomFields(
+        list
+          .filter((f) => !f.archived && f.visibleOn.customers)
+          .sort((a, b) => a.order - b.order),
+      );
       await loadCustomers();
 
       setJsonModalOpen(false);
@@ -782,5 +832,6 @@ useEffect(() => {
 function formatValue(v: AnyValue): string {
   if (v == null) return "—";
   if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "number") return new Intl.NumberFormat().format(v);
   return String(v);
 }

@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { supabase } from "@/utils/supabaseClient";
 import type { CsvPreview } from "@/types/importPreview";
 
 interface Props {
   preview: CsvPreview;
   onCancel: () => void;
-  onConfirm: (userId: string) => Promise<void> | void;
+  onConfirm: (
+    userId: string,
+    opts: { addFlags: Record<string, boolean>; headerToKey: Record<string, string | null> },
+  ) => Promise<void> | void;
   busy: boolean;
   setBusy: (v: boolean) => void;
   canConfirm?: boolean;
@@ -19,6 +22,9 @@ export default function CsvPreviewModal({
   setBusy,
   canConfirm = true,
 }: Props) {
+  const [addFlags, setAddFlags] = useState<Record<string, boolean>>(preview.addFlags);
+  const [headerMap, setHeaderMap] = useState<Record<string, string | null>>(preview.headerToKey);
+
   const handleConfirm = async () => {
     if (busy) return;
     setBusy(true);
@@ -28,7 +34,7 @@ export default function CsvPreviewModal({
         alert("You must be logged in.");
         return;
       }
-      await onConfirm(data.user.id);
+      await onConfirm(data.user.id, { addFlags, headerToKey: headerMap });
     } finally {
       setBusy(false);
     }
@@ -46,14 +52,36 @@ export default function CsvPreviewModal({
               <label key={h} className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={preview.addFlags[h]}
-                  onChange={(e) => (preview.addFlags[h] = e.target.checked)}
+                  checked={addFlags[h]}
+                  onChange={(e) => setAddFlags({ ...addFlags, [h]: e.target.checked })}
                 />
                 {h}
               </label>
             ))}
           </div>
         )}
+
+        <div className="space-y-2 text-sm">
+          {preview.headers.map((h) => (
+            <div key={h} className="flex items-center gap-2">
+              <span className="w-1/3 truncate">{h}</span>
+              <select
+                value={headerMap[h] ?? ""}
+                onChange={(e) =>
+                  setHeaderMap({ ...headerMap, [h]: e.target.value || null })
+                }
+                className="border rounded px-2 py-1 flex-1"
+              >
+                <option value="">Do not import</option>
+                {preview.fieldOptions.map((opt) => (
+                  <option key={opt.key} value={opt.key}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
 
         <div className="max-h-60 overflow-auto border rounded">
           <table className="min-w-full text-xs">

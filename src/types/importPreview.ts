@@ -6,10 +6,13 @@ export interface CsvPreview {
   headerToKey: Record<string, string | null>;
   unmatchedHeaders: string[];
   addFlags: Record<string, boolean>;
+  fieldOptions: { key: string; label: string }[];
 }
 
 export interface JsonPreview {
   customers: Record<string, AnyValue>[];
   unknownKeys: string[];
   addFlags: Record<string, boolean>;
+  keyToField: Record<string, string | null>;
+  fieldOptions: { key: string; label: string }[];
 }
