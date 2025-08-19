@@ -4,6 +4,10 @@
     2. Edit base and custom field values, then save and confirm changes appear in Supabase `customers`.
     3. Use "Add Field" to create a custom field; ensure it is stored in `custom_fields` and appears on the page.
     4. Remove any placeholder/demo values before launch.
+- [NEW] Confirm missing customer IDs show "Not found" instead of an error.
+  Steps:
+    1. Navigate to `/customers/{nonexistent-id}` in the app.
+    2. Verify the page displays "Not found" without throwing an error.
 - [NEW] Verify customer table row navigation and checkbox interactions on mobile devices.
   Steps:
     1. On a physical mobile device, open the Customers page in the deployed app.

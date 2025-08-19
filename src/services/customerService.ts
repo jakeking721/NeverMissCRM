@@ -68,7 +68,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
     .select("id, user_id, name, phone, location, signup_date, extra")
     .eq("user_id", userId)
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
 
