@@ -7,6 +7,7 @@ import { supabase } from "@/utils/supabaseClient";
 export default function Settings() {
   const { user } = useAuth();
   const [profile, setProfile] = React.useState<{ username: string | null; email: string | null } | null>(null);
+  const [busy, setBusy] = React.useState(false);
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -48,14 +49,40 @@ export default function Settings() {
             </div>
             <div className="mt-4 flex gap-3">
               <button
-                onClick={() => alert("Demo: Change Email triggered")}
-                className="text-blue-700 bg-blue-100 hover:bg-blue-200 px-4 py-2 text-sm rounded-xl font-semibold"
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const { data } = await supabase.auth.getUser();
+                    if (!data.user) {
+                      alert("You must be logged in.");
+                      return;
+                    }
+                    alert("Demo: Change Email triggered");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                disabled={busy}
+                className="text-blue-700 bg-blue-100 hover:bg-blue-200 px-4 py-2 text-sm rounded-xl font-semibold disabled:opacity-50"
               >
                 Change Email
               </button>
               <button
-                onClick={() => alert("Demo: Change Password triggered")}
-                className="text-blue-700 bg-blue-100 hover:bg-blue-200 px-4 py-2 text-sm rounded-xl font-semibold"
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const { data } = await supabase.auth.getUser();
+                    if (!data.user) {
+                      alert("You must be logged in.");
+                      return;
+                    }
+                    alert("Demo: Change Password triggered");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                disabled={busy}
+                className="text-blue-700 bg-blue-100 hover:bg-blue-200 px-4 py-2 text-sm rounded-xl font-semibold disabled:opacity-50"
               >
                 Change Password
               </button>

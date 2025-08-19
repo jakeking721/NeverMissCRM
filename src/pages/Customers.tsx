@@ -107,6 +107,7 @@ export default function Customers(): JSX.Element {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
 
   /* ---------------------------- Meta (fetch) ----------------------------- */
 
@@ -275,38 +276,52 @@ useEffect(() => {
   const [jsonModalOpen, setJsonModalOpen] = useState(false);
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
-  const onImportCsvClick = () => {
-    if (!user) {
-      toast.error("You must be logged in to import customers.");
-      return;
+  const onImportCsvClick = async () => {
+    setBusy(true);
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        alert("You must be logged in.");
+        return;
+      }
+      csvInputRef.current?.click();
+    } finally {
+      setBusy(false);
     }
-    csvInputRef.current?.click();
   };
-  const onImportJsonClick = () => {
-    if (!user) {
-      toast.error("You must be logged in to import customers.");
-      return;
+  const onImportJsonClick = async () => {
+    setBusy(true);
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        alert("You must be logged in.");
+        return;
+      }
+      jsonInputRef.current?.click();
+    } finally {
+      setBusy(false);
     }
-    jsonInputRef.current?.click();
   };
 
   /* ----------------------------- CSV handler ----------------------------- */
 
   const onImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user) {
-      toast.error("You must be logged in to import customers.");
-      e.target.value = "";
-      return;
-    }
-    const file = e.target.files?.[0];
-    if (!file) return;
+    setBusy(true);
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        alert("You must be logged in.");
+        return;
+      }
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    const delimiter = file.name.toLowerCase().endsWith(".tsv") ? "\t" : ",";
-    const { headers, rows } = parseCSV(await file.text(), delimiter);
-    if (headers.length === 0) {
-      toast.error("CSV appears empty.");
-      return;
-    }
+      const delimiter = file.name.toLowerCase().endsWith(".tsv") ? "\t" : ",";
+      const { headers, rows } = parseCSV(await file.text(), delimiter);
+      if (headers.length === 0) {
+        toast.error("CSV appears empty.");
+        return;
+      }
 
     const knownKeys = [
       "name",
@@ -325,25 +340,31 @@ useEffect(() => {
     const unmatched = headers.filter((h) => !headerToKey[h]);
     const addFlags = Object.fromEntries(unmatched.map((h) => [h, true]));
 
-    setCsvPreview({
-      headers,
-      rows,
-      headerToKey,
-      unmatchedHeaders: unmatched,
-      addFlags,
-    });
-    setCsvModalOpen(true);
-    e.target.value = "";
+      setCsvPreview({
+        headers,
+        rows,
+        headerToKey,
+        unmatchedHeaders: unmatched,
+        addFlags,
+      });
+      setCsvModalOpen(true);
+    } finally {
+      e.target.value = "";
+      setBusy(false);
+    }
   };
 
   const confirmCsvImport = async () => {
     if (!csvPreview) return;
-    if (!user) {
-      toast.error("You must be logged in to import customers.");
-      return;
-    }
-
+    setBusy(true);
     try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        alert("You must be logged in.");
+        return;
+      }
+      const userId = data.user.id;
+
       /* create custom-fields for any checked unmatched header */
       let order = customFields.length;
       const headerToKey: Record<string, string> = {};
@@ -361,7 +382,7 @@ useEffect(() => {
 
           const field: TablesInsert<'custom_fields'> = {
             id: uuid(),
-            user_id: user.id,
+            user_id: userId,
             key,
             label: h,
             type: "text",
@@ -379,7 +400,7 @@ useEffect(() => {
       const mapped: Customer[] = csvPreview.rows.map((row, idx) => {
         const obj: Record<string, AnyValue> = {
           id: uuid(),
-          user_id: user.id,
+          user_id: userId,
           signupDate: new Date().toISOString(),
         };
         csvPreview.headers.forEach((h, i) => {
@@ -400,20 +421,23 @@ useEffect(() => {
     } catch (err: any) {
       console.error(err);
       toast.error(`Import failed: ${err?.message ?? err}`);
+    } finally {
+      setBusy(false);
     }
   };
 
   /* ----------------------------- JSON handler ---------------------------- */
 
   const onImportJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user) {
-      toast.error("You must be logged in to import customers.");
-      e.target.value = "";
-      return;
-    }
-    const file = e.target.files?.[0];
-    if (!file) return;
+    setBusy(true);
     try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        alert("You must be logged in.");
+        return;
+      }
+      const file = e.target.files?.[0];
+      if (!file) return;
       const json = JSON.parse(await file.text());
       if (!Array.isArray(json.customers)) throw new Error("Missing .customers array");
 
@@ -442,17 +466,20 @@ useEffect(() => {
       toast.error("Import failed.");
     } finally {
       e.target.value = "";
+      setBusy(false);
     }
   };
 
   const confirmJsonImport = async () => {
     if (!jsonPreview) return;
-    if (!user) {
-      toast.error("You must be logged in to import customers.");
-      return;
-    }
-
+    setBusy(true);
     try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        alert("You must be logged in.");
+        return;
+      }
+      const userId = data.user.id;
       const headerToKey: Record<string, string> = {};
       let order = customFields.length;
 
@@ -463,7 +490,7 @@ useEffect(() => {
 
         const field: TablesInsert<'custom_fields'> = {
           id: uuid(),
-          user_id: user.id,
+          user_id: userId,
           key,
           label: k,
           type: "text",
@@ -479,7 +506,7 @@ useEffect(() => {
       const mapped: Customer[] = jsonPreview.customers.map((row, idx) => {
         const obj: Record<string, AnyValue> = {
           id: (row as any).id ?? uuid(),
-          user_id: user.id,
+          user_id: userId,
           signupDate: (row as any).signupDate ?? new Date().toISOString(),
         };
         Object.entries(row).forEach(([k, v]) => {
@@ -500,6 +527,8 @@ useEffect(() => {
     } catch (err) {
       console.error(err);
       toast.error("Import failed.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -533,7 +562,7 @@ useEffect(() => {
 
           <div className="flex items-center gap-2">
             {/* import / export buttons */}
-            <button onClick={onImportJsonClick} className="btn" disabled={!user}>
+            <button onClick={onImportJsonClick} className="btn" disabled={busy}>
               Import JSON
             </button>
             <input
@@ -544,7 +573,7 @@ useEffect(() => {
               hidden
             />
 
-            <button onClick={onImportCsvClick} className="btn" disabled={!user}>
+            <button onClick={onImportCsvClick} className="btn" disabled={busy}>
               Import CSV
             </button>
             <input
@@ -676,7 +705,7 @@ useEffect(() => {
             setCsvPreview(null);
           }}
           onConfirm={confirmCsvImport}
-          canConfirm={true}
+          busy={busy}
         />
       )}
 
@@ -689,7 +718,7 @@ useEffect(() => {
             setJsonPreview(null);
           }}
           onConfirm={confirmJsonImport}
-          canConfirm={true}
+          busy={busy}
         />
       )}
     </PageShell>
@@ -704,10 +733,10 @@ interface CsvPreviewModalProps {
   preview: CsvPreview;
   onCancel: () => void;
   onConfirm: () => void;
-  canConfirm: boolean;
+  busy: boolean;
 }
 
-function CsvPreviewModal({ preview, onCancel, onConfirm, canConfirm }: CsvPreviewModalProps) {
+function CsvPreviewModal({ preview, onCancel, onConfirm, busy }: CsvPreviewModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
@@ -764,10 +793,10 @@ function CsvPreviewModal({ preview, onCancel, onConfirm, canConfirm }: CsvPrevie
           </button>
           <button
             onClick={onConfirm}
-            disabled={!canConfirm}
+            disabled={busy}
             className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {canConfirm ? "Confirm Import" : "Login required"}
+            {busy ? "Working..." : "Confirm Import"}
           </button>
         </div>
       </div>
@@ -779,10 +808,10 @@ interface JsonPreviewModalProps {
   preview: JsonPreview;
   onCancel: () => void;
   onConfirm: () => void;
-  canConfirm: boolean;
+  busy: boolean;
 }
 
-function JsonPreviewModal({ preview, onCancel, onConfirm, canConfirm }: JsonPreviewModalProps) {
+function JsonPreviewModal({ preview, onCancel, onConfirm, busy }: JsonPreviewModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
@@ -820,10 +849,10 @@ function JsonPreviewModal({ preview, onCancel, onConfirm, canConfirm }: JsonPrev
           </button>
           <button
             onClick={onConfirm}
-            disabled={!canConfirm}
+            disabled={busy}
             className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {canConfirm ? "Confirm Import" : "Login required"}
+            {busy ? "Working..." : "Confirm Import"}
           </button>
         </div>
       </div>

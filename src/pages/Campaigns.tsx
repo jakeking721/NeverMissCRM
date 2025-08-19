@@ -11,11 +11,13 @@ import PageShell from "@/components/PageShell";
 import { Link } from "react-router-dom";
 import { getCampaigns, removeCampaign, Campaign } from "@/services/campaignService";
 import { creditsService } from "@/services/creditsService";
+import { supabase } from "@/utils/supabaseClient";
 
 export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState<number>(0);
+  const [busy, setBusy] = useState(false);
 
   // Initial load
   useEffect(() => {
@@ -42,13 +44,21 @@ export default function Campaigns() {
   }, []);
 
   const onDelete = async (id: string) => {
-    if (!confirm("Delete this campaign? This cannot be undone.")) return;
+    setBusy(true);
     try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        alert("You must be logged in.");
+        return;
+      }
+      if (!confirm("Delete this campaign? This cannot be undone.")) return;
       await removeCampaign(id);
       setCampaigns(await getCampaigns());
     } catch (err) {
       console.error(err);
       alert("Failed to delete campaign.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -113,7 +123,8 @@ export default function Campaigns() {
                       <td className="py-2 text-right">
                         <button
                           onClick={() => onDelete(c.id)}
-                          className="text-red-600 hover:underline"
+                          className="text-red-600 hover:underline disabled:opacity-50"
+                          disabled={busy}
                         >
                           Delete
                         </button>

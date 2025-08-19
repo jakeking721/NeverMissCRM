@@ -1,3 +1,13 @@
+- [NEW] Replace demo Change Email/Password alerts in `src/pages/Settings.tsx` with real Supabase auth updates.
+  Steps:
+    1. Use Supabase auth methods to update the user's email and password.
+    2. Replace `alert` placeholders with success/error toasts.
+
+- [NEW] Manually verify busy-state login checks for imports and campaign deletion.
+  Steps:
+    1. Attempt CSV/JSON import while logged out and confirm the alert prevents the action.
+    2. Repeat the import and campaign deletion flows while logged in to ensure they succeed.
+
 - [NEW] Replace placeholder loading spinner used in `ProtectedRoute` and `RedirectIfLoggedIn` with final branded loader.
   Steps:
     1. Design or import a spinner component matching production branding.
