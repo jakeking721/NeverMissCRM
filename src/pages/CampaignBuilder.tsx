@@ -64,7 +64,7 @@ export default function CampaignBuilder() {
         // Auto-update scheduled campaigns to 'sent' if their time has passed (if your service still local-only)
         const now = new Date();
         const existing = await getCampaigns();
-        const maybeUpdated = existing.map((c) => {
+        const maybeUpdated = existing.map((c): Campaign => {
           if (c.status === "scheduled" && c.scheduledFor && new Date(c.scheduledFor) <= now) {
             // NOTE: If you move to Supabase, do this in the DB or a job; we leave as-is for local demo parity
             return { ...c, status: "sent" };
@@ -76,9 +76,10 @@ export default function CampaignBuilder() {
         const list = await getCustomers();
         setCustomers(list);
 
-        const allFields = getFields()
-          .filter((f) => !f.archived && f.visibleOn.campaigns)
-          .sort((a, b) => a.order - b.order);
+        const fieldsResult = await Promise.resolve(getFields());
+        const allFields = fieldsResult
+          .filter((f: CustomField) => !f.archived && f.visibleOn.campaigns)
+          .sort((a: CustomField, b: CustomField) => a.order - b.order);
         setFields(allFields);
 
         const balance = await creditsService.getBalance();

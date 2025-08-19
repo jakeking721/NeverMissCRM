@@ -4,13 +4,13 @@
 // Defaults to "user" when role is absent (back-compat).
 // -----------------------------------------------------------------------------
 
-import { User } from "@/utils/auth";
-
 export type Role = "admin" | "user";
 
 export const ROLES: Role[] = ["user", "admin"];
 
-export function getRole(user: User | null | undefined): Role {
+type UserLike = { role?: Role; username?: string | null } | null | undefined;
+
+export function getRole(user: UserLike): Role {
   if (!user) return "user";
   if (user.role === "admin") return "admin";
 
@@ -20,15 +20,15 @@ export function getRole(user: User | null | undefined): Role {
   return "user";
 }
 
-export function isAdmin(user: User | null | undefined): boolean {
+export function isAdmin(user: UserLike): boolean {
   return getRole(user) === "admin";
 }
 
-export function hasRole(user: User | null | undefined, role: Role): boolean {
+export function hasRole(user: UserLike, role: Role): boolean {
   return getRole(user) === role;
 }
 
 /** Throw if not admin (useful in actions/services). */
-export function assertAdmin(user: User | null | undefined) {
+export function assertAdmin(user: UserLike) {
   if (!isAdmin(user)) throw new Error("Admin only");
 }

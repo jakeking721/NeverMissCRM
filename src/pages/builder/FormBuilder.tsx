@@ -62,7 +62,7 @@ export default function FormBuilder() {
 
   const createBlock = (paletteType: string): Block => {
     const id = uuidv4();
-    let block: Block = { id };
+    let block: Block = { id, type: paletteType };
     switch (paletteType) {
       case "title":
         block = { id, type: "title", text: "Form Title" };

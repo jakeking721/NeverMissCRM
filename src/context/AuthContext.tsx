@@ -15,11 +15,15 @@ import React, {
   useState,
 } from "react";
 import type { Session, User as SupaUser } from "@supabase/supabase-js";
+import type { Role } from "@/utils/roles";
 import { supabase } from "@/utils/supabaseClient";
 
 export type AuthUser = {
   id: string;
   email?: string | null;
+  username?: string | null;
+  credits?: number;
+  role?: Role;
 };
 
 type AuthContextValue = {
@@ -40,7 +44,12 @@ const AuthContext = createContext<AuthContextValue>({
 
 function toAuthUser(u: SupaUser | null | undefined): AuthUser | null {
   if (!u) return null;
-  return { id: u.id, email: u.email };
+  const { credits, role, username } = (u.user_metadata ?? {}) as {
+    credits?: number;
+    role?: Role;
+    username?: string;
+  };
+  return { id: u.id, email: u.email, username, credits, role };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

@@ -14,9 +14,9 @@ import { supabase } from "@/utils/supabaseClient";
 import { submitIntake } from "@/services/intake";
 import Success from "./Success";
 
-interface RouteParams {
-  campaignId: string;
-  formSlug: string;
+interface RouteParams extends Record<string, string | undefined> {
+  campaignId?: string;
+  formSlug?: string;
 }
 
 interface BaseBlock {
@@ -61,11 +61,33 @@ interface LinkBlock extends BaseBlock {
   url: string;
   required?: boolean;
 }
+interface CheckboxBlock extends BaseBlock {
+  type: "checkbox";
+  name: string;
+  label?: string;
+  required?: boolean;
+}
+interface MultiSelectBlock extends BaseBlock {
+  type: "multiselect";
+  name: string;
+  label?: string;
+  options: string[];
+  required?: boolean;
+}
 
-type Block = TextBlock | ImageBlock | InputBlock | ChoiceBlock | ButtonBlock | PdfBlock | LinkBlock;
+type Block =
+  | TextBlock
+  | ImageBlock
+  | InputBlock
+  | ChoiceBlock
+  | ButtonBlock
+  | PdfBlock
+  | LinkBlock
+  | CheckboxBlock
+  | MultiSelectBlock;
 
 export default function IntakeRenderer() {
-  const { campaignId, formSlug } = useParams<RouteParams>();
+  const { campaignId = "", formSlug = "" } = useParams<RouteParams>();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +116,8 @@ export default function IntakeRenderer() {
         const initVals: Record<string, any> = {};
         schemaBlocks.forEach((b) => {
           if (b.type === "input" || b.type === "choice") initVals[b.name] = "";
+          if (b.type === "checkbox") initVals[b.name] = false;
+          if (b.type === "multiselect") initVals[b.name] = [];
           if ((b.type === "pdf" || b.type === "link") && b.required)
             initVals[`ack_${b.id}`] = false;
         });
@@ -142,8 +166,11 @@ export default function IntakeRenderer() {
       const valid = await schema.validate(values, { abortEarly: false });
       const arrayErrors: Record<string, string> = {};
       blocks.forEach((b) => {
+        if (b.type === "checkbox" && b.required && !values[b.name]) {
+          arrayErrors[b.name] = "Required";
+        }
         if (
-          (b.type === "checkbox" || b.type === "multiselect") &&
+          b.type === "multiselect" &&
           b.required &&
           (!values[b.name] || values[b.name].length === 0)
         ) {
@@ -236,6 +263,60 @@ export default function IntakeRenderer() {
                       className="w-full border rounded p-2"
                     >
                       <option value="">Select…</option>
+                      {(block.options || []).map((o, i) => (
+                        <option key={i} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                    {fieldErrors[block.name] && (
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors[block.name]}</p>
+                    )}
+                  </div>
+                );
+              case "checkbox":
+                return (
+                  <div key={block.id}>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={!!values[block.name]}
+                        onChange={(e) =>
+                          setValues({ ...values, [block.name]: e.target.checked })
+                        }
+                      />
+                      <span className="ml-2">
+                        {block.label}
+                        {block.required && <span className="text-red-500 ml-1">*</span>}
+                      </span>
+                    </label>
+                    {fieldErrors[block.name] && (
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors[block.name]}</p>
+                    )}
+                  </div>
+                );
+              case "multiselect":
+                return (
+                  <div key={block.id}>
+                    {block.label && (
+                      <label className="block text-sm font-medium mb-1">
+                        {block.label}
+                        {block.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                    )}
+                    <select
+                      multiple
+                      value={values[block.name] || []}
+                      onChange={(e) =>
+                        setValues({
+                          ...values,
+                          [block.name]: Array.from(e.target.selectedOptions).map(
+                            (o) => o.value
+                          ),
+                        })
+                      }
+                      className="w-full border rounded p-2"
+                    >
                       {(block.options || []).map((o, i) => (
                         <option key={i} value={o}>
                           {o}

@@ -14,6 +14,12 @@
     2. Tap a row (excluding the checkbox) to confirm it navigates to the customer detail view.
     3. Tap the row's checkbox and ensure it toggles selection without navigation.
 
+- [NEW] Populate Supabase user metadata with `username`, `credits`, and `role` fields so AuthUser reflects them.
+  Steps:
+    1. In Supabase Dashboard, open Auth > Users and edit each user's `user_metadata` to include these keys.
+    2. Example metadata: `{ "username": "jake", "credits": 100, "role": "admin" }`.
+    3. Ask users to sign out and back in so metadata changes propagate to sessions.
+
 - [NEW] Ensure Supabase `custom_fields` table uses camelCase column "visibleOn" with a unique constraint on `(user_id, key)` for upserts.
   Steps:
     1. In the Supabase SQL editor, run:
@@ -28,11 +34,6 @@
   Steps:
     1. Add richer inputs for select, multiselect, date, and other field types as needed.
     2. Manually verify Supabase updates for each field type and adjust validations.
-
-- [NEW] Resolve TypeScript compilation errors so `npm run typecheck` passes.
-  Steps:
-    1. Run `npm run typecheck` and note missing type definitions and JSX configuration errors.
-    2. Install required `@types` packages and update `tsconfig.json` or source files until the command reports no errors.
 
 - [NEW] Replace demo Change Email/Password alerts in `src/pages/Settings.tsx` with real Supabase auth updates.
   Steps:
