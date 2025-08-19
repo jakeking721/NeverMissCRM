@@ -10,12 +10,15 @@ import PageShell from "@/components/PageShell";
 import SmsBulkModal from "@/components/SmsBulkModal";
 import CsvPreviewModal from "@/components/CsvPreviewModal";
 import JsonPreviewModal from "@/components/JsonPreviewModal";
+import CustomerEditModal from "@/components/CustomerEditModal";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-toastify";
 
 import {
   getCustomers,
   replaceCustomers,
+  removeCustomer,
+  updateCustomer,
   cleanPhone,
   type Customer as SbcCustomer,
 } from "@/services/customerService";
@@ -95,6 +98,7 @@ export default function Customers(): JSX.Element {
 
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -515,6 +519,46 @@ useEffect(() => {
     [customers, selectedIds]
   );
 
+  const onEditSelected = () => setEditOpen(true);
+
+  const onDeleteSelected = useCallback(async () => {
+    if (selectedIds.length === 0) return;
+    if (
+      !window.confirm(
+        `Delete ${selectedIds.length} selected customer${selectedIds.length === 1 ? "" : "s"}?`,
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      await Promise.all(selectedIds.map((id) => removeCustomer(id)));
+      toast.success("Deleted selected customers.");
+      setSelectedIds([]);
+      await loadCustomers();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete customers.");
+    } finally {
+      setBusy(false);
+    }
+  }, [selectedIds, loadCustomers]);
+
+  const onSaveEdit = async (patch: Partial<Customer>) => {
+    setBusy(true);
+    try {
+      await Promise.all(selectedIds.map((id) => updateCustomer(id, patch)));
+      toast.success("Customers updated.");
+      setEditOpen(false);
+      setSelectedIds([]);
+      await loadCustomers();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update customers.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   /* ------------------------------ Renderer ------------------------------- */
 
   return (
@@ -522,7 +566,7 @@ useEffect(() => {
       {/* header / action bar */}
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Top row */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold mb-1">Customers</h1>
             <p className="text-sm text-gray-600">
@@ -530,7 +574,7 @@ useEffect(() => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center flex-wrap gap-2">
             {/* import / export buttons */}
             <button onClick={onImportJsonClick} className="btn" disabled={busy}>
               Import JSON
@@ -562,12 +606,26 @@ useEffect(() => {
             </button>
 
             {selectedIds.length > 0 && (
-              <button
-                onClick={() => setBulkOpen(true)}
-                className="px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Bulk SMS ({selectedIds.length})
-              </button>
+              <>
+                <button
+                  onClick={onEditSelected}
+                  className="px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Edit Selected
+                </button>
+                <button
+                  onClick={onDeleteSelected}
+                  className="px-3 py-2 text-sm rounded bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete Selected
+                </button>
+                <button
+                  onClick={() => setBulkOpen(true)}
+                  className="px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Bulk SMS ({selectedIds.length})
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -665,6 +723,15 @@ useEffect(() => {
 
       {/* bulk SMS modal */}
       <SmsBulkModal isOpen={bulkOpen} onClose={() => setBulkOpen(false)} customers={selectedCustomers} />
+
+      {/* bulk edit modal */}
+      <CustomerEditModal
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        customers={selectedCustomers}
+        customFields={customFields}
+        onSave={onSaveEdit}
+      />
 
       {/* ---------- CSV preview modal ---------- */}
       {csvModalOpen && csvPreview && (

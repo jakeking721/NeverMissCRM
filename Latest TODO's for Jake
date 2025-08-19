@@ -8,6 +8,11 @@
     3. Regenerate Supabase types:
         `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`
 
+- [NEW] Expand bulk customer edit capabilities introduced in `CustomerEditModal`.
+  Steps:
+    1. Add richer inputs for select, multiselect, date, and other field types as needed.
+    2. Manually verify Supabase updates for each field type and adjust validations.
+
 - [NEW] Resolve TypeScript compilation errors so `npm run typecheck` passes.
   Steps:
     1. Run `npm run typecheck` and note missing type definitions and JSX configuration errors.
