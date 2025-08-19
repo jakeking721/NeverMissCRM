@@ -1,3 +1,10 @@
+- [NEW] Verify new CustomerDetail page and custom field creation works with Supabase.
+  Steps:
+    1. Navigate to `/customers/:id` for an existing customer.
+    2. Edit base and custom field values, then save and confirm changes appear in Supabase `customers`.
+    3. Use "Add Field" to create a custom field; ensure it is stored in `custom_fields` and appears on the page.
+    4. Remove any placeholder/demo values before launch.
+
 - [NEW] Ensure Supabase `custom_fields` table uses camelCase column "visibleOn" with a unique constraint on `(user_id, key)` for upserts.
   Steps:
     1. In the Supabase SQL editor, run:

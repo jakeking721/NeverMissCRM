@@ -59,6 +59,33 @@ export async function getCustomers(): Promise<Customer[]> {
 }
 
 /**
+ * Fetch a single customer by id (current user only).
+ */
+export async function getCustomer(id: string): Promise<Customer | null> {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, user_id, name, phone, location, signup_date, extra")
+    .eq("user_id", userId)
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    user_id: data.user_id,
+    name: data.name,
+    phone: data.phone,
+    location: data.location ?? undefined,
+    signupDate: data.signup_date,
+    ...(data.extra ?? {}),
+  };
+}
+
+/**
  * Insert a single customer for the current user.
  */
 export async function addCustomer(customer: Customer): Promise<void> {
