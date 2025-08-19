@@ -215,7 +215,24 @@ export interface Database {
       };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      add_credits: {
+        Args: { p_user_id: string; p_amount: number };
+        Returns: number;
+      };
+      increment_credits: {
+        Args: { p_user_id: string; p_amount: number };
+        Returns: number;
+      };
+      ensure_user_slug: {
+        Args: { p_user_id: string };
+        Returns: {
+          slug: string;
+          user_id: string;
+          created_at: string;
+        };
+      };
+    };
     Enums: {};
     CompositeTypes: {};
   };

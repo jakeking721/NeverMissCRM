@@ -1,3 +1,9 @@
+- [NEW] Apply Supabase migration `20250806060000_add_credit_functions_and_user_slug.sql` to add credit helper functions and ensure user slugs.
+   Steps:
+     1. From the project root, run `supabase db push` or execute the SQL in Supabase dashboard's SQL editor.
+     2. Regenerate Supabase types:
+          supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+     3. For existing users, verify `public_slugs` contains a slug for each user and adjust any duplicates.
 - [NEW] Remove obsolete `public_slug` column from Supabase `profiles` table (slugs now stored in `public_slugs`).
   Steps:
     1. In Supabase SQL editor, run:
