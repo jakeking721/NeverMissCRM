@@ -9,12 +9,14 @@
 
 import { supabase } from "@/utils/supabaseClient";
 import { normalizePhone } from "@/utils/phone";
+import { normalizeEmail } from "@/utils/email";
 
 export type Customer = {
   id: string;
   user_id: string;
   name: string;
   phone: string;
+  email?: string;
   location?: string;
   signupDate: string; // ISO
   extra?: Record<string, any>;
@@ -38,7 +40,7 @@ export async function getCustomers(): Promise<Customer[]> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, user_id, name, phone, location, signup_date, extra")
+    .select("id, user_id, name, phone, email, location, signup_date, extra")
     .eq("user_id", userId)
     .order("signup_date", { ascending: false });
 
@@ -49,6 +51,7 @@ export async function getCustomers(): Promise<Customer[]> {
     user_id: row.user_id,
     name: row.name,
     phone: row.phone,
+    email: row.email ?? undefined,
     location: row.location ?? undefined,
     signupDate: row.signup_date,
     ...(row.extra ?? {}),
@@ -62,7 +65,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, user_id, name, phone, location, signup_date, extra")
+    .select("id, user_id, name, phone, email, location, signup_date, extra")
     .eq("user_id", userId)
     .eq("id", id)
     .maybeSingle();
@@ -76,6 +79,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
     user_id: data.user_id,
     name: data.name,
     phone: data.phone,
+    email: data.email ?? undefined,
     location: data.location ?? undefined,
     signupDate: data.signup_date,
     ...(data.extra ?? {}),
@@ -93,6 +97,7 @@ export async function addCustomer(customer: Customer): Promise<void> {
     user_id: customer.user_id ?? userId,
     name: customer.name ?? "",
     phone: normalizePhone(customer.phone),
+    email: normalizeEmail(customer.email) || null,
     location: customer.location ?? null,
     signup_date: customer.signupDate ?? new Date().toISOString(),
     extra: stripBaseColumns(customer),
@@ -111,6 +116,7 @@ export async function updateCustomer(id: string, patch: Partial<Customer>): Prom
   const payload: any = {};
   if (patch.name !== undefined) payload.name = patch.name ?? "";
   if (patch.phone !== undefined) payload.phone = normalizePhone(patch.phone);
+  if (patch.email !== undefined) payload.email = normalizeEmail(patch.email) || null;
   if (patch.location !== undefined) payload.location = patch.location;
   if (patch.signupDate !== undefined) payload.signup_date = patch.signupDate;
 
@@ -157,40 +163,45 @@ export async function clearCustomers(): Promise<void> {
 
 /**
  * Insert or update multiple customers without deleting existing rows.
- * De-duplicates input records by phone or id before upserting.
+ * Server-side uniqueness constraints handle de-duplication.
  */
-export async function upsertCustomers(customers: Customer[]): Promise<void> {
+export type DedupeMode = "email" | "phone";
+
+export async function upsertCustomers(
+  customers: Customer[],
+  dedupe: DedupeMode = "phone",
+): Promise<void> {
   const userId = await requireUserId();
   if (customers.length === 0) return;
 
-  const dedup = new Map<string, Customer>();
-  for (const c of customers) {
-    const phone = normalizePhone(c.phone);
-    const key = phone || c.id;
-    if (!dedup.has(key)) dedup.set(key, { ...c, phone });
-  }
-
-  const rows = Array.from(dedup.values()).map((c) => ({
+  const rows = customers.map((c) => ({
     id: c.id,
     user_id: c.user_id ?? userId,
     name: c.name ?? "",
     phone: normalizePhone(c.phone),
+    email: normalizeEmail(c.email) || null,
     location: c.location ?? null,
     signup_date: c.signupDate ?? new Date().toISOString(),
     extra: stripBaseColumns(c),
   }));
 
-  const { error } = await supabase.from("customers").upsert(rows, {
-    onConflict: "id,phone",
-  });
+  const conflict =
+    dedupe === "email"
+      ? { onConflict: "uniq_customers_owner_email_norm" }
+      : { onConflict: "uniq_customers_owner_phone_e164" };
+
+  const { error } = await supabase.from("customers").upsert(rows, conflict);
   if (error) throw error;
 }
 
 /**
  * Alias for upsertCustomers for backward compatibility.
  */
-export async function addCustomers(customers: Customer[]): Promise<void> {
-  await upsertCustomers(customers);
+export async function addCustomers(
+  customers: Customer[],
+  dedupe: DedupeMode = "phone",
+): Promise<void> {
+  await upsertCustomers(customers, dedupe);
 }
 
 /**
@@ -209,6 +220,7 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
     user_id: c.user_id ?? userId,
     name: c.name ?? "",
     phone: normalizePhone(c.phone),
+    email: normalizeEmail(c.email) || null,
     location: c.location ?? null,
     signup_date: c.signupDate ?? new Date().toISOString(),
     extra: stripBaseColumns(c),
@@ -222,6 +234,6 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
 
 function stripBaseColumns(obj: Partial<Customer>): Record<string, any> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, user_id, name, phone, location, signupDate, extra, ...rest } = obj;
+  const { id, user_id, name, phone, email, location, signupDate, extra, ...rest } = obj;
   return { ...(extra ?? {}), ...rest };
 }

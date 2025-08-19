@@ -178,3 +178,11 @@
     1. In Supabase SQL editor, remove or merge any duplicate rows sharing the same `user_id` and phone.
     2. Run `alter table customers add constraint customers_user_phone_key unique (user_id, phone);`.
     3. Re-run imports if any rows were adjusted and delete placeholder data.
+
+- [NEW] Add unique constraints for normalized email and phone to support server-side deduplication.
+  Steps:
+    1. In the Supabase SQL editor, run:
+         `alter table customers add constraint uniq_customers_owner_email_norm unique (user_id, email_norm);`
+         `alter table customers add constraint uniq_customers_owner_phone_e164 unique (user_id, phone);`
+    2. Ensure existing duplicate emails or phones are resolved before applying the constraints.
+    3. Regenerate Supabase types after migrations: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.

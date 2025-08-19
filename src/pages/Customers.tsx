@@ -20,8 +20,10 @@ import {
   removeCustomer,
   updateCustomer,
   type Customer as SbcCustomer,
+  type DedupeMode,
 } from "@/services/customerService";
 import { normalizePhone, formatPhone } from "@/utils/phone";
+import { normalizeEmail } from "@/utils/email";
 import { getFields, type CustomField } from "@/services/fieldsService";
 import { supabase } from "@/utils/supabaseClient";
 import type { TablesInsert } from "@/types/supabase";
@@ -152,6 +154,7 @@ useEffect(() => {
       [
         { key: "name", label: "Name" },
         { key: "phone", label: "Phone" },
+        { key: "email", label: "Email" },
         { key: "location", label: "Location" },
         { key: "signupDate", label: "Signup" },
       ] as const,
@@ -359,6 +362,7 @@ useEffect(() => {
   const confirmCsvImport = async (
     userId: string,
     columns: Record<string, { addNew: boolean; linkTo: string | null }>,
+    dedupeMode: DedupeMode,
   ) => {
     if (!csvPreview) return;
     try {
@@ -403,10 +407,11 @@ useEffect(() => {
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
         obj.phone = normalizePhone(obj.phone);
+        obj.email = normalizeEmail(obj.email) || null;
         return obj as Customer;
       });
 
-      await upsertCustomers(mapped);
+      await upsertCustomers(mapped, dedupeMode);
       const list = await getFields();
       setCustomFields(
         list
@@ -444,6 +449,7 @@ useEffect(() => {
         "phone",
         "location",
         "signupDate",
+        "email",
         ...customFields.map((f) => f.key),
       ];
       const unknown = new Set<string>();
@@ -456,6 +462,7 @@ useEffect(() => {
       const fieldOptions = [
         { key: "name", label: "Name" },
         { key: "phone", label: "Phone" },
+        { key: "email", label: "Email" },
         { key: "location", label: "Location" },
         { key: "signupDate", label: "Signup" },
         ...customFields.map((f) => ({ key: f.key, label: f.label })),
@@ -481,6 +488,7 @@ useEffect(() => {
   const confirmJsonImport = async (
     userId: string,
     opts: { addFlags: Record<string, boolean>; keyToField: Record<string, string | null> },
+    dedupeMode: DedupeMode,
   ) => {
     if (!jsonPreview) return;
     try {
@@ -529,10 +537,11 @@ useEffect(() => {
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
         obj.phone = normalizePhone(obj.phone);
+        obj.email = normalizeEmail(obj.email) || null;
         return obj as Customer;
       });
 
-      await upsertCustomers(mapped);
+      await upsertCustomers(mapped, dedupeMode);
       const list = await getFields();
       setCustomFields(
         list

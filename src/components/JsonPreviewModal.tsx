@@ -8,6 +8,7 @@ interface Props {
   onConfirm: (
     userId: string,
     opts: { addFlags: Record<string, boolean>; keyToField: Record<string, string | null> },
+    dedupe: "email" | "phone",
   ) => Promise<void> | void;
   busy: boolean;
   setBusy: (v: boolean) => void;
@@ -24,6 +25,7 @@ export default function JsonPreviewModal({
 }: Props) {
   const [addFlags, setAddFlags] = useState<Record<string, boolean>>(preview.addFlags);
   const [keyMap, setKeyMap] = useState<Record<string, string | null>>(preview.keyToField);
+  const [dedupeMode, setDedupeMode] = useState<"phone" | "email">("phone");
 
   const handleConfirm = async () => {
     if (busy) return;
@@ -34,7 +36,7 @@ export default function JsonPreviewModal({
         alert("You must be logged in.");
         return;
       }
-      await onConfirm(data.user.id, { addFlags, keyToField: keyMap });
+      await onConfirm(data.user.id, { addFlags, keyToField: keyMap }, dedupeMode);
     } finally {
       setBusy(false);
     }
@@ -84,6 +86,21 @@ export default function JsonPreviewModal({
           <pre className="p-2 whitespace-pre-wrap">
             {JSON.stringify(preview.customers.slice(0, 5), null, 2)}
           </pre>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm">
+          <label htmlFor="dedupe-json" className="font-medium">
+            Dedupe by
+          </label>
+          <select
+            id="dedupe-json"
+            value={dedupeMode}
+            onChange={(e) => setDedupeMode(e.target.value as "phone" | "email")}
+            className="border rounded px-2 py-1"
+          >
+            <option value="phone">Phone</option>
+            <option value="email">Email</option>
+          </select>
         </div>
 
         <p className="text-sm text-gray-600">

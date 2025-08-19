@@ -8,6 +8,7 @@ interface Props {
   onConfirm: (
     userId: string,
     columns: Record<string, { addNew: boolean; linkTo: string | null }>,
+    dedupe: "email" | "phone",
   ) => Promise<void> | void;
   busy: boolean;
   setBusy: (v: boolean) => void;
@@ -23,6 +24,7 @@ export default function CsvPreviewModal({
   canConfirm = true,
 }: Props) {
   const [columns, setColumns] = useState(preview.columns);
+  const [dedupeMode, setDedupeMode] = useState<"phone" | "email">("phone");
 
   const handleConfirm = async () => {
     if (busy) return;
@@ -33,7 +35,7 @@ export default function CsvPreviewModal({
         alert("You must be logged in.");
         return;
       }
-      await onConfirm(data.user.id, columns);
+      await onConfirm(data.user.id, columns, dedupeMode);
     } finally {
       setBusy(false);
     }
@@ -93,6 +95,21 @@ export default function CsvPreviewModal({
               </select>
             </div>
           ))}
+        </div>
+
+        <div className="flex items-center gap-2 text-sm">
+          <label htmlFor="dedupe" className="font-medium">
+            Dedupe by
+          </label>
+          <select
+            id="dedupe"
+            value={dedupeMode}
+            onChange={(e) => setDedupeMode(e.target.value as "phone" | "email")}
+            className="border rounded px-2 py-1"
+          >
+            <option value="phone">Phone</option>
+            <option value="email">Email</option>
+          </select>
         </div>
 
         <div className="max-h-60 overflow-auto border rounded">
