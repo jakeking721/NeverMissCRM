@@ -1,3 +1,10 @@
+- [NEW] Backfill customer phone numbers: convert empty strings to NULL and re-normalize.
+  Steps:
+    1. In Supabase SQL editor, run:
+         update customers set phone = null where phone = '';
+    2. Re-normalize existing numbers:
+         update customers set phone = public.normalize_phone(phone) where phone is not null;
+    3. Review any rows with unresolved formatting and fix manually.
 - [NEW] Evaluate and optimize new duplicate-handling import flow for performance.
   Steps:
     1. For large CSVs/JSON files, monitor import duration.

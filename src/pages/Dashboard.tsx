@@ -209,7 +209,7 @@ export default function Dashboard() {
       id: uuidv4(),
       user_id: user!.id,
       name: String(formState.name ?? ""),
-      phone: normalizePhone(String(formState.phone ?? "")),
+      phone: normalizePhone(formState.phone) || undefined,
       location: String(formState.location ?? ""),
       signupDate: new Date().toISOString(),
       ...customFields.reduce(

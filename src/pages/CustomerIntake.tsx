@@ -80,7 +80,7 @@ export default function CustomerIntake() {
   }, [slug]);
 
   // Very light optional validation (remove if you don't want it)
-  const isValidPhone = (p: string) => normalizePhone(p).length > 0;
+  const isValidPhone = (p: string) => !!normalizePhone(p);
 
   // Invalid link screen
   if (!slug) {
@@ -174,7 +174,9 @@ export default function CustomerIntake() {
             placeholder="Phone Number"
             required
             value={formatPhone(form.phone)}
-            onChange={(e) => setForm({ ...form, phone: normalizePhone(e.target.value) })}
+            onChange={(e) =>
+              setForm({ ...form, phone: normalizePhone(e.target.value) ?? "" })
+            }
             className="p-3 rounded border border-blue-200 focus:ring w-full"
           />
           <input

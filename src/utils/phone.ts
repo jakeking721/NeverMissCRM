@@ -14,10 +14,12 @@ try {
   // Library not available; fallback implementations will be used.
 }
 
-/** Normalize a phone number to E.164. Defaults to +1 if no country code. */
-export function normalizePhone(v: unknown): string {
-  if (v == null) return "";
-  const input = String(v);
+/** Normalize a phone number to E.164. Defaults to +1 if no country code.
+ *  Returns null if parsing fails or there are fewer than 10 digits. */
+export function normalizePhone(v: unknown): string | null {
+  if (v == null) return null;
+  const input = String(v).trim();
+  if (!input) return null;
 
   if (parsePhoneNumberFromString) {
     try {
@@ -29,7 +31,7 @@ export function normalizePhone(v: unknown): string {
   }
 
   const digits = input.replace(/\D/g, "");
-  if (!digits) return "";
+  if (digits.length < 10) return null;
 
   if (digits.length === 10) return `+1${digits}`;
   if (digits.startsWith("1") && digits.length === 11) return `+${digits}`;
