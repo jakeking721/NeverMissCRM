@@ -77,7 +77,8 @@ export interface Database {
           id: string;
           user_id: string;
           name: string;
-          phone: string;
+          phone: string | null;
+          email: string | null;
           location: string | null;
           signup_date: string;
           extra: Json | null;
@@ -87,7 +88,8 @@ export interface Database {
           id?: string;
           user_id: string;
           name: string;
-          phone: string;
+          phone?: string | null;
+          email?: string | null;
           location?: string | null;
           signup_date?: string;
           extra?: Json | null;
@@ -96,7 +98,8 @@ export interface Database {
           id?: string;
           user_id?: string;
           name?: string;
-          phone?: string;
+          phone?: string | null;
+          email?: string | null;
           location?: string | null;
           signup_date?: string;
           extra?: Json | null;

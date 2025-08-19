@@ -15,7 +15,7 @@ export type Customer = {
   id: string;
   user_id: string;
   name: string;
-  phone: string;
+  phone?: string;
   email?: string;
   location?: string;
   signupDate: string; // ISO
@@ -50,7 +50,7 @@ export async function getCustomers(): Promise<Customer[]> {
     id: row.id,
     user_id: row.user_id,
     name: row.name,
-    phone: row.phone,
+    phone: row.phone ?? undefined,
     email: row.email ?? undefined,
     location: row.location ?? undefined,
     signupDate: row.signup_date,
@@ -78,7 +78,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
     id: data.id,
     user_id: data.user_id,
     name: data.name,
-    phone: data.phone,
+    phone: data.phone ?? undefined,
     email: data.email ?? undefined,
     location: data.location ?? undefined,
     signupDate: data.signup_date,
@@ -96,7 +96,7 @@ export async function addCustomer(customer: Customer): Promise<void> {
     id: customer.id,
     user_id: customer.user_id ?? userId,
     name: customer.name ?? "",
-    phone: normalizePhone(customer.phone),
+    phone: normalizePhone(customer.phone) || null,
     email: normalizeEmail(customer.email) || null,
     location: customer.location ?? null,
     signup_date: customer.signupDate ?? new Date().toISOString(),
@@ -115,7 +115,7 @@ export async function updateCustomer(id: string, patch: Partial<Customer>): Prom
 
   const payload: any = {};
   if (patch.name !== undefined) payload.name = patch.name ?? "";
-  if (patch.phone !== undefined) payload.phone = normalizePhone(patch.phone);
+  if (patch.phone !== undefined) payload.phone = normalizePhone(patch.phone) || null;
   if (patch.email !== undefined) payload.email = normalizeEmail(patch.email) || null;
   if (patch.location !== undefined) payload.location = patch.location;
   if (patch.signupDate !== undefined) payload.signup_date = patch.signupDate;
@@ -178,7 +178,7 @@ export async function upsertCustomers(
     id: c.id,
     user_id: c.user_id ?? userId,
     name: c.name ?? "",
-    phone: normalizePhone(c.phone),
+    phone: normalizePhone(c.phone) || null,
     email: normalizeEmail(c.email) || null,
     location: c.location ?? null,
     signup_date: c.signupDate ?? new Date().toISOString(),
@@ -219,7 +219,7 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
     id: c.id,
     user_id: c.user_id ?? userId,
     name: c.name ?? "",
-    phone: normalizePhone(c.phone),
+    phone: normalizePhone(c.phone) || null,
     email: normalizeEmail(c.email) || null,
     location: c.location ?? null,
     signup_date: c.signupDate ?? new Date().toISOString(),

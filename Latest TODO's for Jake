@@ -167,22 +167,8 @@
     3. In Supabase, open the `customers` table and confirm the test row appears with the correct `user_id` and slug.
     4. Delete the test row once verified.
 
-- [UPDATED] Normalize existing customer phone numbers in Supabase to E.164 format.
+- [NEW] Apply Supabase migration `20250806050000_update_customers_phone_email.sql` for email support and phone normalization.
   Steps:
-    1. In the Supabase SQL editor, run:
-         `update customers set phone = case when phone like '+%' then phone else concat('+1', regexp_replace(coalesce(phone,''), '[^0-9]', '', 'g')) end;`
-    2. Verify all `phone` values now begin with a country code ("+").
-
-- [NEW] Enforce unique customer phones and clean up duplicates.
-  Steps:
-    1. In Supabase SQL editor, remove or merge any duplicate rows sharing the same `user_id` and phone.
-    2. Run `alter table customers add constraint customers_user_phone_key unique (user_id, phone);`.
-    3. Re-run imports if any rows were adjusted and delete placeholder data.
-
-- [NEW] Add unique constraints for normalized email and phone to support server-side deduplication.
-  Steps:
-    1. In the Supabase SQL editor, run:
-         `alter table customers add constraint uniq_customers_owner_email_norm unique (user_id, email_norm);`
-         `alter table customers add constraint uniq_customers_owner_phone_e164 unique (user_id, phone);`
-    2. Ensure existing duplicate emails or phones are resolved before applying the constraints.
-    3. Regenerate Supabase types after migrations: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+    1. From the project root, run `supabase db push` or execute the SQL file in Supabase's SQL editor.
+    2. Review `customer_email_collisions` and `customer_phone_collisions` tables and resolve any duplicates per `user_id`.
+    3. After resolving, delete collision tables and regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
