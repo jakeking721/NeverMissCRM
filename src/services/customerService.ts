@@ -20,6 +20,11 @@ export type Customer = {
   [key: string]: any;
 };
 
+export function cleanPhone(v: unknown): string {
+  if (v == null) return "";
+  return String(v).replace(/\D/g, "");
+}
+
 async function requireUserId(): Promise<string> {
   if (import.meta.env.VITEST) throw new Error("Not authenticated");
   const { data, error } = await supabase.auth.getUser();
@@ -62,8 +67,8 @@ export async function addCustomer(customer: Customer): Promise<void> {
   const payload = {
     id: customer.id,
     user_id: customer.user_id ?? userId,
-    name: customer.name,
-    phone: customer.phone,
+    name: customer.name ?? "",
+    phone: cleanPhone(customer.phone),
     location: customer.location ?? null,
     signup_date: customer.signupDate ?? new Date().toISOString(),
     extra: stripBaseColumns(customer),
@@ -80,8 +85,8 @@ export async function updateCustomer(id: string, patch: Partial<Customer>): Prom
   const userId = await requireUserId();
 
   const payload: any = {};
-  if (patch.name !== undefined) payload.name = patch.name;
-  if (patch.phone !== undefined) payload.phone = patch.phone;
+  if (patch.name !== undefined) payload.name = patch.name ?? "";
+  if (patch.phone !== undefined) payload.phone = cleanPhone(patch.phone);
   if (patch.location !== undefined) payload.location = patch.location;
   if (patch.signupDate !== undefined) payload.signup_date = patch.signupDate;
 
@@ -140,8 +145,8 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
   const rows = customers.map((c) => ({
     id: c.id,
     user_id: c.user_id ?? userId,
-    name: c.name,
-    phone: c.phone,
+    name: c.name ?? "",
+    phone: cleanPhone(c.phone),
     location: c.location ?? null,
     signup_date: c.signupDate ?? new Date().toISOString(),
     extra: stripBaseColumns(c),

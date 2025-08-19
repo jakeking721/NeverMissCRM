@@ -128,3 +128,9 @@
     2. Submit a test intake form to trigger the RPC.
     3. In Supabase, open the `customers` table and confirm the test row appears with the correct `user_id` and slug.
     4. Delete the test row once verified.
+
+- [NEW] Sanitize existing customer phone numbers in Supabase.
+  Steps:
+    1. In the Supabase SQL editor, run:
+         `update customers set phone = regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g');`
+    2. Verify no `phone` values are NULL after running the update.

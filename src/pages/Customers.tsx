@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import {
   getCustomers,
   replaceCustomers,
+  cleanPhone,
   type Customer as SbcCustomer,
 } from "@/services/customerService";
 import { getFields, type CustomField } from "@/services/fieldsService";
@@ -408,7 +409,7 @@ useEffect(() => {
           if (key) obj[key] = row[i];
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
-        if (obj.phone) obj.phone = String(obj.phone).replace(/[^0-9+]/g, "");
+        obj.phone = cleanPhone(obj.phone);
         return obj as Customer;
       });
 
