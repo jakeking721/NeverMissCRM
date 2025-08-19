@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { v4 as uuid } from "uuid";
-import { upsertCustomers, Customer, cleanPhone } from "@/services/customerService";
+import { upsertCustomers, Customer } from "@/services/customerService";
+import { normalizePhone } from "@/utils/phone";
 import { useAuth } from "@/context/AuthContext";
 
 export default function BulkImport() {
@@ -92,7 +93,7 @@ function parseCsv(text: string, userId: string): Customer[] {
       id: uuid(),
       user_id: userId,
       name,
-      phone: cleanPhone(phone),
+      phone: normalizePhone(phone),
       location,
       signupDate: new Date().toISOString(),
       ...extra,

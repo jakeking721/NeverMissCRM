@@ -1,6 +1,7 @@
 // src/components/CustomerTable.tsx
 import React from "react";
 import type { Customer } from "../utils/auth";
+import { formatPhone } from "@/utils/phone";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -58,7 +59,9 @@ export default function CustomerTable({
               >
                 {columns.map((col) => (
                   <td key={col.key as string} className="py-2 px-3">
-                    {String(c[col.key] ?? "")}
+                    {col.key === "phone"
+                      ? formatPhone(c.phone)
+                      : String(c[col.key] ?? "")}
                   </td>
                 ))}
                 {(onEdit || onDelete) && (

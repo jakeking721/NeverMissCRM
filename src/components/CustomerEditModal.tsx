@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { Customer } from "@/services/customerService";
 import type { CustomField } from "@/services/fieldsService";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 interface Props {
   isOpen: boolean;
@@ -112,8 +113,13 @@ export default function CustomerEditModal({
           <input
             {...common}
             type={type}
-            value={values[f.key] ?? ""}
-            onChange={(e) => handleChange(f.key, e.target.value)}
+            value={type === "tel" ? formatPhone(values[f.key] ?? "") : values[f.key] ?? ""}
+            onChange={(e) =>
+              handleChange(
+                f.key,
+                type === "tel" ? normalizePhone(e.target.value) : e.target.value,
+              )
+            }
           />
         );
       }

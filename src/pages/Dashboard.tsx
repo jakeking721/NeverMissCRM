@@ -23,6 +23,7 @@ import {
 } from "@/services/customerService";
 
 import { getFields, CustomField, FieldType } from "@/services/fieldsService";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 // Allow multiselect to pass string[]
 type AnyValue = string | number | boolean | null | undefined | string[];
@@ -208,7 +209,7 @@ export default function Dashboard() {
       id: uuidv4(),
       user_id: user!.id,
       name: String(formState.name ?? ""),
-      phone: String(formState.phone ?? ""),
+      phone: normalizePhone(String(formState.phone ?? "")),
       location: String(formState.location ?? ""),
       signupDate: new Date().toISOString(),
       ...customFields.reduce(
@@ -446,7 +447,7 @@ export default function Dashboard() {
                     filtered.map((c) => (
                       <tr key={c.id} className="border-b hover:bg-gray-50">
                         <td className="py-2">{c.name}</td>
-                        <td className="py-2">{c.phone}</td>
+                        <td className="py-2">{formatPhone(c.phone)}</td>
                         <td className="py-2">{c.location}</td>
                         <td className="py-2">{new Date(c.signupDate).toLocaleDateString()}</td>
                         <td className="py-2 text-right">
@@ -542,9 +543,15 @@ function FieldInput({ field, value, onChange }: FieldInputProps) {
             {field.label} {field.required ? "*" : ""}
           </label>
           <input
-            type={field.type === "number" ? "number" : "text"}
-            value={String(value ?? "")}
-            onChange={(e) => onChange(e.target.value)}
+            type={field.type === "number" ? "number" : field.type === "phone" ? "tel" : "text"}
+            value={
+              field.type === "phone" ? formatPhone(String(value ?? "")) : String(value ?? "")
+            }
+            onChange={(e) =>
+              onChange(
+                field.type === "phone" ? normalizePhone(e.target.value) : e.target.value,
+              )
+            }
             className="border rounded px-2 py-1"
           />
         </div>

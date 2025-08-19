@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { getSmsService } from "../services/smsService";
 import { creditsService } from "../services/creditsService";
 import { Customer as BaseCustomer } from "../utils/auth";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 type AnyValue = string | number | boolean | null | undefined;
 type Customer = BaseCustomer & Record<string, AnyValue>;
@@ -57,8 +58,8 @@ export default function SmsModal({ customer, onClose }: Props) {
       alert("Please enter a message.");
       return;
     }
-    const phone = customer.phone ? String(customer.phone) : "";
-    if (!/^\+?\d{10,15}$/.test(phone)) {
+    const phone = normalizePhone(customer.phone);
+    if (!phone) {
       alert("Invalid phone number.");
       return;
     }
@@ -84,7 +85,7 @@ export default function SmsModal({ customer, onClose }: Props) {
         <div className="mb-3 text-sm text-gray-700">
           <div>
             <span className="font-medium">To:</span> {customer.name ?? "Unknown"} (
-            {customer.phone ?? "No phone"})
+            {formatPhone(customer.phone) || "No phone"})
           </div>
           <div className="mt-1 text-xs text-gray-500">
             Credits required: <strong>{creditsNeeded}</strong> | Available:{" "}

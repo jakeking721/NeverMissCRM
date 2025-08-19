@@ -17,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { getSmsService } from "../services/smsService";
 import { creditsService } from "../services/creditsService";
 import { Customer as BaseCustomer } from "../utils/auth";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 type AnyValue = string | number | boolean | null | undefined;
 type Customer = BaseCustomer & Record<string, AnyValue>;
@@ -68,11 +69,7 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
     }
 
     const phones = Array.from(
-      new Set(
-        customers
-          .map((c) => (c.phone ? String(c.phone) : ""))
-          .filter((p) => /^\+?\d{10,15}$/.test(p))
-      )
+      new Set(customers.map((c) => normalizePhone(c.phone)).filter(Boolean) as string[]),
     );
 
     if (phones.length === 0) {
@@ -115,7 +112,7 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
             <ul className="list-disc ml-5">
               {(showAll ? customers : customers.slice(0, 5)).map((c) => (
                 <li key={c.id}>
-                  {c.name ?? "Unknown"} ({c.phone ?? ""})
+                  {c.name ?? "Unknown"} ({formatPhone(c.phone)})
                 </li>
               ))}
             </ul>

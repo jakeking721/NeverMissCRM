@@ -8,6 +8,7 @@
 // ------------------------------------------------------------------------------------
 
 import { supabase } from "@/utils/supabaseClient";
+import { normalizePhone } from "@/utils/phone";
 
 export type Customer = {
   id: string;
@@ -20,10 +21,6 @@ export type Customer = {
   [key: string]: any;
 };
 
-export function cleanPhone(v: unknown): string {
-  if (v == null) return "";
-  return String(v).replace(/\D/g, "");
-}
 
 async function requireUserId(): Promise<string> {
   if (import.meta.env.VITEST) throw new Error("Not authenticated");
@@ -95,7 +92,7 @@ export async function addCustomer(customer: Customer): Promise<void> {
     id: customer.id,
     user_id: customer.user_id ?? userId,
     name: customer.name ?? "",
-    phone: cleanPhone(customer.phone),
+    phone: normalizePhone(customer.phone),
     location: customer.location ?? null,
     signup_date: customer.signupDate ?? new Date().toISOString(),
     extra: stripBaseColumns(customer),
@@ -113,7 +110,7 @@ export async function updateCustomer(id: string, patch: Partial<Customer>): Prom
 
   const payload: any = {};
   if (patch.name !== undefined) payload.name = patch.name ?? "";
-  if (patch.phone !== undefined) payload.phone = cleanPhone(patch.phone);
+  if (patch.phone !== undefined) payload.phone = normalizePhone(patch.phone);
   if (patch.location !== undefined) payload.location = patch.location;
   if (patch.signupDate !== undefined) payload.signup_date = patch.signupDate;
 
@@ -168,7 +165,7 @@ export async function upsertCustomers(customers: Customer[]): Promise<void> {
 
   const dedup = new Map<string, Customer>();
   for (const c of customers) {
-    const phone = cleanPhone(c.phone);
+    const phone = normalizePhone(c.phone);
     const key = phone || c.id;
     if (!dedup.has(key)) dedup.set(key, { ...c, phone });
   }
@@ -177,7 +174,7 @@ export async function upsertCustomers(customers: Customer[]): Promise<void> {
     id: c.id,
     user_id: c.user_id ?? userId,
     name: c.name ?? "",
-    phone: cleanPhone(c.phone),
+    phone: normalizePhone(c.phone),
     location: c.location ?? null,
     signup_date: c.signupDate ?? new Date().toISOString(),
     extra: stripBaseColumns(c),
@@ -211,7 +208,7 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
     id: c.id,
     user_id: c.user_id ?? userId,
     name: c.name ?? "",
-    phone: cleanPhone(c.phone),
+    phone: normalizePhone(c.phone),
     location: c.location ?? null,
     signup_date: c.signupDate ?? new Date().toISOString(),
     extra: stripBaseColumns(c),

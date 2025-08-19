@@ -18,6 +18,7 @@ import { creditsService } from "@/services/creditsService";
 import { getSmsService } from "@/services/smsService";
 import SegmentBuilder, { Segment, SegmentRule } from "@/components/segments/SegmentBuilder";
 import { FiSave } from "react-icons/fi";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 type AnyValue = string | number | boolean | null | undefined;
 
@@ -105,7 +106,7 @@ export default function CampaignBuilder() {
     () =>
       filteredBySegment
         .filter((c) => selectedIds.includes(c.id))
-        .map((c) => String(c.phone ?? ""))
+        .map((c) => normalizePhone(c.phone))
         .filter(Boolean),
     [filteredBySegment, selectedIds]
   );
@@ -214,6 +215,11 @@ export default function CampaignBuilder() {
     }
     const to = prompt("Enter a phone number to test-send to:");
     if (!to) return;
+    const normalized = normalizePhone(to);
+    if (!normalized) {
+      alert("Invalid phone number.");
+      return;
+    }
 
     const testCost = sms.estimateCredits(message, 1);
     const afford = await creditsService.canAfford(testCost);
@@ -223,7 +229,7 @@ export default function CampaignBuilder() {
       return;
     }
 
-    await sms.sendTest(to, message);
+    await sms.sendTest(normalized, message);
   };
 
   // convenience: select all filtered customers
@@ -333,7 +339,7 @@ export default function CampaignBuilder() {
                       onChange={() => toggleRecipient(c.id)}
                     />
                     <span>
-                      {c.name} – {c.phone}
+                      {c.name} – {formatPhone(c.phone)}
                     </span>
                   </label>
                 ))

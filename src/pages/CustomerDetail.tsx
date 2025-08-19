@@ -16,6 +16,7 @@ import {
   type FieldType,
 } from "@/services/fieldsService";
 import { toKeySlug } from "@/utils/slug";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -125,8 +126,13 @@ export default function CustomerDetail() {
           <input
             type={type}
             className={common}
-            value={values[f.key] ?? ""}
-            onChange={(e) => handleChange(f.key, e.target.value)}
+            value={type === "tel" ? formatPhone(values[f.key] ?? "") : values[f.key] ?? ""}
+            onChange={(e) =>
+              handleChange(
+                f.key,
+                type === "tel" ? normalizePhone(e.target.value) : e.target.value,
+              )
+            }
           />
         );
       }
@@ -203,8 +209,8 @@ export default function CustomerDetail() {
               <input
                 className="border rounded px-3 py-2 w-full"
                 type="tel"
-                value={values.phone ?? ""}
-                onChange={(e) => handleChange("phone", e.target.value)}
+                value={formatPhone(values.phone ?? "")}
+                onChange={(e) => handleChange("phone", normalizePhone(e.target.value))}
               />
             </div>
             <div>

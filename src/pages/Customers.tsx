@@ -19,9 +19,9 @@ import {
   upsertCustomers,
   removeCustomer,
   updateCustomer,
-  cleanPhone,
   type Customer as SbcCustomer,
 } from "@/services/customerService";
+import { normalizePhone, formatPhone } from "@/utils/phone";
 import { getFields, type CustomField } from "@/services/fieldsService";
 import { supabase } from "@/utils/supabaseClient";
 import type { TablesInsert } from "@/types/supabase";
@@ -217,7 +217,7 @@ useEffect(() => {
     const formatted = customers.map((c) => {
       const obj: Record<string, AnyValue> = {};
       Object.entries(c).forEach(([k, v]) => {
-        obj[k] = typeof v === "number" ? formatValue(v) : v;
+        obj[k] = formatValue(v);
       });
       return obj;
     });
@@ -408,7 +408,7 @@ useEffect(() => {
           if (key) obj[key] = row[i];
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
-        obj.phone = cleanPhone(obj.phone);
+        obj.phone = normalizePhone(obj.phone);
         return obj as Customer;
       });
 
@@ -534,7 +534,7 @@ useEffect(() => {
           }
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
-        obj.phone = cleanPhone(obj.phone);
+        obj.phone = normalizePhone(obj.phone);
         return obj as Customer;
       });
 
@@ -833,5 +833,6 @@ function formatValue(v: AnyValue): string {
   if (v == null) return "—";
   if (typeof v === "boolean") return v ? "Yes" : "No";
   if (typeof v === "number") return new Intl.NumberFormat().format(v);
+  if (typeof v === "string" && /^\+?\d{10,15}$/.test(v)) return formatPhone(v);
   return String(v);
 }

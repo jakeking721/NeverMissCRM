@@ -9,6 +9,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import * as yup from "@/utils/yup";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 import { supabase } from "@/utils/supabaseClient";
 import { submitIntake } from "@/services/intake";
@@ -140,8 +141,7 @@ export default function IntakeRenderer() {
       if (b.type === "input") {
         let validator = yup.string();
         if (b.inputType === "email") validator = validator.email("Invalid email");
-        if (b.inputType === "phone")
-          validator = validator.matches(/^[0-9()+\-\s]+$/u, "Invalid phone");
+        if (b.inputType === "phone") validator = validator.test("phone", "Invalid phone", (v) => !!normalizePhone(v ?? ""));
         if (b.required) validator = validator.required("Required");
         shape[b.name] = validator;
       }
@@ -239,8 +239,20 @@ export default function IntakeRenderer() {
                     )}
                     <input
                       type={block.inputType === "phone" ? "tel" : block.inputType}
-                      value={values[block.name] || ""}
-                      onChange={(e) => setValues({ ...values, [block.name]: e.target.value })}
+                      value={
+                        block.inputType === "phone"
+                          ? formatPhone(values[block.name] || "")
+                          : values[block.name] || ""
+                      }
+                      onChange={(e) =>
+                        setValues({
+                          ...values,
+                          [block.name]:
+                            block.inputType === "phone"
+                              ? normalizePhone(e.target.value)
+                              : e.target.value,
+                        })
+                      }
                       className="w-full border rounded p-2"
                     />
                     {fieldErrors[block.name] && (

@@ -11,6 +11,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/utils/supabaseClient";
 import { submitIntake } from "@/services/intake";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 type RouteParams = {
   slug?: string;
@@ -79,7 +80,7 @@ export default function CustomerIntake() {
   }, [slug]);
 
   // Very light optional validation (remove if you don't want it)
-  const isValidPhone = (p: string) => p.replace(/[^\d]/g, "").length >= 7;
+  const isValidPhone = (p: string) => normalizePhone(p).length > 0;
 
   // Invalid link screen
   if (!slug) {
@@ -172,8 +173,8 @@ export default function CustomerIntake() {
             type="tel"
             placeholder="Phone Number"
             required
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            value={formatPhone(form.phone)}
+            onChange={(e) => setForm({ ...form, phone: normalizePhone(e.target.value) })}
             className="p-3 rounded border border-blue-200 focus:ring w-full"
           />
           <input

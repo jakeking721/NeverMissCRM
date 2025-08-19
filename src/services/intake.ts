@@ -1,4 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
+import { normalizePhone } from "@/utils/phone";
 
 export interface IntakeParams {
   slug: string;
@@ -25,7 +26,7 @@ export async function submitIntake({
   const { data, error } = await supabase.rpc("intake_add_customer", {
     p_slug: slug,
     p_name: name,
-    p_phone: phone,
+    p_phone: normalizePhone(phone),
     p_location: location ?? null,
     p_extra: extra ?? null,
     p_user_id: slugRow.user_id,
