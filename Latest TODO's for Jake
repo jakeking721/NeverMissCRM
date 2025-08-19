@@ -1,3 +1,12 @@
+- [NEW] Apply Supabase migration `20250806070000_convert_unique_indexes_to_constraints.sql` to convert unique indexes on customer emails and phones into table constraints.
+  Steps:
+    1. From the project root, run `supabase db push` or execute the SQL file in Supabase dashboard's SQL editor.
+    2. The migration nulls out any remaining duplicate emails or phones. After running, verify no duplicates remain:
+         select user_id, email, count(*) from customers group by user_id, email having count(*) > 1;
+         select user_id, phone, count(*) from customers group by user_id, phone having count(*) > 1;
+    3. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+
 - [NEW] Apply Supabase migration `20250806060000_add_credit_functions_and_user_slug.sql` to add credit helper functions and ensure user slugs.
    Steps:
      1. From the project root, run `supabase db push` or execute the SQL in Supabase dashboard's SQL editor.
