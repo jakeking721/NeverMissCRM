@@ -59,7 +59,6 @@ export async function registerUser({
         role: "user",
         credits: 0,
         avatar: "",
-        public_slug: null,
       },
       { onConflict: "id" }
     );

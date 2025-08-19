@@ -1,3 +1,10 @@
+- [NEW] Remove obsolete `public_slug` column from Supabase `profiles` table (slugs now stored in `public_slugs`).
+  Steps:
+    1. In Supabase SQL editor, run:
+         alter table public.profiles drop column if exists public_slug;
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+    3. Check Supabase Table editor for any lingering `public_slug` fields and remove them if present.
 - [NEW] Backfill customer phone numbers: convert empty strings to NULL and re-normalize.
   Steps:
     1. In Supabase SQL editor, run:

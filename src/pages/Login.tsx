@@ -45,7 +45,6 @@ export default function Login() {
             role: "user",
             credits: 0,
             avatar: "",
-            public_slug: null,
           },
           { onConflict: "id" }
         );
