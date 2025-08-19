@@ -4,6 +4,11 @@
     2. Edit base and custom field values, then save and confirm changes appear in Supabase `customers`.
     3. Use "Add Field" to create a custom field; ensure it is stored in `custom_fields` and appears on the page.
     4. Remove any placeholder/demo values before launch.
+- [NEW] Verify customer table row navigation and checkbox interactions on mobile devices.
+  Steps:
+    1. On a physical mobile device, open the Customers page in the deployed app.
+    2. Tap a row (excluding the checkbox) to confirm it navigates to the customer detail view.
+    3. Tap the row's checkbox and ensure it toggles selection without navigation.
 
 - [NEW] Ensure Supabase `custom_fields` table uses camelCase column "visibleOn" with a unique constraint on `(user_id, key)` for upserts.
   Steps:

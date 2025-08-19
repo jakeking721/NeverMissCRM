@@ -694,12 +694,22 @@ useEffect(() => {
                     </tr>
                   ) : (
                     filtered.map((c) => (
-                      <tr key={c.id} className="border-b hover:bg-gray-50">
+                      <tr
+                        key={c.id}
+                        className="border-b hover:bg-gray-50 active:bg-gray-100 cursor-pointer"
+                        onClick={() => navigate(`/customers/${c.id}`)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") navigate(`/customers/${c.id}`);
+                        }}
+                      >
                         <td className="py-2 align-middle">
                           <input
                             type="checkbox"
                             checked={selectedIds.includes(c.id)}
                             onChange={() => toggleOne(c.id)}
+                            onClick={(e) => e.stopPropagation()}
                           />
                         </td>
                         {columns.map((col) => (
