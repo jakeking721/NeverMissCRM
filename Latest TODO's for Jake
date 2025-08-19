@@ -1,3 +1,8 @@
+- [NEW] Evaluate and optimize new duplicate-handling import flow for performance.
+  Steps:
+    1. For large CSVs/JSON files, monitor import duration.
+    2. Consider server-side stored procedures for batch upserts to reduce round trips.
+    3. Remove any placeholder failure CSVs generated during testing.
 - [NEW] Test revamped CSV import column mapping and clean up test data.
   Steps:
     1. Import a CSV with headers such as "first-name" and confirm it links automatically to matching fields.

@@ -165,33 +165,73 @@ export async function clearCustomers(): Promise<void> {
  * Insert or update multiple customers without deleting existing rows.
  * Server-side uniqueness constraints handle de-duplication.
  */
-export type DedupeMode = "email" | "phone";
+export type DedupeOptions = { email: boolean; phone: boolean };
+export type OverwritePolicy = "skip" | "update";
+export type UpsertSummary = {
+  created: number;
+  updated: number;
+  skipped: number;
+  failures: { customer: Customer; reason: string }[];
+};
 
 export async function upsertCustomers(
   customers: Customer[],
-  dedupe: DedupeMode = "phone",
-): Promise<void> {
+  dedupe: DedupeOptions = { email: true, phone: false },
+  overwrite: OverwritePolicy = "skip",
+): Promise<UpsertSummary> {
   const userId = await requireUserId();
-  if (customers.length === 0) return;
+  const summary: UpsertSummary = { created: 0, updated: 0, skipped: 0, failures: [] };
+  for (const c of customers) {
+    const phone = normalizePhone(c.phone) || null;
+    const email = normalizeEmail(c.email) || null;
+    const row = {
+      id: c.id,
+      user_id: c.user_id ?? userId,
+      name: c.name ?? "",
+      phone,
+      email,
+      location: c.location ?? null,
+      signup_date: c.signupDate ?? new Date().toISOString(),
+      extra: stripBaseColumns(c),
+    };
 
-  const rows = customers.map((c) => ({
-    id: c.id,
-    user_id: c.user_id ?? userId,
-    name: c.name ?? "",
-    phone: normalizePhone(c.phone) || null,
-    email: normalizeEmail(c.email) || null,
-    location: c.location ?? null,
-    signup_date: c.signupDate ?? new Date().toISOString(),
-    extra: stripBaseColumns(c),
-  }));
+    const filters: string[] = [];
+    if (dedupe.phone && phone) filters.push(`phone.eq.${phone}`);
+    if (dedupe.email && email) filters.push(`email.eq.${email}`);
 
-  const conflict =
-    dedupe === "email"
-      ? { onConflict: "uniq_customers_owner_email_norm" }
-      : { onConflict: "uniq_customers_owner_phone_e164" };
+    let existing: { id: string } | null = null;
+    if (filters.length > 0) {
+      const { data } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("user_id", userId)
+        .or(filters.join(","))
+        .limit(1)
+        .maybeSingle();
+      existing = data as any;
+    }
 
-  const { error } = await supabase.from("customers").upsert(rows, conflict);
-  if (error) throw error;
+    if (existing) {
+      if (overwrite === "update") {
+        const { error: upErr } = await supabase
+          .from("customers")
+          .update(row)
+          .eq("id", existing.id)
+          .eq("user_id", userId);
+        if (upErr) throw upErr;
+        summary.updated += 1;
+      } else {
+        summary.skipped += 1;
+        summary.failures.push({ customer: c, reason: "duplicate" });
+      }
+    } else {
+      const { error: insErr } = await supabase.from("customers").insert(row);
+      if (insErr) throw insErr;
+      summary.created += 1;
+    }
+  }
+
+  return summary;
 }
 
 /**
@@ -199,9 +239,10 @@ export async function upsertCustomers(
  */
 export async function addCustomers(
   customers: Customer[],
-  dedupe: DedupeMode = "phone",
-): Promise<void> {
-  await upsertCustomers(customers, dedupe);
+  dedupe: DedupeOptions = { email: true, phone: false },
+  overwrite: OverwritePolicy = "skip",
+): Promise<UpsertSummary> {
+  return upsertCustomers(customers, dedupe, overwrite);
 }
 
 /**

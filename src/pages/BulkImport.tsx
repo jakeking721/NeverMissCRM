@@ -5,7 +5,11 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { v4 as uuid } from "uuid";
-import { upsertCustomers, Customer, type DedupeMode } from "@/services/customerService";
+import {
+  upsertCustomers,
+  Customer,
+  type OverwritePolicy,
+} from "@/services/customerService";
 import { normalizePhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +18,9 @@ export default function BulkImport() {
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
   const { user } = useAuth();
-  const [dedupeMode, setDedupeMode] = useState<DedupeMode>("phone");
+  const [matchEmail, setMatchEmail] = useState(true);
+  const [matchPhone, setMatchPhone] = useState(false);
+  const [overwrite, setOverwrite] = useState<OverwritePolicy>("skip");
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -22,12 +28,41 @@ export default function BulkImport() {
     setImporting(true);
     try {
       const text = await file.text();
-      const customers = parseCsv(text, user!.id);
+      const { customers, failures, headers } = parseCsv(text, user!.id);
       if (customers.length === 0) {
-        alert("No rows found in CSV.");
+        alert("No valid rows found in CSV.");
       } else {
-        await upsertCustomers(customers, dedupeMode);
-        alert(`Imported ${customers.length} contacts.`);
+        const summary = await upsertCustomers(
+          customers,
+          { email: matchEmail, phone: matchPhone },
+          overwrite,
+        );
+        const invalid = failures.length;
+        alert(
+          `Created ${summary.created}, Updated ${summary.updated}, Skipped ${summary.skipped}, Invalid ${invalid}.`,
+        );
+
+        const allFailures = [
+          ...failures.map((f) => ({ row: f.row, reason: f.reason })),
+          ...summary.failures.map((f) => ({
+            row: headers.map((h) => String((f.customer as any)[h] ?? "")),
+            reason: f.reason,
+          })),
+        ];
+        if (allFailures.length > 0) {
+          const csv = [
+            [...headers, "reason"].join(","),
+            ...allFailures.map((r) => [...r.row, r.reason].join(",")),
+          ].join("\n");
+          const blob = new Blob([csv], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = Object.assign(document.createElement("a"), {
+            href: url,
+            download: "import_failures.csv",
+          });
+          a.click();
+          URL.revokeObjectURL(url);
+        }
         navigate("/customers");
         setTimeout(() => window.location.reload(), 0);
       }
@@ -57,19 +92,37 @@ export default function BulkImport() {
             Upload a CSV file with columns like <code>name</code>, <code>phone</code>, and optional
             additional fields. Existing contacts will be updated or added.
           </p>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1" htmlFor="dedupe-mode">
-              Dedupe by
-            </label>
-            <select
-              id="dedupe-mode"
-              className="border rounded px-3 py-2 w-full"
-              value={dedupeMode}
-              onChange={(e) => setDedupeMode(e.target.value as DedupeMode)}
-            >
-              <option value="phone">Phone</option>
-              <option value="email">Email</option>
-            </select>
+          <div className="mb-4 space-y-2">
+            <label className="block text-sm font-medium">Duplicate Handling</label>
+            <div className="flex flex-col gap-2 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={matchEmail}
+                  onChange={(e) => setMatchEmail(e.target.checked)}
+                />
+                Match duplicates by Email
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={matchPhone}
+                  onChange={(e) => setMatchPhone(e.target.checked)}
+                />
+                Match duplicates by Phone
+              </label>
+              <div className="flex items-center gap-2">
+                <span>On duplicate</span>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={overwrite}
+                  onChange={(e) => setOverwrite(e.target.value as OverwritePolicy)}
+                >
+                  <option value="skip">Skip</option>
+                  <option value="update">Update</option>
+                </select>
+              </div>
+            </div>
           </div>
           <input
             type="file"
@@ -94,26 +147,39 @@ export default function BulkImport() {
   );
 }
 
-function parseCsv(text: string, userId: string): Customer[] {
+function parseCsv(text: string, userId: string): {
+  customers: Customer[];
+  failures: { row: string[]; reason: string }[];
+  headers: string[];
+} {
   const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
+  if (lines.length < 2) return { customers: [], failures: [], headers: [] };
   const headers = lines[0].split(",").map((h) => h.trim());
-  return lines.slice(1).map((line) => {
+  const customers: Customer[] = [];
+  const failures: { row: string[]; reason: string }[] = [];
+  lines.slice(1).forEach((line) => {
     const cols = line.split(",").map((c) => c.trim());
     const obj: any = {};
     headers.forEach((h, i) => {
       obj[h] = cols[i] ?? "";
     });
     const { name = "", phone = "", email = "", location = "", ...extra } = obj;
-    return {
+    const normPhone = normalizePhone(phone);
+    const normEmail = normalizeEmail(email);
+    if ((phone && !normPhone) || (email && !normEmail)) {
+      failures.push({ row: cols, reason: "invalid" });
+      return;
+    }
+    customers.push({
       id: uuid(),
       user_id: userId,
       name,
-      phone: normalizePhone(phone),
-      email: normalizeEmail(email) || null,
+      phone: normPhone || null,
+      email: normEmail || null,
       location,
       signupDate: new Date().toISOString(),
       ...extra,
-    } as Customer;
+    } as Customer);
   });
+  return { customers, failures, headers };
 }

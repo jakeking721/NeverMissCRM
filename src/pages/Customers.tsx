@@ -20,7 +20,8 @@ import {
   removeCustomer,
   updateCustomer,
   type Customer as SbcCustomer,
-  type DedupeMode,
+  type DedupeOptions,
+  type OverwritePolicy,
 } from "@/services/customerService";
 import { normalizePhone, formatPhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
@@ -362,7 +363,8 @@ useEffect(() => {
   const confirmCsvImport = async (
     userId: string,
     columns: Record<string, { addNew: boolean; linkTo: string | null }>,
-    dedupeMode: DedupeMode,
+    dedupe: DedupeOptions,
+    overwrite: OverwritePolicy,
   ) => {
     if (!csvPreview) return;
     try {
@@ -395,7 +397,9 @@ useEffect(() => {
         }
       }
 
-      const mapped: Customer[] = csvPreview.rows.map((row, idx) => {
+      const mapped: Customer[] = [];
+      const failures: { row: string[]; reason: string }[] = [];
+      csvPreview.rows.forEach((row, idx) => {
         const obj: Record<string, AnyValue> = {
           id: uuid(),
           user_id: userId,
@@ -406,12 +410,18 @@ useEffect(() => {
           if (key) obj[key] = row[i];
         });
         if (!obj.name) obj.name = `Imported #${idx + 1}`;
-        obj.phone = normalizePhone(obj.phone);
-        obj.email = normalizeEmail(obj.email) || null;
-        return obj as Customer;
+        const normPhone = normalizePhone(obj.phone);
+        const normEmail = normalizeEmail(obj.email);
+        if ((obj.phone && !normPhone) || (obj.email && !normEmail)) {
+          failures.push({ row, reason: "invalid" });
+          return;
+        }
+        obj.phone = normPhone || null;
+        obj.email = normEmail || null;
+        mapped.push(obj as Customer);
       });
 
-      await upsertCustomers(mapped, dedupeMode);
+      const summary = await upsertCustomers(mapped, dedupe, overwrite);
       const list = await getFields();
       setCustomFields(
         list
@@ -422,7 +432,31 @@ useEffect(() => {
 
       setCsvModalOpen(false);
       setCsvPreview(null);
-      toast.success(`Imported ${mapped.length} customers.`);
+      const invalid = failures.length;
+      toast.success(
+        `Created ${summary.created}, Updated ${summary.updated}, Skipped ${summary.skipped}, Invalid ${invalid}.`,
+      );
+      const allFailures = [
+        ...failures,
+        ...summary.failures.map((f) => ({
+          row: csvPreview.headers.map((h) => String((f.customer as any)[h] ?? "")),
+          reason: f.reason,
+        })),
+      ];
+      if (allFailures.length > 0) {
+        const csv = [
+          [...csvPreview.headers, "reason"].join(","),
+          ...allFailures.map((r) => [...r.row, r.reason].join(",")),
+        ].join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement("a"), {
+          href: url,
+          download: "import_failures.csv",
+        });
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (err: any) {
       console.error(err);
       toast.error(`Import failed: ${err?.message ?? err}`);
@@ -488,7 +522,8 @@ useEffect(() => {
   const confirmJsonImport = async (
     userId: string,
     opts: { addFlags: Record<string, boolean>; keyToField: Record<string, string | null> },
-    dedupeMode: DedupeMode,
+    dedupe: DedupeOptions,
+    overwrite: OverwritePolicy,
   ) => {
     if (!jsonPreview) return;
     try {
@@ -520,7 +555,9 @@ useEffect(() => {
         }
       }
 
-      const mapped: Customer[] = jsonPreview.customers.map((row, idx) => {
+      const mapped: Customer[] = [];
+      const failures: { row: Record<string, any>; reason: string }[] = [];
+      jsonPreview.customers.forEach((row) => {
         const obj: Record<string, AnyValue> = {
           id: (row as any).id ?? uuid(),
           user_id: userId,
@@ -535,13 +572,19 @@ useEffect(() => {
             obj[k] = v;
           }
         });
-        if (!obj.name) obj.name = `Imported #${idx + 1}`;
-        obj.phone = normalizePhone(obj.phone);
-        obj.email = normalizeEmail(obj.email) || null;
-        return obj as Customer;
+        if (!obj.name) obj.name = `Imported`;
+        const normPhone = normalizePhone(obj.phone);
+        const normEmail = normalizeEmail(obj.email);
+        if ((obj.phone && !normPhone) || (obj.email && !normEmail)) {
+          failures.push({ row, reason: "invalid" });
+          return;
+        }
+        obj.phone = normPhone || null;
+        obj.email = normEmail || null;
+        mapped.push(obj as Customer);
       });
 
-      await upsertCustomers(mapped, dedupeMode);
+      const summary = await upsertCustomers(mapped, dedupe, overwrite);
       const list = await getFields();
       setCustomFields(
         list
@@ -552,7 +595,32 @@ useEffect(() => {
 
       setJsonModalOpen(false);
       setJsonPreview(null);
-      toast.success(`Imported ${mapped.length} customers.`);
+      const invalid = failures.length;
+      toast.success(
+        `Created ${summary.created}, Updated ${summary.updated}, Skipped ${summary.skipped}, Invalid ${invalid}.`,
+      );
+      const headers = Object.keys(jsonPreview.customers[0] || {});
+      const allFailures = [
+        ...failures.map((f) => ({ row: headers.map((h) => String((f.row as any)[h] ?? "")), reason: f.reason })),
+        ...summary.failures.map((f) => ({
+          row: headers.map((h) => String((f.customer as any)[h] ?? "")),
+          reason: f.reason,
+        })),
+      ];
+      if (allFailures.length > 0) {
+        const csv = [
+          [...headers, "reason"].join(","),
+          ...allFailures.map((r) => [...r.row, r.reason].join(",")),
+        ].join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement("a"), {
+          href: url,
+          download: "import_failures.csv",
+        });
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       console.error(err);
       toast.error("Import failed.");

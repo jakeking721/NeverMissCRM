@@ -4,5 +4,6 @@
 
 export function normalizeEmail(v: unknown): string {
   if (v == null) return "";
-  return String(v).trim().toLowerCase();
+  const s = String(v).trim().toLowerCase();
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s) ? s : "";
 }

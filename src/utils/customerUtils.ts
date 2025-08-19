@@ -1,7 +1,8 @@
 export type Customer = {
   id: string;
   name: string;
-  phone: string;
+  phone?: string | null;
+  email?: string | null;
   notes?: string;
 };
 

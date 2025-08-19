@@ -8,7 +8,8 @@ interface Props {
   onConfirm: (
     userId: string,
     opts: { addFlags: Record<string, boolean>; keyToField: Record<string, string | null> },
-    dedupe: "email" | "phone",
+    dedupe: { email: boolean; phone: boolean },
+    overwrite: "skip" | "update",
   ) => Promise<void> | void;
   busy: boolean;
   setBusy: (v: boolean) => void;
@@ -25,7 +26,9 @@ export default function JsonPreviewModal({
 }: Props) {
   const [addFlags, setAddFlags] = useState<Record<string, boolean>>(preview.addFlags);
   const [keyMap, setKeyMap] = useState<Record<string, string | null>>(preview.keyToField);
-  const [dedupeMode, setDedupeMode] = useState<"phone" | "email">("phone");
+  const [matchEmail, setMatchEmail] = useState(true);
+  const [matchPhone, setMatchPhone] = useState(false);
+  const [overwrite, setOverwrite] = useState<"skip" | "update">("skip");
 
   const handleConfirm = async () => {
     if (busy) return;
@@ -36,7 +39,12 @@ export default function JsonPreviewModal({
         alert("You must be logged in.");
         return;
       }
-      await onConfirm(data.user.id, { addFlags, keyToField: keyMap }, dedupeMode);
+      await onConfirm(
+        data.user.id,
+        { addFlags, keyToField: keyMap },
+        { email: matchEmail, phone: matchPhone },
+        overwrite,
+      );
     } finally {
       setBusy(false);
     }
@@ -88,19 +96,34 @@ export default function JsonPreviewModal({
           </pre>
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <label htmlFor="dedupe-json" className="font-medium">
-            Dedupe by
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={matchEmail}
+              onChange={(e) => setMatchEmail(e.target.checked)}
+            />
+            Match duplicates by Email
           </label>
-          <select
-            id="dedupe-json"
-            value={dedupeMode}
-            onChange={(e) => setDedupeMode(e.target.value as "phone" | "email")}
-            className="border rounded px-2 py-1"
-          >
-            <option value="phone">Phone</option>
-            <option value="email">Email</option>
-          </select>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={matchPhone}
+              onChange={(e) => setMatchPhone(e.target.checked)}
+            />
+            Match duplicates by Phone
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">On duplicate</span>
+            <select
+              value={overwrite}
+              onChange={(e) => setOverwrite(e.target.value as "skip" | "update")}
+              className="border rounded px-2 py-1"
+            >
+              <option value="skip">Skip</option>
+              <option value="update">Update</option>
+            </select>
+          </div>
         </div>
 
         <p className="text-sm text-gray-600">
