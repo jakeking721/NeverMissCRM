@@ -330,6 +330,7 @@ useEffect(() => {
     const fieldOptions = [
       { key: "name", label: "Name" },
       { key: "phone", label: "Phone" },
+      { key: "email", label: "Email" },
       { key: "location", label: "Location" },
       { key: "signupDate", label: "Signup" },
       ...customFields.map((f) => ({ key: f.key, label: f.label })),
