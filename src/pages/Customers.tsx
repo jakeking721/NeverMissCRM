@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 
 import PageShell from "@/components/PageShell";
 import SmsBulkModal from "@/components/SmsBulkModal";
+import CsvPreviewModal from "@/components/CsvPreviewModal";
+import JsonPreviewModal from "@/components/JsonPreviewModal";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-toastify";
 
@@ -22,27 +24,13 @@ import { supabase } from "@/utils/supabaseClient";
 import type { TablesInsert } from "@/types/supabase";
 import { toKeySlug } from "@/utils/slug";
 import { JSX } from "react/jsx-runtime";
+import type { AnyValue, CsvPreview, JsonPreview } from "@/types/importPreview";
 
 /* -------------------------------------------------------------------------- */
 /*                                   Types                                    */
 /* -------------------------------------------------------------------------- */
 
-type AnyValue = string | number | boolean | null | undefined;
 type Customer = SbcCustomer;
-
-interface CsvPreview {
-  headers: string[];
-  rows: string[][];
-  headerToKey: Record<string, string | null>;
-  unmatchedHeaders: string[];
-  addFlags: Record<string, boolean>;
-}
-
-interface JsonPreview {
-  customers: Record<string, AnyValue>[];
-  unknownKeys: string[];
-  addFlags: Record<string, boolean>;
-}
 
 /* -------------------------------------------------------------------------- */
 /*                              CSV helper (vanilla)                          */
@@ -355,17 +343,9 @@ useEffect(() => {
     }
   };
 
-  const confirmCsvImport = async () => {
+  const confirmCsvImport = async (userId: string) => {
     if (!csvPreview) return;
-    setBusy(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
-        alert("You must be logged in.");
-        return;
-      }
-      const userId = data.user.id;
-
       /* create custom-fields for any checked unmatched header */
       let order = customFields.length;
       const headerToKey: Record<string, string> = {};
@@ -422,8 +402,6 @@ useEffect(() => {
     } catch (err: any) {
       console.error(err);
       toast.error(`Import failed: ${err?.message ?? err}`);
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -471,16 +449,9 @@ useEffect(() => {
     }
   };
 
-  const confirmJsonImport = async () => {
+  const confirmJsonImport = async (userId: string) => {
     if (!jsonPreview) return;
-    setBusy(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
-        alert("You must be logged in.");
-        return;
-      }
-      const userId = data.user.id;
       const headerToKey: Record<string, string> = {};
       let order = customFields.length;
 
@@ -528,8 +499,6 @@ useEffect(() => {
     } catch (err) {
       console.error(err);
       toast.error("Import failed.");
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -707,6 +676,8 @@ useEffect(() => {
           }}
           onConfirm={confirmCsvImport}
           busy={busy}
+          setBusy={setBusy}
+          canConfirm={true}
         />
       )}
 
@@ -720,6 +691,8 @@ useEffect(() => {
           }}
           onConfirm={confirmJsonImport}
           busy={busy}
+          setBusy={setBusy}
+          canConfirm={true}
         />
       )}
     </PageShell>
@@ -727,140 +700,6 @@ useEffect(() => {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                 Small presentational helpers (modals)                      */
-/* -------------------------------------------------------------------------- */
-
-interface CsvPreviewModalProps {
-  preview: CsvPreview;
-  onCancel: () => void;
-  onConfirm: () => void;
-  busy: boolean;
-}
-
-function CsvPreviewModal({ preview, onCancel, onConfirm, busy }: CsvPreviewModalProps) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
-        <h3 className="text-lg font-semibold">CSV Import Preview</h3>
-
-        {preview.unmatchedHeaders.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
-            <p>Unknown columns detected. Check any you wish to add as custom fields.</p>
-            {preview.unmatchedHeaders.map((h) => (
-              <label key={h} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={preview.addFlags[h]}
-                  onChange={(e) => (preview.addFlags[h] = e.target.checked)}
-                />
-                {h}
-              </label>
-            ))}
-          </div>
-        )}
-
-        <div className="max-h-60 overflow-auto border rounded">
-          <table className="min-w-full text-xs">
-            <thead>
-              <tr>
-                {preview.headers.map((h) => (
-                  <th key={h} className="px-2 py-1 border-b text-left">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {preview.rows.slice(0, 10).map((row, i) => (
-                <tr key={i} className="border-b">
-                  {row.map((cell, j) => (
-                    <td key={j} className="px-2 py-1">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <p className="text-sm text-gray-600">
-          Previewing first 10 of {preview.rows.length} rows.
-        </p>
-
-        <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={busy}
-            className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {busy ? "Working..." : "Confirm Import"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface JsonPreviewModalProps {
-  preview: JsonPreview;
-  onCancel: () => void;
-  onConfirm: () => void;
-  busy: boolean;
-}
-
-function JsonPreviewModal({ preview, onCancel, onConfirm, busy }: JsonPreviewModalProps) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 space-y-4">
-        <h3 className="text-lg font-semibold">JSON Import Preview</h3>
-
-        {preview.unknownKeys.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded space-y-1">
-            <p>Unknown fields detected. Check any you wish to add as custom fields.</p>
-            {preview.unknownKeys.map((k) => (
-              <label key={k} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={preview.addFlags[k]}
-                  onChange={(e) => (preview.addFlags[k] = e.target.checked)}
-                />
-                {k}
-              </label>
-            ))}
-          </div>
-        )}
-
-        <div className="max-h-60 overflow-auto border rounded text-xs">
-          <pre className="p-2 whitespace-pre-wrap">
-            {JSON.stringify(preview.customers.slice(0, 5), null, 2)}
-          </pre>
-        </div>
-
-        <p className="text-sm text-gray-600">
-          Previewing first {Math.min(5, preview.customers.length)} of {preview.customers.length} entries.
-        </p>
-
-        <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className="px-3 py-2 text-sm border rounded hover:bg-gray-50">
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={busy}
-            className="px-3 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {busy ? "Working..." : "Confirm Import"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ----------------------------- Util helpers ------------------------------ */
 
 function formatValue(v: AnyValue): string {

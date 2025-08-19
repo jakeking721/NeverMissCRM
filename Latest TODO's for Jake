@@ -13,7 +13,7 @@
     1. Use Supabase auth methods to update the user's email and password.
     2. Replace `alert` placeholders with success/error toasts.
 
-- [NEW] Manually verify busy-state login checks for imports and campaign deletion.
+- [UPDATED] Verify import preview modals enforce `canConfirm` and busy-state login checks for imports and campaign deletion.
   Steps:
     1. Attempt CSV/JSON import while logged out and confirm the alert prevents the action.
     2. Repeat the import and campaign deletion flows while logged in to ensure they succeed.
