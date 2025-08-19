@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write \"{src,tests}/**/*.{ts,tsx,css,md,json}\"",
     "test": "vitest",
     "test:ui": "vitest --ui"

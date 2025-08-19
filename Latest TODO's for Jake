@@ -6,7 +6,12 @@
     2. Backfill defaults:
          `update custom_fields set "visibleOn" = '{"dashboard":false,"customers":false,"campaigns":false}' where "visibleOn" is null;`
     3. Regenerate Supabase types:
-         `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`
+        `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`
+
+- [NEW] Resolve TypeScript compilation errors so `npm run typecheck` passes.
+  Steps:
+    1. Run `npm run typecheck` and note missing type definitions and JSX configuration errors.
+    2. Install required `@types` packages and update `tsconfig.json` or source files until the command reports no errors.
 
 - [NEW] Replace demo Change Email/Password alerts in `src/pages/Settings.tsx` with real Supabase auth updates.
   Steps:
@@ -18,10 +23,6 @@
     1. Attempt CSV/JSON import while logged out and confirm the alert prevents the action.
     2. Repeat the import and campaign deletion flows while logged in to ensure they succeed.
 
-- [NEW] Replace placeholder loading spinner used in `ProtectedRoute` and `RedirectIfLoggedIn` with final branded loader.
-  Steps:
-    1. Design or import a spinner component matching production branding.
-    2. Update `src/routes/ProtectedRoute.tsx` to use the new loader.
 
 - [NEW] Apply Supabase migration `20240717120000_update_campaigns_table.sql` to add campaign scheduling columns and triggers.
   Steps:
@@ -90,6 +91,7 @@
 - No manual steps required for replacing alert dialogs with toast notifications in `src/pages/Customers.tsx` and `src/pages/builder/FormBuilder.tsx`.
 - No manual steps required for guarding CSV/JSON import modals behind authentication in `src/pages/Customers.tsx`.
 - No manual steps required for exposing Supabase client and env on `window` in dev mode via `src/utils/supabaseClient.ts`.
+- No manual steps required for replacing placeholder loading spinner with branded `Loader` in `src/routes/ProtectedRoute.tsx` and `RedirectIfLoggedIn`.
 - Replace placeholder hero and patriot banner images in `src/components/home/HeroSection.tsx` and `src/components/home/PatriotBanner.tsx` with production assets. Steps: (1) Upload final images to an assets directory or CDN. (2) Update `HERO_MEDIA` and `PEOPLE_IMG` constants with the new URLs or imports. (3) Run `npm run build` to verify they load correctly.
 - Replace the temporary SMS service in `src/services/smsService.ts` with a real provider (e.g., Twilio) and remove `alert` calls and localStorage logging.
 - Configure production environment variables for SMS API credentials and scheduling backend.
