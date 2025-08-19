@@ -19,7 +19,7 @@ export interface Database {
           options: Json;
           required: boolean;
           order: number;
-          visible_on: Json;
+          "visibleOn": Json;
           archived: boolean;
         };
         Insert: {
@@ -31,7 +31,7 @@ export interface Database {
           options?: Json;
           required?: boolean;
           order?: number;
-          visible_on?: Json;
+          "visibleOn"?: Json;
           archived?: boolean;
         };
         Update: {
@@ -43,7 +43,7 @@ export interface Database {
           options?: Json;
           required?: boolean;
           order?: number;
-          visible_on?: Json;
+          "visibleOn"?: Json;
           archived?: boolean;
         };
       };

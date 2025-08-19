@@ -45,14 +45,10 @@
     2. Example metadata: `{ "username": "jake", "credits": 100, "role": "admin" }`.
     3. Ask users to sign out and back in so metadata changes propagate to sessions.
 
-- [NEW] Ensure Supabase `custom_fields` table uses camelCase column "visibleOn" with a unique constraint on `(user_id, key)` for upserts.
+- [UPDATED] Apply Supabase migration `20240807120000_rename_visible_on_to_visibleOn.sql` to rename the `custom_fields.visible_on` column to `"visibleOn"`.
   Steps:
-    1. In the Supabase SQL editor, run:
-         `alter table custom_fields rename column visible_on to "visibleOn";`
-         `alter table custom_fields add constraint custom_fields_user_id_key_key unique (user_id, key);`
-    2. Backfill defaults:
-         `update custom_fields set "visibleOn" = '{"dashboard":false,"customers":false,"campaigns":false}' where "visibleOn" is null;`
-    3. Regenerate Supabase types:
+    1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL file in Supabase's SQL editor.
+    2. Regenerate Supabase types:
         `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`
 
 - [NEW] Expand bulk customer edit capabilities introduced in `CustomerEditModal`.

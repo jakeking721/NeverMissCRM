@@ -390,7 +390,7 @@ useEffect(() => {
             order: order++,
             options: [],
             required: false,
-            visible_on: { dashboard: true, customers: true, campaigns: true },
+            visibleOn: { dashboard: true, customers: true, campaigns: true },
             archived: false,
           };
           await supabase.from('custom_fields').insert(field);
@@ -548,7 +548,7 @@ useEffect(() => {
             order: order++,
             options: [],
             required: false,
-            visible_on: { dashboard: true, customers: true, campaigns: true },
+            visibleOn: { dashboard: true, customers: true, campaigns: true },
             archived: false,
           };
           await supabase.from('custom_fields').insert(field);
