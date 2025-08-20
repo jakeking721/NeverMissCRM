@@ -38,20 +38,28 @@ export default function Login() {
 
       if (userId) {
         // 🧩 Upsert profile to ensure row exists
-        const { error: profileError } = await supabase.from("profiles").upsert(
-          {
-            id: userId,
-            username: id.split("@")[0],
-            role: "user",
-            credits: 0,
-            avatar: "",
-          },
-          { onConflict: "id" }
-        );
+        const emailStr = id; // your login input is called `id` (email)
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert(
+            {
+              id: userId,                                   // MUST equal auth.uid()
+              email: emailStr ?? null,                      // optional, if you store it
+              username: (emailStr ?? "").split("@")[0] || null,
+              role: "user",
+              credits: 0,
+              avatar: null,
+              updated_at: new Date().toISOString(),         // nice to keep fresh
+            },
+            { onConflict: "id" }                            // 👈 correct place in v2
+          )
+          .select("*")
+          .single();
 
         if (profileError) {
-          console.error("Profile insert error:", profileError);
+          console.error("Profile upsert error:", profileError);
         }
+
       }
 
       await refresh();
