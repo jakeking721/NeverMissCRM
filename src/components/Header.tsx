@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { logoutUser } from "../utils/auth";
+import { isAdmin } from "@/utils/roles";
 
 export default function Header() {
   const { user, refresh } = useAuth();
@@ -73,6 +74,15 @@ export default function Header() {
                 >
                   Help
                 </Link>
+                {isAdmin(user) && (
+                  <Link
+                    to="/admin"
+                    className="block px-4 py-2 hover:bg-gray-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    Admin
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600"

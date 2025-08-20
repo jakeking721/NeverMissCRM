@@ -15,19 +15,11 @@ import React, {
   useState,
 } from "react";
 import type { Session, User as SupaUser } from "@supabase/supabase-js";
-import type { Role } from "@/utils/roles";
+import type { Profile } from "@/utils/roles";
 import { supabase } from "@/utils/supabaseClient";
 
-export type AuthUser = {
-  id: string;
-  email?: string | null;
-  username?: string | null;
-  credits?: number;
-  role?: Role;
-};
-
 type AuthContextValue = {
-  user: AuthUser | null;
+  user: Profile | null;
   session: Session | null;
   ready: boolean; // true after first hydration
   refresh: () => void; // fire-and-forget (kept void so callers don't have to await)
@@ -42,19 +34,23 @@ const AuthContext = createContext<AuthContextValue>({
   logout: async () => {},
 });
 
-function toAuthUser(u: SupaUser | null | undefined): AuthUser | null {
+async function fetchProfile(u: SupaUser | null | undefined): Promise<Profile | null> {
   if (!u) return null;
-  const { credits, role, username } = (u.user_metadata ?? {}) as {
-    credits?: number;
-    role?: Role;
-    username?: string;
-  };
-  return { id: u.id, email: u.email, username, credits, role };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,email,username,role,credits,avatar")
+    .eq("id", u.id)
+    .single();
+  if (error) {
+    console.error("[Auth] fetchProfile error:", error);
+    return null;
+  }
+  return data as Profile;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<Profile | null>(null);
   const [ready, setReady] = useState(false);
 
   const hydrate = useCallback(async () => {
@@ -64,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const sess = data?.session ?? null;
     setSession(sess);
-    setUser(toAuthUser(sess?.user));
+    setUser(await fetchProfile(sess?.user));
     setReady(true);
   }, []);
 
@@ -90,9 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void hydrate();
 
     // Keep in sync with auth changes
-    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession ?? null);
-      setUser(toAuthUser(newSession?.user));
+      setUser(await fetchProfile(newSession?.user));
       setReady(true);
     });
 

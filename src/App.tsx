@@ -1,7 +1,7 @@
 // src/App.tsx
 // ------------------------------------------------------------------------------------
 // Central route registry
-// - Public:        /, /login, /register, /help, /adminlogin, /u/:username, /intake/:slug
+// - Public:        /, /login, /register, /help, /u/:username, /intake/:slug
 // - Protected:     /dashboard, /customers, /campaigns, /campaigns/new,
 //                  /analytics, /settings, /settings/fields, /settings/billing,
 //                  /profile, /qrcode
@@ -21,7 +21,6 @@ import { AuthProvider } from "./context/AuthContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import AdminLogin from "./pages/AdminLogin";
 
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
@@ -46,6 +45,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 import ProtectedRoute, { RedirectIfLoggedIn } from "./routes/ProtectedRoute";
+import AdminRoute from "./routes/AdminRoute";
 
 export default function App() {
   return (
@@ -59,7 +59,6 @@ export default function App() {
           <Route element={<RedirectIfLoggedIn />}>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/adminlogin" element={<AdminLogin />} />
           </Route>
 
           {/* Public intake (legacy path kept) */}
@@ -92,7 +91,7 @@ export default function App() {
           </Route>
 
           {/* -------------------- Admin-only -------------------- */}
-          <Route element={<ProtectedRoute adminOnly />}>
+          <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
           </Route>
 

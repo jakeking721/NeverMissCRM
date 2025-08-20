@@ -206,7 +206,7 @@
 - Ensure `.env` variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_PUBLIC_APP_URL` are set to production values (placeholders currently committed). Steps: (1) Edit `.env` with real URLs/keys. (2) Redeploy.
 - After integrating a real SMS provider, update `src/utils/credits.ts` `DEFAULT_SMS_COST_PER_SEGMENT` and remove `src/utils/demoSMS.ts`. Steps: (1) Adjust constant to provider rate. (2) Delete file and references.
 - Persist credit balance updates to Supabase. Steps: (1) Replace TODOs in `src/utils/credits.ts` with calls to update `profiles.credits`. (2) Confirm RLS policies allow current users to modify their own credits when appropriate.
-- Ensure admin accounts have `role='admin'` in `profiles` for access to admin routes. Steps: (1) In Supabase Table editor, set the `role` column to `admin` for desired users. (2) Test AdminLogin to confirm redirection works.
+- Ensure admin accounts have `role='admin'` in `profiles` for access to admin routes. Steps: (1) In Supabase Table editor, set the `role` column to `admin` for desired users. (2) Test navigation to `/admin` as admin and non-admin to confirm guard and Forbidden page work.
 - Replace local object URL handling for image and PDF uploads in the form builder with real Supabase storage uploads and persist returned URLs in `schema_json`.
 - Verify PDF waiver display styles and acceptance checkbox in production browsers; add backend validation and storage for uploaded files.
 - Expand segment builder capabilities with nested groups, range filters for numbers/dates, and a server-side query builder. Steps: (1) Update UI to support grouped rules. (2) Implement filtering logic. (3) Expose backend query endpoint.
@@ -240,3 +240,17 @@
     1. From the project root, run `supabase db push` or execute the SQL file in Supabase's SQL editor.
     2. Review `customer_email_collisions` and `customer_phone_collisions` tables and resolve any duplicates per `user_id`.
     3. After resolving, delete collision tables and regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+- [NEW] Grant or revoke admin rights via `profiles.role`.
+  Steps:
+    1. In Supabase SQL editor run:
+         update profiles set role = 'admin' where id = '<USER_ID>';
+         update profiles set role = 'user' where id = '<USER_ID>';
+- [NEW] Verify RLS policies on `profiles` allow only admins to read/update other profiles.
+  Steps:
+    1. In Supabase dashboard, open the `profiles` table policies.
+    2. Ensure read/update policies include `auth.uid() = id` or `role = 'admin'` and test as both admin and non-admin.
+- [NEW] Prep deployment for the new admin guard and Forbidden page.
+  Steps:
+    1. Seed at least one admin profile using the SQL above.
+    2. Remove any temporary admin login links or placeholder data before launch.
+    3. Test `/admin` as both admin and non-admin to confirm navigation and Forbidden messaging.
