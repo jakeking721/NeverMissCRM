@@ -289,3 +289,8 @@
   Steps:
     1. As an admin, test Approve/Prohibit/Delete/Make Admin actions and ensure toasts reflect results.
     2. In Supabase dashboard, confirm profile rows update accordingly and remove any test or placeholder accounts.
+
+- [NEW] Review and maintain `SUPABASE_SCHEMA_SPEC.txt` after applying Supabase migrations.
+  Steps:
+    1. After running new migrations, open the file at repo root and document any table/column/policy changes.
+    2. Commit the updated spec so it stays in sync with the database.
