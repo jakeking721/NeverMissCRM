@@ -12,6 +12,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { Session, User as SupaUser } from "@supabase/supabase-js";
@@ -22,7 +23,7 @@ type AuthContextValue = {
   user: Profile | null;
   session: Session | null;
   ready: boolean; // true after first hydration
-  refresh: () => void; // fire-and-forget (kept void so callers don't have to await)
+  refresh: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -30,72 +31,98 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   session: null,
   ready: false,
-  refresh: () => {},
+  refresh: async () => {},
   logout: async () => {},
 });
 
+const PROFILE_TIMEOUT_MS = 8000;
+
 async function fetchProfile(u: SupaUser | null | undefined): Promise<Profile | null> {
   if (!u) return null;
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id,email,username,role,credits,avatar,is_approved,is_active,deactivated_at")
-    .eq("id", u.id)
-    .single();
-  if (error) {
-    console.error("[Auth] fetchProfile error:", error);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROFILE_TIMEOUT_MS);
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        "id,email,username,role,credits,avatar,is_approved,is_active,deactivated_at"
+      )
+      .eq("id", u.id)
+      // @ts-ignore `abortSignal` is supported by postgrest-js
+      .abortSignal(controller.signal)
+      .single();
+    if (error) {
+      console.error("[Auth] fetchProfile error:", error);
+      return null;
+    }
+    return data as Profile;
+  } catch (err) {
+    console.error("[Auth] fetchProfile error:", err);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
-  return data as Profile;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const sessionRef = useRef<Session | null>(null);
   const [user, setUser] = useState<Profile | null>(null);
   const [ready, setReady] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
 
-  const hydrate = useCallback(async () => {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error("[Auth] getSession error:", error);
-    }
-    const sess = data?.session ?? null;
-    setSession(sess);
-    setUser(await fetchProfile(sess?.user));
-    setReady(true);
-  }, []);
-
-  // public "refresh" remains void for compatibility
-  const refresh = useCallback(() => {
-    setReady(false);
-    void hydrate();
-  }, [hydrate]);
+  const refresh = useCallback(
+    async (nextSession?: Session | null) => {
+      let sess = nextSession;
+      try {
+        if (!sess) {
+          const { data, error } = await supabase.auth.getSession();
+          if (error) {
+            throw error;
+          }
+          sess = data?.session ?? null;
+        }
+        const changed = sess?.user?.id !== sessionRef.current?.user?.id;
+        if (!changed && bootstrapped) return;
+        setReady(false);
+        setSession(sess);
+        sessionRef.current = sess;
+        setUser(await fetchProfile(sess?.user));
+      } catch (err) {
+        console.error("[Auth] refresh error:", err);
+        setSession(sess ?? null);
+        sessionRef.current = sess ?? null;
+        setUser(null);
+      } finally {
+        setReady(true);
+        if (!bootstrapped) setBootstrapped(true);
+      }
+    },
+    [bootstrapped]
+  );
 
   const logout = useCallback(async () => {
     try {
       await supabase.auth.signOut();
     } finally {
-      setSession(null);
-      setUser(null);
-      setReady(true);
+      await refresh(null);
     }
-  }, []);
+  }, [refresh]);
 
   useEffect(() => {
     if (import.meta.env.VITEST) return;
     // Initial hydration
-    void hydrate();
+    void refresh();
 
     // Keep in sync with auth changes
     const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession ?? null);
-      setUser(await fetchProfile(newSession?.user));
-      setReady(true);
+      void refresh(newSession ?? null);
     });
 
     return () => {
       data.subscription.unsubscribe();
     };
-  }, [hydrate]);
+  }, [refresh]);
 
   // (Optional) expose env/project for quick console checks in dev
   if (import.meta.env.DEV && typeof window !== "undefined") {

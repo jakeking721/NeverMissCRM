@@ -1,3 +1,8 @@
+- [NEW] Validate refactored AuthContext refresh flow and profile timeout.
+  Steps:
+    1. Sign in and out to ensure `ready` toggles only on real session changes.
+    2. Adjust `PROFILE_TIMEOUT_MS` in `src/context/AuthContext.tsx` if profile requests take longer in production.
+
 - [NEW] Apply Supabase migration `20250807100000_update_customers_policies.sql` to enforce approved/active profile checks on all customers policies.
   Steps:
     1. From the project root, run `supabase db push` or execute the SQL in Supabase's SQL editor.
