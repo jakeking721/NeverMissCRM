@@ -1,3 +1,9 @@
+- [NEW] Apply Supabase migration `20250807100000_update_customers_policies.sql` to enforce approved/active profile checks on all customers policies.
+  Steps:
+    1. From the project root, run `supabase db push` or execute the SQL in Supabase's SQL editor.
+    2. (Optional) Regenerate Supabase types if schema changes:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+
 - [NEW] Apply Supabase migration `20250807091000_add_is_admin_function_and_profile_policies.sql` to add `is_admin` helper and tighten `profiles` policies.
   Steps:
     1. From the project root, run `supabase db push` or execute the SQL in Supabase dashboard's SQL editor.
