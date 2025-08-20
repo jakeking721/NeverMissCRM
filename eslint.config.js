@@ -8,7 +8,12 @@ import reactRefresh from "eslint-plugin-react-refresh";
 // First block: what to ignore (replacement for .eslintignore)
 export default [
   {
-    ignores: ["dist/**", "node_modules/**", "coverage/**"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+      "src/types/supabase-auth.ts",
+    ],
   },
   {
     files: ["src/**/*.{ts,tsx}"],

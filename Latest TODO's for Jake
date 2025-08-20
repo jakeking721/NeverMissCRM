@@ -1,3 +1,13 @@
+- [NEW] Verify login redirect after relying solely on Supabase auth listener.
+  Steps:
+    1. Sign in with valid credentials and ensure automatic redirect to `/dashboard` occurs without manual page refresh.
+    2. Confirm the submit button shows a spinner while the request is pending and that no global loader appears.
+
+- [NEW] Test Login page responsiveness on mobile devices.
+  Steps:
+    1. Open the login page on phone and tablet browsers.
+    2. Verify all inputs and the submit button are visible and easy to interact with without horizontal scrolling.
+
 - [NEW] Validate refactored AuthContext refresh flow and profile timeout.
   Steps:
     1. Sign in and out to ensure `ready` toggles only on real session changes.

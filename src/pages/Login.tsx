@@ -12,11 +12,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { refresh, user } = useAuth();
+  const { session, user } = useAuth();
 
+  // Redirect once auth state reports a valid session and user
   useEffect(() => {
-    if (user) navigate("/dashboard", { replace: true });
-  }, [user, navigate]);
+    if (session && user) navigate("/dashboard", { replace: true });
+  }, [session, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,9 +34,6 @@ export default function Login() {
         setError(error.message || "Invalid credentials.");
         return;
       }
-
-      await refresh();
-      navigate("/dashboard", { replace: true });
     } catch (err: any) {
       console.error("Login crash:", err);
       setError("Unexpected error. Please try again.");
@@ -84,9 +82,13 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl transition disabled:opacity-50"
+            className="w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl transition disabled:opacity-50 flex items-center justify-center"
           >
-            {loading ? "Logging in…" : "Log In"}
+            {loading ? (
+              <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              "Log In"
+            )}
           </button>
 
           <p className="mt-4 text-sm text-center">
