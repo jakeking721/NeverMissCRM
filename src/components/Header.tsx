@@ -2,11 +2,11 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { logoutUser } from "../utils/auth";
+import { clearLocalPlaceholders } from "@/utils/localCleanup";
 import { isAdmin } from "@/utils/roles";
 
 export default function Header() {
-  const { user, refresh } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -14,9 +14,9 @@ export default function Header() {
   const limited =
     !!user && !admin && (!user.is_approved || !user.is_active);
 
-  const handleLogout = () => {
-    logoutUser();
-    refresh();
+  const handleLogout = async () => {
+    clearLocalPlaceholders();
+    await logout();
     navigate("/");
   };
 

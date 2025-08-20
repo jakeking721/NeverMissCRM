@@ -1,3 +1,8 @@
+- [NEW] Verify header logout uses AuthContext and clears local placeholders.
+  Steps:
+    1. Sign in and open the user menu from both desktop and mobile views.
+    2. Use the logout option and confirm redirect to the appropriate page and that the session is cleared.
+    3. Check browser localStorage to ensure no `sms_log_*` or `customers` keys remain.
 - [NEW] Verify login redirect after relying solely on Supabase auth listener.
   Steps:
     1. Sign in with valid credentials and ensure automatic redirect to `/dashboard` occurs without manual page refresh.
@@ -235,7 +240,11 @@
 - Replace placeholder hero and patriot banner images in `src/components/home/HeroSection.tsx` and `src/components/home/PatriotBanner.tsx` with production assets. Steps: (1) Upload final images to an assets directory or CDN. (2) Update `HERO_MEDIA` and `PEOPLE_IMG` constants with the new URLs or imports. (3) Run `npm run build` to verify they load correctly.
 - Replace the temporary SMS service in `src/services/smsService.ts` with a real provider (e.g., Twilio) and remove `alert` calls and localStorage logging. Ensure the provider is configured to accept E.164-formatted numbers.
 - Configure production environment variables for SMS API credentials and scheduling backend.
-- Clean up any demo SMS logs stored in localStorage before launch.
+- [UPDATED] Demo SMS logs are now cleared automatically on logout. Verify no placeholder keys remain before launch.
+  Steps:
+    1. Log in and perform an action that creates an SMS log or demo customers in localStorage.
+    2. Log out via the header or dropdown.
+    3. In browser dev tools (Application > Local Storage), confirm `sms_log_*` and `customers` keys are removed.
 - Manually verify the new mobile block palette and property panel drawers on multiple real devices and screen sizes, adjusting Tailwind styles if any layout issues arise.
 - Test touch drag-and-drop in the form builder on physical iOS/Android browsers to confirm sensors and styles handle mobile gestures.
   - Address npm warning about unknown `http-proxy` env config in deployment environment. Steps: (1) Remove `http-proxy` and `https-proxy` environment variables or rename to `HTTP_PROXY`/`HTTPS_PROXY`. (2) Use `npm config set proxy <url>` if a proxy is required.

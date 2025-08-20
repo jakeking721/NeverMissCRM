@@ -1,19 +1,19 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { logoutUser } from "../utils/auth";
 import { useAuth } from "../context/AuthContext";
+import { clearLocalPlaceholders } from "@/utils/localCleanup";
 import { FaUserCircle } from "react-icons/fa";
 
 export default function HeaderDropdown() {
-  const { user, refresh } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
 
   if (!user) return null;
 
-  const handleLogout = () => {
-    logoutUser();
-    refresh();
+  const handleLogout = async () => {
+    clearLocalPlaceholders();
+    await logout();
     navigate("/login");
   };
 
