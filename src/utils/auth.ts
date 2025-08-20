@@ -51,20 +51,8 @@ export async function registerUser({
 
   if (error) return { ok: false, message: error.message };
 
-  const userId = data?.user?.id;
-  if (userId) {
-    await supabase.from("profiles").upsert(
-      {
-        id: userId,
-        username,
-        role: "user",
-        credits: 0,
-        avatar: "",
-      },
-      { onConflict: "id" }
-    );
-  }
-
+  // Profile rows are automatically created by the `handle_new_user`
+  // trigger in Supabase, so no client-side upsert is necessary here.
   return { ok: true };
 }
 

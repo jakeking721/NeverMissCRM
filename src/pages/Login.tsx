@@ -24,7 +24,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const { data: loginResult, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: id,
         password,
       });
@@ -32,32 +32,6 @@ export default function Login() {
       if (error) {
         setError(error.message || "Invalid credentials.");
         return;
-      }
-
-      const userId = loginResult?.user?.id;
-
-      if (userId) {
-        // 🧩 Upsert profile to ensure row exists
-        const emailStr = id; // your login input is called `id` (email)
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert(
-            {
-              id: userId,                                   // MUST equal auth.uid()
-              email: emailStr ?? null,
-              username: (emailStr ?? "").split("@")[0] || null,
-              credits: 0,
-              avatar: null,
-            },
-            { onConflict: "id" }                            // keep this here (v2)
-          )
-          .select("*")
-          .single();
-
-        if (profileError) {
-          console.error("Profile upsert error:", profileError);
-        }
-
       }
 
       await refresh();

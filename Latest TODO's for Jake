@@ -1,3 +1,7 @@
+- [NEW] Client-side profile upserts removed; profiles are now auto-created by the Supabase `handle_new_user` trigger.
+  Steps:
+    1. Ensure migration `20250807090000_add_profile_approval_flags.sql` (defines `handle_new_user`) is applied in Supabase.
+
 - [UPDATED] Admin Users page now displays the `updated_at` field with a fallback to user `id`.
   Steps:
     1. In Supabase SQL editor, backfill missing `updated_at` values for existing profiles:
