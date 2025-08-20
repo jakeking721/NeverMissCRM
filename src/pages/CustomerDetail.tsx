@@ -197,11 +197,19 @@ export default function CustomerDetail() {
             }}
           >
             <div>
-              <label className="block text-sm font-medium mb-1">Name</label>
+              <label className="block text-sm font-medium mb-1">First Name</label>
               <input
                 className="border rounded px-3 py-2 w-full"
-                value={values.name ?? ""}
-                onChange={(e) => handleChange("name", e.target.value)}
+                value={values.firstName ?? ""}
+                onChange={(e) => handleChange("firstName", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Last Name</label>
+              <input
+                className="border rounded px-3 py-2 w-full"
+                value={values.lastName ?? ""}
+                onChange={(e) => handleChange("lastName", e.target.value)}
               />
             </div>
             <div>
@@ -214,11 +222,11 @@ export default function CustomerDetail() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Location</label>
+              <label className="block text-sm font-medium mb-1">Zip Code</label>
               <input
                 className="border rounded px-3 py-2 w-full"
-                value={values.location ?? ""}
-                onChange={(e) => handleChange("location", e.target.value)}
+                value={values.zipCode ?? ""}
+                onChange={(e) => handleChange("zipCode", e.target.value)}
               />
             </div>
 

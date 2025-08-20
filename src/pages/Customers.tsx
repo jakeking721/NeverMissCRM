@@ -31,6 +31,7 @@ import type { TablesInsert } from "@/types/supabase";
 import { toKeySlug } from "@/utils/slug";
 import { JSX } from "react/jsx-runtime";
 import type { AnyValue, CsvPreview, JsonPreview } from "@/types/importPreview";
+import { FiTarget, FiMove } from "react-icons/fi";
 
 /* -------------------------------------------------------------------------- */
 /*                                   Types                                    */
@@ -104,6 +105,8 @@ export default function Customers(): JSX.Element {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [showColumns, setShowColumns] = useState(false);
+  const dragIndexRef = useRef<number | null>(null);
 
   /* ---------------------------- Meta (fetch) ----------------------------- */
 
@@ -150,22 +153,54 @@ useEffect(() => {
 
   /* --------------------------- Column helpers ---------------------------- */
 
-  const baseColumns = useMemo(
+  const factoryColumns = useMemo(
     () =>
       [
-        { key: "name", label: "Name" },
+        { key: "firstName", label: "First Name" },
+        { key: "lastName", label: "Last Name" },
         { key: "phone", label: "Phone" },
+        { key: "zipCode", label: "Zip Code" },
         { key: "email", label: "Email" },
-        { key: "location", label: "Location" },
-        { key: "signupDate", label: "Signup" },
+        { key: "signupDate", label: "Signup Date" },
       ] as const,
     []
   );
 
-  const columns = useMemo(
-    () => [...baseColumns, ...customFields.map((f) => ({ key: f.key, label: f.label }))],
-    [baseColumns, customFields]
+  const allColumns = useMemo(
+    () => [...factoryColumns, ...customFields.map((f) => ({ key: f.key, label: f.label }))],
+    [factoryColumns, customFields]
   );
+
+  const [visibleCols, setVisibleCols] = useState<string[]>(() => {
+    const stored = localStorage.getItem(`customer-cols-${user?.id ?? "anon"}`);
+    return stored ? JSON.parse(stored) : factoryColumns.map((c) => c.key);
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`customer-cols-${user?.id ?? "anon"}`, JSON.stringify(visibleCols));
+  }, [visibleCols, user?.id]);
+
+  const columns = useMemo(() => {
+    const map = new Map(allColumns.map((c) => [c.key, c]));
+    return visibleCols.map((k) => map.get(k)).filter(Boolean) as { key: string; label: string }[];
+  }, [visibleCols, allColumns]);
+
+  const toggleColumn = (key: string) => {
+    setVisibleCols((prev) => {
+      if (prev.includes(key)) return prev.filter((k) => k !== key);
+      if (prev.length >= 6) return prev;
+      return [...prev, key];
+    });
+  };
+
+  const moveColumn = (from: number, to: number) => {
+    setVisibleCols((cols) => {
+      const arr = [...cols];
+      const [item] = arr.splice(from, 1);
+      arr.splice(to, 0, item);
+      return arr;
+    });
+  };
 
   const onSort = (key: string) => {
     if (sortBy === key) setAscending((v) => !v);
@@ -183,9 +218,11 @@ useEffect(() => {
     const matches = (c: Customer): boolean => {
       if (!q) return true;
       const baseHit =
-        c.name?.toLowerCase().includes(q) ||
+        c.firstName?.toLowerCase().includes(q) ||
+        c.lastName?.toLowerCase().includes(q) ||
         c.phone?.toLowerCase().includes(q) ||
-        c.location?.toLowerCase().includes(q) ||
+        c.zipCode?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q) ||
         c.signupDate?.toLowerCase().includes(q);
 
       if (baseHit) return true;
@@ -205,7 +242,8 @@ useEffect(() => {
       const av = (a as Record<string, AnyValue>)[sortBy];
       const bv = (b as Record<string, AnyValue>)[sortBy];
 
-      if (av == null || bv == null) return av == null ? (ascending ? -1 : 1) : ascending ? 1 : -1;
+      if (av == null || bv == null)
+        return av == null ? (ascending ? -1 : 1) : ascending ? 1 : -1;
       if (typeof av === "number" && typeof bv === "number")
         return ascending ? av - bv : bv - av;
 
@@ -214,6 +252,22 @@ useEffect(() => {
         : String(bv).localeCompare(String(av));
     });
   }, [customers, search, sortBy, ascending, customFields]);
+
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const stored = localStorage.getItem(`customer-page-size-${user?.id ?? "anon"}`);
+    return stored ? Number(stored) : 10;
+  });
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    localStorage.setItem(`customer-page-size-${user?.id ?? "anon"}`, String(pageSize));
+  }, [pageSize, user?.id]);
+  useEffect(() => setPage(1), [filtered.length, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paged = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page, pageSize],
+  );
 
   /* ------------------------------ Export JSON ---------------------------- */
 
@@ -328,11 +382,12 @@ useEffect(() => {
       }
 
     const fieldOptions = [
-      { key: "name", label: "Name" },
+      { key: "firstName", label: "First Name" },
+      { key: "lastName", label: "Last Name" },
       { key: "phone", label: "Phone" },
+      { key: "zipCode", label: "Zip Code" },
       { key: "email", label: "Email" },
-      { key: "location", label: "Location" },
-      { key: "signupDate", label: "Signup" },
+      { key: "signupDate", label: "Signup Date" },
       ...customFields.map((f) => ({ key: f.key, label: f.label })),
     ];
 
@@ -410,7 +465,7 @@ useEffect(() => {
           const key = mapping[h];
           if (key) obj[key] = row[i];
         });
-        if (!obj.name) obj.name = `Imported #${idx + 1}`;
+        if (!obj.firstName && !obj.lastName) obj.firstName = `Imported #${idx + 1}`;
         const normPhone = normalizePhone(obj.phone);
         const normEmail = normalizeEmail(obj.email);
         if ((obj.phone && !normPhone) || (obj.email && !normEmail)) {
@@ -480,9 +535,10 @@ useEffect(() => {
       if (!Array.isArray(json.customers)) throw new Error("Missing .customers array");
 
       const knownKeys = [
-        "name",
+        "firstName",
+        "lastName",
         "phone",
-        "location",
+        "zipCode",
         "signupDate",
         "email",
         ...customFields.map((f) => f.key),
@@ -495,11 +551,12 @@ useEffect(() => {
       );
 
       const fieldOptions = [
-        { key: "name", label: "Name" },
+        { key: "firstName", label: "First Name" },
+        { key: "lastName", label: "Last Name" },
         { key: "phone", label: "Phone" },
+        { key: "zipCode", label: "Zip Code" },
         { key: "email", label: "Email" },
-        { key: "location", label: "Location" },
-        { key: "signupDate", label: "Signup" },
+        { key: "signupDate", label: "Signup Date" },
         ...customFields.map((f) => ({ key: f.key, label: f.label })),
       ];
       const unknownArr = Array.from(unknown);
@@ -573,7 +630,7 @@ useEffect(() => {
             obj[k] = v;
           }
         });
-        if (!obj.name) obj.name = `Imported`;
+        if (!obj.firstName && !obj.lastName) obj.firstName = `Imported`;
         const normPhone = normalizePhone(obj.phone);
         const normEmail = normalizeEmail(obj.email);
         if ((obj.phone && !normPhone) || (obj.email && !normEmail)) {
@@ -630,9 +687,13 @@ useEffect(() => {
 
   /* --------------------------- Selection helpers ------------------------- */
 
-  const isAllSelected = filtered.length > 0 && selectedIds.length === filtered.length;
-  const toggleAll = () =>
-    setSelectedIds(isAllSelected ? [] : filtered.map((c) => c.id));
+  const isAllSelected = paged.length > 0 && paged.every((c) => selectedIds.includes(c.id));
+  const toggleAll = () => {
+    const ids = paged.map((c) => c.id);
+    setSelectedIds((prev) =>
+      isAllSelected ? prev.filter((id) => !ids.includes(id)) : Array.from(new Set([...prev, ...ids])),
+    );
+  };
   const toggleOne = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -752,32 +813,72 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* search / sort controls */}
-        <div className="p-4 bg-white rounded-md shadow border">
+        {/* search / column controls */}
+        <div className="p-4 bg-white rounded-md shadow border space-y-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search customers…"
-              className="border rounded px-3 py-2 text-sm"
+              className="border rounded px-3 py-2 text-sm flex-1"
             />
-
             <div className="flex items-center gap-2">
-              <label className="text-sm">Sort by:</label>
+              <button
+                onClick={() => setShowColumns(true)}
+                className="px-2 py-1 text-xs border rounded hover:bg-gray-50"
+              >
+                Columns
+              </button>
+              <div className="hidden sm:flex items-center text-xs text-gray-500 gap-1">
+                <FiTarget className="w-4 h-4" />
+                NEVER MISS FILTERING — COMING SOON!
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm" htmlFor="pageSizeSelect">
+                Rows per page:
+              </label>
               <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                id="pageSizeSelect"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
                 className="border rounded px-2 py-1 text-sm"
               >
-                {columns.map((c) => (
-                  <option key={c.key} value={c.key}>
-                    {c.label}
+                {[10, 25, 50, 100].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
                   </option>
                 ))}
               </select>
-              <button onClick={() => setAscending((v) => !v)} className="px-2 py-1 text-xs border rounded hover:bg-gray-50">
-                {ascending ? "▲" : "▼"}
+            </div>
+            <div className="flex items-center gap-1 justify-end">
+              <button
+                className="px-2 py-1 text-xs border rounded disabled:opacity-50"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setPage(n)}
+                  className={`px-2 py-1 text-xs border rounded ${
+                    n === page ? "bg-gray-200" : "hover:bg-gray-50"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                className="px-2 py-1 text-xs border rounded disabled:opacity-50"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
               </button>
             </div>
           </div>
@@ -808,14 +909,14 @@ useEffect(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {paged.length === 0 ? (
                     <tr>
                       <td className="py-6 text-center text-gray-400" colSpan={columns.length + 1}>
                         No results found.
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((c) => (
+                    paged.map((c) => (
                       <tr
                         key={c.id}
                         className="border-b hover:bg-gray-50 active:bg-gray-100 cursor-pointer"
@@ -852,6 +953,70 @@ useEffect(() => {
           </p>
         </div>
       </div>
+
+      {showColumns && (
+        <div
+          className="fixed inset-0 bg-black/30 z-50 flex"
+          onClick={() => setShowColumns(false)}
+        >
+          <div
+            className="bg-white w-72 max-w-full p-4 overflow-y-auto ml-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold mb-2">Columns</h3>
+            <ul className="mb-3">
+              {visibleCols.map((key, idx) => {
+                const col = allColumns.find((c) => c.key === key);
+                if (!col) return null;
+                return (
+                  <li
+                    key={key}
+                    className="flex items-center gap-2 mb-1"
+                    draggable
+                    onDragStart={() => (dragIndexRef.current = idx)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (dragIndexRef.current === null) return;
+                      moveColumn(dragIndexRef.current, idx);
+                      dragIndexRef.current = null;
+                    }}
+                  >
+                    <span
+                      className="cursor-move"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowUp" && idx > 0) moveColumn(idx, idx - 1);
+                        if (e.key === "ArrowDown" && idx < visibleCols.length - 1)
+                          moveColumn(idx, idx + 1);
+                      }}
+                    >
+                      <FiMove />
+                    </span>
+                    {col.label}
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="space-y-1 max-h-60 overflow-y-auto pr-2">
+              {allColumns.map((c) => {
+                const checked = visibleCols.includes(c.key);
+                const disabled = !checked && visibleCols.length >= 6;
+                return (
+                  <label key={c.key} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={disabled}
+                      onChange={() => toggleColumn(c.key)}
+                    />
+                    <span>{c.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* bulk SMS modal */}
       <SmsBulkModal isOpen={bulkOpen} onClose={() => setBulkOpen(false)} customers={selectedCustomers} />

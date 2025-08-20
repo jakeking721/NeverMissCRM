@@ -181,12 +181,13 @@ export default function IntakeRenderer() {
         setFieldErrors(arrayErrors);
         return;
       }
-      const { name, phone, location, ...extra } = valid as Record<string, any>;
+      const { first_name, last_name, phone, zip_code, ...extra } = valid as Record<string, any>;
       await submitIntake({
         slug: formSlug,
-        name,
+        firstName: first_name,
+        lastName: last_name,
         phone,
-        location,
+        zipCode: zip_code,
         extra,
       });
       setSubmitted(true);

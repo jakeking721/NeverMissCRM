@@ -1,7 +1,7 @@
 // src/pages/CustomerIntake.tsx
 // -----------------------------------------------------------------------------
 // Public intake form (Supabase version)
-// - Calls RPC: intake_add_customer(p_slug, p_name, p_phone, p_location, p_extra)
+// - Calls RPC: intake_add_customer(p_slug, p_first_name, p_last_name, p_phone, p_zip_code, p_extra)
 // - No login required
 // - Supports /intake/:slug (preferred) and /u/:username (legacy)
 // - Reads owner display info via public_slugs -> profiles(username)
@@ -19,9 +19,10 @@ type RouteParams = {
 };
 
 type FormState = {
-  name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
-  location: string;
+  zipCode: string;
 };
 
 export default function CustomerIntake() {
@@ -34,7 +35,7 @@ export default function CustomerIntake() {
   const [ownerName, setOwnerName] = useState<string>("");
   const [loadingOwner, setLoadingOwner] = useState<boolean>(true);
 
-  const [form, setForm] = useState<FormState>({ name: "", phone: "", location: "" });
+  const [form, setForm] = useState<FormState>({ firstName: "", lastName: "", phone: "", zipCode: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,8 +133,8 @@ export default function CustomerIntake() {
             e.preventDefault();
             setError(null);
 
-            if (!form.name || !form.phone) {
-              setError("Name and phone are required.");
+            if (!form.firstName || !form.phone) {
+              setError("First name and phone are required.");
               return;
             }
             if (!isValidPhone(form.phone)) {
@@ -146,9 +147,10 @@ export default function CustomerIntake() {
             try {
               await submitIntake({
                 slug,
-                name: form.name,
+                firstName: form.firstName,
+                lastName: form.lastName,
                 phone: form.phone,
-                location: form.location || null,
+                zipCode: form.zipCode || null,
                 extra: { source: "qr" },
               });
               setSubmitted(true);
@@ -163,10 +165,17 @@ export default function CustomerIntake() {
         >
           <input
             type="text"
-            placeholder="Name"
+            placeholder="First Name"
             required
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            value={form.firstName}
+            onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+            className="p-3 rounded border border-blue-200 focus:ring w-full"
+          />
+          <input
+            type="text"
+            placeholder="Last Name"
+            value={form.lastName}
+            onChange={(e) => setForm({ ...form, lastName: e.target.value })}
             className="p-3 rounded border border-blue-200 focus:ring w-full"
           />
           <input
@@ -181,9 +190,9 @@ export default function CustomerIntake() {
           />
           <input
             type="text"
-            placeholder="Location (optional)"
-            value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
+            placeholder="Zip Code (optional)"
+            value={form.zipCode}
+            onChange={(e) => setForm({ ...form, zipCode: e.target.value })}
             className="p-3 rounded border border-blue-200 focus:ring w-full"
           />
 

@@ -18,10 +18,11 @@ import {
 export type Customer = {
   id: string;
   user_id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phone?: string | null;
   email?: string | null;
-  location?: string | null;
+  zipCode?: string | null;
   signupDate: string; // ISO
   extra?: Record<string, any>;
   [key: string]: any;
@@ -52,7 +53,7 @@ export async function getCustomers(): Promise<Customer[]> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("customers")
-    .select("id,user_id,name,phone,email,location,signup_date,extra")
+    .select("id,user_id,first_name,last_name,phone,email,zip_code,signup_date,extra")
     .eq("user_id", userId)
     .order("signup_date", { ascending: false });
   if (error) throw error;
@@ -61,10 +62,11 @@ export async function getCustomers(): Promise<Customer[]> {
   return (data ?? []).map((row: any) => ({
     id: row.id,
     user_id: row.user_id,
-    name: row.name,
+    firstName: row.first_name,
+    lastName: row.last_name,
     phone: row.phone ?? undefined,
     email: row.email ?? undefined,
-    location: row.location ?? undefined,
+    zipCode: row.zip_code ?? undefined,
     signupDate: row.signup_date,
     ...(fieldValues[row.id] ?? {}),
     ...(row.extra ?? {}),
@@ -75,7 +77,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("customers")
-    .select("id,user_id,name,phone,email,location,signup_date,extra")
+    .select("id,user_id,first_name,last_name,phone,email,zip_code,signup_date,extra")
     .eq("user_id", userId)
     .eq("id", id)
     .maybeSingle();
@@ -85,10 +87,11 @@ export async function getCustomer(id: string): Promise<Customer | null> {
   return {
     id: data.id,
     user_id: data.user_id,
-    name: data.name,
+    firstName: data.first_name,
+    lastName: data.last_name,
     phone: data.phone ?? undefined,
     email: data.email ?? undefined,
-    location: data.location ?? undefined,
+    zipCode: data.zip_code ?? undefined,
     signupDate: data.signup_date,
     ...(fieldValues[data.id] ?? {}),
     ...(data.extra ?? {}),
@@ -105,11 +108,12 @@ function splitCustomerFields(
   const base: any = {
     id: c.id,
     user_id: c.user_id,
-    name: c.name ?? "",
+    first_name: c.firstName ?? "",
+    last_name: c.lastName ?? "",
   };
   if (c.phone !== undefined) base.phone = normalizePhone(c.phone) || null;
   if (c.email !== undefined) base.email = normalizeEmail(c.email) || null;
-  if (c.location !== undefined) base.location = c.location ?? null;
+  if (c.zipCode !== undefined) base.zip_code = c.zipCode ?? null;
   base.signup_date = c.signupDate ?? new Date().toISOString();
 
   const custom: FieldValueMap = {};
@@ -148,10 +152,11 @@ export async function updateCustomer(
   const fieldKeys = new Set(fields.map((f) => f.key));
   const { base, custom, extra } = splitCustomerFields(patch, fieldKeys);
   const payload: any = {};
-  if (base.name !== undefined) payload.name = base.name;
+  if (base.first_name !== undefined) payload.first_name = base.first_name;
+  if (base.last_name !== undefined) payload.last_name = base.last_name;
   if (base.phone !== undefined) payload.phone = base.phone;
   if (base.email !== undefined) payload.email = base.email;
-  if (base.location !== undefined) payload.location = base.location;
+  if (base.zip_code !== undefined) payload.zip_code = base.zip_code;
   if (patch.signupDate !== undefined) payload.signup_date = base.signup_date;
   if (Object.keys(extra).length > 0) {
     const { data, error } = await supabase
@@ -240,18 +245,19 @@ export async function upsertCustomers(
           await upsertFieldValues(existing.id, custom);
           summary.updated += 1;
         } else if (mode === "fill") {
-          const { data: existData } = await supabase
-            .from("customers")
-            .select("name,phone,email,location,extra")
-            .eq("id", existing.id)
-            .single();
-          const patch: any = {};
-          if (!existData.name && base.name) patch.name = base.name;
-          if (!existData.phone && base.phone) patch.phone = base.phone;
-          if (!existData.email && base.email) patch.email = base.email;
-          if (!existData.location && base.location) patch.location = base.location;
-          if (Object.keys(extra).length)
-            patch.extra = { ...(existData.extra ?? {}), ...extra };
+        const { data: existData } = await supabase
+          .from("customers")
+          .select("first_name,last_name,phone,email,zip_code,extra")
+          .eq("id", existing.id)
+          .single();
+        const patch: any = {};
+        if (!existData.first_name && base.first_name) patch.first_name = base.first_name;
+        if (!existData.last_name && base.last_name) patch.last_name = base.last_name;
+        if (!existData.phone && base.phone) patch.phone = base.phone;
+        if (!existData.email && base.email) patch.email = base.email;
+        if (!existData.zip_code && base.zip_code) patch.zip_code = base.zip_code;
+        if (Object.keys(extra).length)
+          patch.extra = { ...(existData.extra ?? {}), ...extra };
           if (Object.keys(patch).length) {
             const { error: upErr } = await supabase
               .from("customers")
@@ -321,6 +327,17 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
 // -----------------------------------------------------------------------------
 function stripBaseColumns(obj: Partial<Customer>): Record<string, any> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, user_id, name, phone, email, location, signupDate, extra, ...rest } = obj;
+  const {
+    id,
+    user_id,
+    firstName,
+    lastName,
+    phone,
+    email,
+    zipCode,
+    signupDate,
+    extra,
+    ...rest
+  } = obj;
   return { ...(extra ?? {}), ...rest };
 }

@@ -25,10 +25,11 @@ type AnyValue = string | number | boolean | null | undefined;
 type Customer = {
   id: string;
   user_id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phone?: string;
   email?: string;
-  location?: string;
+  zipCode?: string;
   signupDate: string;
   [key: string]: AnyValue;
 };
@@ -340,7 +341,7 @@ export default function CampaignBuilder() {
                       onChange={() => toggleRecipient(c.id)}
                     />
                     <span>
-                      {c.name} – {formatPhone(c.phone)}
+                      {c.firstName} {c.lastName} – {formatPhone(c.phone)}
                     </span>
                   </label>
                 ))

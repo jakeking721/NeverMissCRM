@@ -24,7 +24,7 @@ export default function CustomerEditModal({
 
   if (!isOpen) return null;
 
-  const fields = [{ key: "location", label: "Location", type: "text" as const }, ...customFields];
+  const fields = [{ key: "zipCode", label: "Zip Code", type: "text" as const }, ...customFields];
 
   const handleChange = (key: string, value: any) => {
     setValues((v) => ({ ...v, [key]: value }));

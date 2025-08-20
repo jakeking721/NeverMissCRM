@@ -1,3 +1,25 @@
+- [NEW] Add `first_name`, `last_name`, and `zip_code` columns to Supabase `customers` table and migrate legacy data.
+  Steps:
+    1. In Supabase SQL editor run:
+         alter table public.customers add column first_name text not null default '';
+         alter table public.customers add column last_name text not null default '';
+         alter table public.customers add column zip_code text;
+    2. Backfill from existing columns:
+         update customers set first_name = split_part(name,' ',1), last_name = trim(split_part(name,' ',2)), zip_code = location;
+    3. Drop old `name` and `location` columns when satisfied:
+         alter table public.customers drop column name;
+         alter table public.customers drop column location;
+    4. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+- [NEW] Update `intake_add_customer` RPC to use `p_first_name`, `p_last_name`, and `p_zip_code` parameters.
+  Steps:
+    1. In Supabase SQL editor, redefine the function with the new parameters inserting into `customers(first_name,last_name,phone,zip_code,extra,user_id)`.
+    2. Remove legacy `p_name` and `p_location` usage.
+    3. Test by submitting an intake form and verifying row values.
+- [NEW] Swap placeholder radar icon in `src/pages/Customers.tsx` with final marketing asset.
+  Steps:
+    1. Replace the `FiTarget` icon with the chosen graphic.
+    2. Adjust styles to match branding.
 - [NEW] Apply Supabase migration `20250806080000_add_field_value_upsert_function.sql` to add upsert function for custom field values.
   Steps:
     1. From the project root, run `supabase db push` or execute the SQL in Supabase dashboard.

@@ -37,7 +37,9 @@ export default function Dashboard() {
   const [loadingCustomers, setLoadingCustomers] = useState(true);
 
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "location" | "signupDate">("signupDate");
+  const [sortBy, setSortBy] = useState<"firstName" | "lastName" | "zipCode" | "signupDate">(
+    "signupDate",
+  );
   const [ascending, setAscending] = useState(false);
 
   const [showSmsModal, setShowSmsModal] = useState(false);
@@ -45,9 +47,10 @@ export default function Dashboard() {
 
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [formState, setFormState] = useState<Record<string, AnyValue>>({
-    name: "",
+    firstName: "",
+    lastName: "",
     phone: "",
-    location: "",
+    zipCode: "",
   });
 
   const [slug, setSlug] = useState<string | null>(null);
@@ -135,9 +138,10 @@ export default function Dashboard() {
       if (!s) return true;
 
       const baseHit =
-        (c.name?.toLowerCase?.().includes(s) ?? false) ||
+        (c.firstName?.toLowerCase?.().includes(s) ?? false) ||
+        (c.lastName?.toLowerCase?.().includes(s) ?? false) ||
         (c.phone?.toLowerCase?.().includes(s) ?? false) ||
-        (c.location?.toLowerCase?.().includes(s) ?? false) ||
+        (c.zipCode?.toLowerCase?.().includes(s) ?? false) ||
         (c.signupDate?.toLowerCase?.().includes(s) ?? false);
 
       if (baseHit) return true;
@@ -169,9 +173,10 @@ export default function Dashboard() {
   }, [customers, search, sortBy, ascending, customFields]);
 
   const baseFields = [
-    { key: "name", label: "Name", type: "text" as const, required: true },
+    { key: "firstName", label: "First Name", type: "text" as const, required: true },
+    { key: "lastName", label: "Last Name", type: "text" as const, required: true },
     { key: "phone", label: "Phone", type: "phone" as const, required: true },
-    { key: "location", label: "Location", type: "text" as const, required: false },
+    { key: "zipCode", label: "Zip Code", type: "text" as const, required: false },
   ];
 
   const allFormFields = useMemo(
@@ -208,9 +213,10 @@ export default function Dashboard() {
     const newCustomer: Customer = {
       id: uuidv4(),
       user_id: user!.id,
-      name: String(formState.name ?? ""),
+      firstName: String(formState.firstName ?? ""),
+      lastName: String(formState.lastName ?? ""),
       phone: normalizePhone(formState.phone) || undefined,
-      location: String(formState.location ?? ""),
+      zipCode: String(formState.zipCode ?? ""),
       signupDate: new Date().toISOString(),
       ...customFields.reduce(
         (acc, f) => {
@@ -226,15 +232,16 @@ export default function Dashboard() {
       await reloadCustomers();
       // reset
       setFormState({
-        name: "",
+        firstName: "",
+        lastName: "",
         phone: "",
-        location: "",
+        zipCode: "",
         ...customFields.reduce(
           (acc, f) => {
             acc[f.key] = "";
             return acc;
           },
-          {} as Record<string, AnyValue>
+          {} as Record<string, AnyValue>,
         ),
       });
     } catch (e: any) {
@@ -410,8 +417,9 @@ export default function Dashboard() {
                 className="border rounded px-2 py-1 text-sm"
               >
                 <option value="signupDate">Signup Date</option>
-                <option value="name">Name</option>
-                <option value="location">Location</option>
+                <option value="firstName">First Name</option>
+                <option value="lastName">Last Name</option>
+                <option value="zipCode">Zip Code</option>
               </select>
               <button
                 onClick={() => setAscending((v) => !v)}
@@ -429,9 +437,10 @@ export default function Dashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left">
-                    <th className="py-2">Name</th>
+                    <th className="py-2">First Name</th>
+                    <th className="py-2">Last Name</th>
                     <th className="py-2">Phone</th>
-                    <th className="py-2">Location</th>
+                    <th className="py-2">Zip Code</th>
                     <th className="py-2">Signup</th>
                     <th className="py-2 text-right">Actions</th>
                   </tr>
@@ -446,9 +455,10 @@ export default function Dashboard() {
                   ) : (
                     filtered.map((c) => (
                       <tr key={c.id} className="border-b hover:bg-gray-50">
-                        <td className="py-2">{c.name}</td>
+                        <td className="py-2">{c.firstName}</td>
+                        <td className="py-2">{c.lastName}</td>
                         <td className="py-2">{formatPhone(c.phone)}</td>
-                        <td className="py-2">{c.location}</td>
+                        <td className="py-2">{c.zipCode}</td>
                         <td className="py-2">{new Date(c.signupDate).toLocaleDateString()}</td>
                         <td className="py-2 text-right">
                           <button

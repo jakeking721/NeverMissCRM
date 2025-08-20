@@ -12,10 +12,11 @@ export type Role = "admin" | "user";
 export type Customer = {
   id: string;
   user_id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phone?: string;
   email?: string;
-  location?: string;
+  zipCode?: string;
   signupDate: string;
   [key: string]: any;
 };

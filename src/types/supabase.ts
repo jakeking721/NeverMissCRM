@@ -76,10 +76,11 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          name: string;
+          first_name: string;
+          last_name: string;
           phone: string | null;
           email: string | null;
-          location: string | null;
+          zip_code: string | null;
           signup_date: string;
           extra: Json | null;
           updated_at: string;
@@ -87,20 +88,22 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          name: string;
+          first_name: string;
+          last_name: string;
           phone?: string | null;
           email?: string | null;
-          location?: string | null;
+          zip_code?: string | null;
           signup_date?: string;
           extra?: Json | null;
         };
         Update: {
           id?: string;
           user_id?: string;
-          name?: string;
+          first_name?: string;
+          last_name?: string;
           phone?: string | null;
           email?: string | null;
-          location?: string | null;
+          zip_code?: string | null;
           signup_date?: string;
           extra?: Json | null;
           updated_at?: string;

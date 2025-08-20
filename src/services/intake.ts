@@ -3,17 +3,19 @@ import { normalizePhone } from "@/utils/phone";
 
 export interface IntakeParams {
   slug: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
-  location?: string | null;
+  zipCode?: string | null;
   extra?: Record<string, any> | null;
 }
 
 export async function submitIntake({
   slug,
-  name,
+  firstName,
+  lastName,
   phone,
-  location,
+  zipCode,
   extra,
 }: IntakeParams): Promise<string> {
   const { data: slugRow, error: slugErr } = await supabase
@@ -25,9 +27,10 @@ export async function submitIntake({
 
   const { data, error } = await supabase.rpc("intake_add_customer", {
     p_slug: slug,
-    p_name: name,
+    p_first_name: firstName,
+    p_last_name: lastName,
     p_phone: normalizePhone(phone),
-    p_location: location ?? null,
+    p_zip_code: zipCode ?? null,
     p_extra: extra ?? null,
     p_user_id: slugRow.user_id,
   });

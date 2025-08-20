@@ -112,7 +112,9 @@ export default function SmsBulkModal({ isOpen, onClose, customers }: SmsBulkModa
             <ul className="list-disc ml-5">
               {(showAll ? customers : customers.slice(0, 5)).map((c) => (
                 <li key={c.id}>
-                  {c.name ?? "Unknown"} ({formatPhone(c.phone)})
+                  {(c.firstName || "") + " " + (c.lastName || "").trim() || "Unknown"} (
+                    {formatPhone(c.phone)}
+                  )
                 </li>
               ))}
             </ul>

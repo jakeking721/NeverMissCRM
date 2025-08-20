@@ -12,9 +12,10 @@ interface CustomerTableProps {
 }
 
 const DEFAULT_COLUMNS = [
-  { key: "name", label: "Name" },
+  { key: "firstName", label: "First Name" },
+  { key: "lastName", label: "Last Name" },
   { key: "phone", label: "Phone" },
-  { key: "location", label: "Location" },
+  { key: "zipCode", label: "Zip Code" },
   { key: "signupDate", label: "Signup Date" },
 ];
 

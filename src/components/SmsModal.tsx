@@ -84,7 +84,7 @@ export default function SmsModal({ customer, onClose }: Props) {
 
         <div className="mb-3 text-sm text-gray-700">
           <div>
-            <span className="font-medium">To:</span> {customer.name ?? "Unknown"} (
+            <span className="font-medium">To:</span> {(customer.firstName || "") + " " + (customer.lastName || "").trim() || "Unknown"} (
             {formatPhone(customer.phone) || "No phone"})
           </div>
           <div className="mt-1 text-xs text-gray-500">
