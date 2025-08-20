@@ -44,14 +44,12 @@ export default function Login() {
           .upsert(
             {
               id: userId,                                   // MUST equal auth.uid()
-              email: emailStr ?? null,                      // optional, if you store it
+              email: emailStr ?? null,
               username: (emailStr ?? "").split("@")[0] || null,
-              role: "user",
               credits: 0,
               avatar: null,
-              updated_at: new Date().toISOString(),         // nice to keep fresh
             },
-            { onConflict: "id" }                            // 👈 correct place in v2
+            { onConflict: "id" }                            // keep this here (v2)
           )
           .select("*")
           .single();
