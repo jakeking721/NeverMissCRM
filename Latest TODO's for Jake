@@ -1,3 +1,19 @@
+- [NEW] Apply Supabase migration `20250806080000_add_field_value_upsert_function.sql` to add upsert function for custom field values.
+  Steps:
+    1. From the project root, run `supabase db push` or execute the SQL in Supabase dashboard.
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+- [NEW] Test new Bulk Import wizard and ensure custom fields appear immediately after import.
+  Steps:
+    1. Import a CSV using the wizard, creating new fields and mapping existing ones.
+    2. Confirm progress bar updates and imported customers show their custom fields in Customers and CustomerDetail pages.
+    3. Remove any placeholder/demo customers or fields created during testing.
+- [NEW] Verify admin page `PromoteExtraFields` migrates `customers.extra` keys into real custom fields.
+  Steps:
+    1. Navigate to `/admin/promote-extra-fields` as an admin.
+    2. Promote each listed key, selecting the correct type and options.
+    3. After promotion, confirm values moved to `customer_custom_field_values` and keys removed from `customers.extra`.
+
 - [NEW] Apply Supabase migration `20250806070000_convert_unique_indexes_to_constraints.sql` to convert unique indexes on customer emails and phones into table constraints.
   Steps:
     1. From the project root, run `supabase db push` or execute the SQL file in Supabase dashboard's SQL editor.

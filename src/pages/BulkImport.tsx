@@ -1,4 +1,7 @@
 // src/pages/BulkImport.tsx
+// -----------------------------------------------------------------------------
+// Wizard-based bulk import with custom field mapping
+// -----------------------------------------------------------------------------
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,139 +10,343 @@ import Footer from "@/components/Footer";
 import { v4 as uuid } from "uuid";
 import {
   upsertCustomers,
-  Customer,
+  type Customer,
+  type DedupeOptions,
   type OverwritePolicy,
 } from "@/services/customerService";
-import { normalizePhone } from "@/utils/phone";
-import { normalizeEmail } from "@/utils/email";
-import { useAuth } from "@/context/AuthContext";
+import { getFields, type CustomField, addField } from "@/services/fieldsService";
+
+interface Mapping {
+  header: string;
+  mappedTo?: string; // existing field key
+  createNew: boolean;
+  type: CustomField["type"];
+  options: string[];
+}
 
 export default function BulkImport() {
   const navigate = useNavigate();
-  const [importing, setImporting] = useState(false);
   const { user } = useAuth();
-  const [matchEmail, setMatchEmail] = useState(true);
-  const [matchPhone, setMatchPhone] = useState(false);
-  const [overwrite, setOverwrite] = useState<OverwritePolicy>("skip");
+  const [step, setStep] = useState(0);
+  const [rows, setRows] = useState<string[][]>([]);
+  const [mappings, setMappings] = useState<Mapping[]>([]);
+  const [fields, setFields] = useState<CustomField[]>([]);
+  const [dedupe, setDedupe] = useState<DedupeOptions>({ email: true, phone: false });
+  const [overwrite, setOverwrite] = useState<OverwritePolicy>("keep");
+  const [progress, setProgress] = useState(0);
+  const total = rows.length;
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImporting(true);
-    try {
-      const text = await file.text();
-      const { customers, failures, headers } = parseCsv(text, user!.id);
-      if (customers.length === 0) {
-        alert("No valid rows found in CSV.");
-      } else {
-        const summary = await upsertCustomers(
-          customers,
-          { email: matchEmail, phone: matchPhone },
-          overwrite,
-        );
-        const invalid = failures.length;
-        alert(
-          `Created ${summary.created}, Updated ${summary.updated}, Skipped ${summary.skipped}, Invalid ${invalid}.`,
-        );
-
-        const allFailures = [
-          ...failures.map((f) => ({ row: f.row, reason: f.reason })),
-          ...summary.failures.map((f) => ({
-            row: headers.map((h) => String((f.customer as any)[h] ?? "")),
-            reason: f.reason,
-          })),
-        ];
-        if (allFailures.length > 0) {
-          const csv = [
-            [...headers, "reason"].join(","),
-            ...allFailures.map((r) => [...r.row, r.reason].join(",")),
-          ].join("\n");
-          const blob = new Blob([csv], { type: "text/csv" });
-          const url = URL.createObjectURL(blob);
-          const a = Object.assign(document.createElement("a"), {
-            href: url,
-            download: "import_failures.csv",
-          });
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-        navigate("/customers");
-        setTimeout(() => window.location.reload(), 0);
-      }
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.message || "Failed to import CSV.");
-    } finally {
-      setImporting(false);
-      e.target.value = "";
-    }
+    const text = await file.text();
+    const { headers, rows: parsed } = parseCsv(text);
+    const flds = await getFields();
+    setFields(flds);
+    const maps: Mapping[] = headers.map((h) => {
+      const match = flds.find(
+        (f) => f.key.toLowerCase() === h.toLowerCase() || f.label.toLowerCase() === h.toLowerCase(),
+      );
+      return {
+        header: h,
+        mappedTo: match ? match.key : undefined,
+        createNew: !match,
+        type: "text",
+        options: [],
+      };
+    });
+    setMappings(maps);
+    setStep(1);
   };
 
-  return (
-    <div
-      className="min-h-screen w-full bg-blue-50 relative overflow-x-hidden"
-      style={{
-        background: `url('/flag-bg.svg') center top / cover no-repeat, linear-gradient(to bottom right, #e0e8f8 50%, #f8fafc 100%)`,
-      }}
-    >
-      <Header />
-      <div className="max-w-2xl mx-auto pt-12 px-4 pb-10">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-blue-900 mb-6">
-          Bulk Import Contacts
-        </h1>
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <p className="mb-4 text-sm text-gray-600">
-            Upload a CSV file with columns like <code>name</code>, <code>phone</code>, and optional
-            additional fields. Existing contacts will be updated or added.
-          </p>
-          <div className="mb-4 space-y-2">
-            <label className="block text-sm font-medium">Duplicate Handling</label>
-            <div className="flex flex-col gap-2 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={matchEmail}
-                  onChange={(e) => setMatchEmail(e.target.checked)}
-                />
-                Match duplicates by Email
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={matchPhone}
-                  onChange={(e) => setMatchPhone(e.target.checked)}
-                />
-                Match duplicates by Phone
-              </label>
-              <div className="flex items-center gap-2">
-                <span>On duplicate</span>
-                <select
-                  className="border rounded px-2 py-1"
-                  value={overwrite}
-                  onChange={(e) => setOverwrite(e.target.value as OverwritePolicy)}
-                >
-                  <option value="skip">Skip</option>
-                  <option value="update">Update</option>
-                </select>
-              </div>
+  const handleImport = async () => {
+    const userId = user!.id;
+    // Create new fields first
+    for (const m of mappings.filter((m) => m.createNew)) {
+      const id = uuid();
+      await addField({
+        id,
+        key: sanitizeKey(m.header),
+        label: m.header,
+        type: m.type,
+        options: m.options,
+        order: fields.length + 1,
+        visibleOn: { dashboard: false, customers: true, campaigns: false },
+      });
+    }
+    // Refresh fields
+    const updatedFields = await getFields();
+    // Build customers from rows
+    const customers: Customer[] = rows.map((r) => {
+      const base: any = {
+        id: uuid(),
+        user_id: userId,
+        name: "",
+        signupDate: new Date().toISOString(),
+      };
+      const extra: Record<string, any> = {};
+      mappings.forEach((m, i) => {
+        const val = r[i];
+        if (m.mappedTo || m.createNew) {
+          const key = m.mappedTo || sanitizeKey(m.header);
+          base[key] = val;
+        } else {
+          extra[m.header] = val;
+        }
+      });
+      base.extra = extra;
+      return base as Customer;
+    });
+    await upsertCustomers(
+      customers,
+      dedupe,
+      overwrite,
+      (done) => setProgress(done / total),
+    );
+    await getFields();
+    navigate("/customers");
+    setTimeout(() => window.location.reload(), 0);
+  };
+
+  if (step === 0) {
+    return (
+      <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
+        <Header />
+        <div className="max-w-xl mx-auto pt-12 px-4 pb-10">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-blue-900 mb-6">Bulk Import Contacts</h1>
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <input type="file" accept=".csv" onChange={handleFile} />
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (step === 1) {
+    return (
+      <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
+        <Header />
+        <div className="max-w-3xl mx-auto pt-12 px-4 pb-10">
+          <h2 className="text-xl font-bold mb-4">Step 1 – Preview & Auto-Map</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-4 md:p-8">
+            <div className="flex gap-2 mb-4 text-sm">
+              <button
+                className="px-3 py-1 bg-gray-200 rounded"
+                onClick={() =>
+                  setMappings((m) => m.map((x) => ({ ...x, createNew: true, mappedTo: undefined })))}
+              >
+                Add all as new fields
+              </button>
+              <button
+                className="px-3 py-1 bg-gray-200 rounded"
+                onClick={() => {
+                  const key = window.prompt("Map all to existing field key:");
+                  if (key)
+                    setMappings((m) =>
+                      m.map((x) => ({ ...x, createNew: false, mappedTo: key })),
+                    );
+                }}
+              >
+                Map to existing…
+              </button>
+            </div>
+            <table className="w-full text-sm mb-4">
+              <thead>
+                <tr>
+                  <th className="text-left">Column</th>
+                  <th className="text-left">Map to</th>
+                  <th className="text-left">New field?</th>
+                  <th className="text-left">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mappings.map((m, idx) => (
+                  <tr key={m.header} className="border-t">
+                    <td className="py-2">{m.header}</td>
+                    <td>
+                      <select
+                        value={m.mappedTo || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setMappings((prev) => {
+                            const copy = [...prev];
+                            copy[idx].mappedTo = val || undefined;
+                            copy[idx].createNew = !val;
+                            return copy;
+                          });
+                        }}
+                        className="border rounded p-1"
+                      >
+                        <option value="">--</option>
+                        {fields.map((f) => (
+                          <option key={f.key} value={f.key}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="text-center">
+                      <input
+                        type="checkbox"
+                        checked={m.createNew}
+                        onChange={(e) =>
+                          setMappings((prev) => {
+                            const copy = [...prev];
+                            copy[idx].createNew = e.target.checked;
+                            if (e.target.checked) copy[idx].mappedTo = undefined;
+                            return copy;
+                          })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <select
+                        value={m.type}
+                        onChange={(e) =>
+                          setMappings((prev) => {
+                            const copy = [...prev];
+                            copy[idx].type = e.target.value as any;
+                            return copy;
+                          })
+                        }
+                        className="border rounded p-1"
+                        disabled={!m.createNew}
+                      >
+                        {[
+                          "text",
+                          "number",
+                          "date",
+                          "email",
+                          "phone",
+                          "boolean",
+                          "select",
+                          "multiselect",
+                        ].map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                      {(m.createNew && (m.type === "select" || m.type === "multiselect")) && (
+                        <input
+                          className="border rounded p-1 mt-1 w-full"
+                          placeholder="Options comma separated"
+                          value={m.options.join(",")}
+                          onChange={(e) =>
+                            setMappings((prev) => {
+                              const copy = [...prev];
+                              copy[idx].options = e.target.value
+                                .split(",")
+                                .map((s) => s.trim())
+                                .filter(Boolean);
+                              return copy;
+                            })
+                          }
+                        />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex justify-end gap-2">
+              <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setStep(0)}>
+                Back
+              </button>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep(2)}>
+                Next
+              </button>
             </div>
           </div>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleFile}
-            disabled={importing}
-            className="mb-4"
-          />
-          {importing && <div className="text-sm text-gray-500">Importing…</div>}
         </div>
-        <div className="mt-8 flex justify-end">
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-800 transition"
-          >
-            Back to Dashboard
-          </button>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
+        <Header />
+        <div className="max-w-xl mx-auto pt-12 px-4 pb-10">
+          <h2 className="text-xl font-bold mb-4">Step 2 – Duplicates</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+            <div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={dedupe.email}
+                  onChange={(e) => setDedupe({ ...dedupe, email: e.target.checked })}
+                />
+                Match by Email
+              </label>
+              <label className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  checked={dedupe.phone}
+                  onChange={(e) => setDedupe({ ...dedupe, phone: e.target.checked })}
+                />
+                Match by Phone
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>On duplicate:</span>
+              <select
+                value={overwrite}
+                onChange={(e) => setOverwrite(e.target.value as OverwritePolicy)}
+                className="border rounded p-1"
+              >
+                <option value="keep">Keep existing</option>
+                <option value="fill">Fill blanks only</option>
+                <option value="overwrite">Overwrite all</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setStep(1)}>
+                Back
+              </button>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setStep(3)}>
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Step 3
+  const mapped = mappings.filter((m) => m.mappedTo).length;
+  const newFields = mappings.filter((m) => m.createNew).length;
+  const unmapped = mappings.length - mapped - newFields;
+
+  return (
+    <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
+      <Header />
+      <div className="max-w-xl mx-auto pt-12 px-4 pb-10">
+        <h2 className="text-xl font-bold mb-4">Step 3 – Confirm</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+          <div className="flex gap-2 flex-wrap text-sm">
+            <span className="bg-blue-100 px-2 py-1 rounded">{mapped} mapped</span>
+            <span className="bg-green-100 px-2 py-1 rounded">{newFields} new fields</span>
+            <span className="bg-yellow-100 px-2 py-1 rounded">{unmapped} unmapped</span>
+          </div>
+          <div className="h-4 bg-gray-200 rounded overflow-hidden">
+            <div
+              className="h-full bg-blue-600"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            ></div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setStep(2)}>
+              Back
+            </button>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleImport}>
+              Import
+            </button>
+          </div>
         </div>
       </div>
       <Footer />
@@ -147,39 +354,17 @@ export default function BulkImport() {
   );
 }
 
-function parseCsv(text: string, userId: string): {
-  customers: Customer[];
-  failures: { row: string[]; reason: string }[];
-  headers: string[];
-} {
+function parseCsv(text: string): { headers: string[]; rows: string[][] } {
   const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return { customers: [], failures: [], headers: [] };
+  if (lines.length === 0) return { headers: [], rows: [] };
   const headers = lines[0].split(",").map((h) => h.trim());
-  const customers: Customer[] = [];
-  const failures: { row: string[]; reason: string }[] = [];
-  lines.slice(1).forEach((line) => {
-    const cols = line.split(",").map((c) => c.trim());
-    const obj: any = {};
-    headers.forEach((h, i) => {
-      obj[h] = cols[i] ?? "";
-    });
-    const { name = "", phone = "", email = "", location = "", ...extra } = obj;
-    const normPhone = normalizePhone(phone);
-    const normEmail = normalizeEmail(email);
-    if ((phone && !normPhone) || (email && !normEmail)) {
-      failures.push({ row: cols, reason: "invalid" });
-      return;
-    }
-    customers.push({
-      id: uuid(),
-      user_id: userId,
-      name,
-      phone: normPhone || null,
-      email: normEmail || null,
-      location,
-      signupDate: new Date().toISOString(),
-      ...extra,
-    } as Customer);
-  });
-  return { customers, failures, headers };
+  const rows = lines.slice(1).map((l) => l.split(",").map((c) => c.trim()));
+  return { headers, rows };
+}
+
+function sanitizeKey(header: string): string {
+  return header
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
 }
