@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import PageShell from "@/components/PageShell";
 import { supabase } from "@/utils/supabaseClient";
-import { getProfilesOrderKey } from "@/utils/profiles";
 import { toast } from "react-toastify";
 import type { Database } from "@/types/supabase";
 
@@ -23,7 +22,8 @@ export default function AdminUsers() {
     let query = supabase
       .from("profiles")
       .select("*", { count: "exact" })
-      .order(getProfilesOrderKey(), { ascending: false, nullsFirst: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
     const s = search.trim();
     if (s) {
       query = query.or(
@@ -140,7 +140,7 @@ export default function AdminUsers() {
                 <th className="p-2">Role</th>
                 <th className="p-2">Approved</th>
                 <th className="p-2">Active</th>
-                <th className="p-2">Updated</th>
+                <th className="p-2">Created</th>
                 <th className="p-2 text-right">Actions</th>
               </tr>
             </thead>
@@ -167,11 +167,7 @@ export default function AdminUsers() {
                       <td className="p-2 capitalize">{u.role}</td>
                       <td className="p-2">{u.is_approved ? "Yes" : "No"}</td>
                       <td className="p-2">{u.is_active ? "Yes" : "No"}</td>
-                      <td className="p-2">
-                        {u.updated_at
-                          ? new Date(u.updated_at).toLocaleDateString()
-                          : u.id}
-                      </td>
+                      <td className="p-2">{u.created_at ?? u.id}</td>
                       <td className="p-2 text-right space-x-2 whitespace-nowrap">
                         {!u.is_approved && (
                           <button

@@ -14,12 +14,11 @@
   Steps:
     1. Ensure migration `20250807090000_add_profile_approval_flags.sql` (defines `handle_new_user`) is applied in Supabase.
 
-- [UPDATED] Admin Users page now displays the `updated_at` field with a fallback to user `id`.
+- [UPDATED] Admin Users page now orders by and displays the `created_at` field with a fallback to user `id`.
   Steps:
-    1. In Supabase SQL editor, backfill missing `updated_at` values for existing profiles:
-         update profiles set updated_at = inserted_at where updated_at is null;
-    2. (Optional) Add a trigger to maintain `updated_at` automatically on row updates.
-    3. Regenerate Supabase types if the schema changes:
+    1. In Supabase SQL editor, backfill missing `created_at` values for existing profiles if any are null:
+         update profiles set created_at = inserted_at where created_at is null;
+    2. Regenerate Supabase types if the schema changes:
          supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
 - [NEW] Add `first_name`, `last_name`, and `zip_code` columns to Supabase `customers` table and migrate legacy data.
   Steps:
