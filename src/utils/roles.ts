@@ -12,6 +12,9 @@ export type Profile = {
   role: Role;
   credits: number;
   avatar: string | null;
+  is_approved: boolean;
+  is_active: boolean;
+  deactivated_at?: string | null;
 };
 
 export const isAdmin = (profile?: Profile | null) => profile?.role === "admin";

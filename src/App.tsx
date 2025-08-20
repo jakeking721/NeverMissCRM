@@ -42,6 +42,9 @@ import FormBuilder from "./pages/builder/FormBuilder";
 
 import Help from "./pages/Help";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/admin/Users";
+import Pending from "./pages/Pending";
+import Prohibited from "./pages/Prohibited";
 import NotFound from "./pages/NotFound";
 
 import ProtectedRoute, { RedirectIfLoggedIn } from "./routes/ProtectedRoute";
@@ -88,11 +91,14 @@ export default function App() {
             <Route path="/settings/billing" element={<Billing />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/qrcode" element={<QRCodePage />} />
+            <Route path="/pending" element={<Pending />} />
+            <Route path="/prohibited" element={<Prohibited />} />
           </Route>
 
           {/* -------------------- Admin-only -------------------- */}
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
           </Route>
 
           {/* -------------------- 404 -------------------- */}

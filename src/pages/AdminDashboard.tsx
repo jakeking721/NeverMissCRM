@@ -7,6 +7,7 @@
 // ------------------------------------------------------------------------------------
 
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { useAuth } from "@/context/AuthContext";
 import { isAdmin } from "@/utils/roles";
@@ -97,6 +98,12 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-semibold mb-1">Admin Dashboard</h1>
             <p className="text-sm text-gray-600">Manage users, credits, and global settings.</p>
           </div>
+          <Link
+            to="/admin/users"
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Users
+          </Link>
         </header>
 
         {/* Quick stats */}

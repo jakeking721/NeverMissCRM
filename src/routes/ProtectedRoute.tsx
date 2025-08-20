@@ -1,39 +1,29 @@
 // src/routes/ProtectedRoute.tsx
 // -----------------------------------------------------------------------------
-// Simplified ProtectedRoute
-// - Uses Supabase-backed AuthContext.user
-// - Fetches profile role when adminOnly is true
+// Auth-aware route guard
+// - Redirects to /login when not authenticated
+// - Non-admins: /pending if not approved, /prohibited if deactivated
 // -----------------------------------------------------------------------------
 
 import React from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "@/utils/supabaseClient";
 import Loader from "@/components/Loader";
 
-type ProtectedProps = {
-  adminOnly?: boolean;
-};
-export default function ProtectedRoute({ adminOnly = false }: ProtectedProps) {
-  const { user, ready } = useAuth();
-  const [isAdminUser, setIsAdminUser] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!user || !adminOnly) return;
-    const check = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      setIsAdminUser(data?.role === "admin");
-    };
-    void check();
-  }, [user, adminOnly]);
+export default function ProtectedRoute() {
+  const { user, session, ready } = useAuth();
+  const location = useLocation();
 
   if (!ready) return <Loader />;
-  if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && !isAdminUser) return <Navigate to="/dashboard" replace />;
+  if (!session || !user) return <Navigate to="/login" replace />;
+
+  const isAdmin = user.role === "admin";
+  if (!isAdmin && !user.is_approved && location.pathname !== "/pending") {
+    return <Navigate to="/pending" replace />;
+  }
+  if (!isAdmin && !user.is_active && location.pathname !== "/prohibited") {
+    return <Navigate to="/prohibited" replace />;
+  }
 
   return <Outlet />;
 }

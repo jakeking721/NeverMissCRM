@@ -10,6 +10,10 @@ export default function Header() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
+  const admin = isAdmin(user || undefined);
+  const limited =
+    !!user && !admin && (!user.is_approved || !user.is_active);
+
   const handleLogout = () => {
     logoutUser();
     refresh();
@@ -31,18 +35,22 @@ export default function Header() {
           <Link to="/" className="hover:text-blue-600">
             Home
           </Link>
-          <Link to="/dashboard" className="hover:text-blue-600">
-            Dashboard
-          </Link>
-          <Link to="/customers" className="hover:text-blue-600">
-            Customers
-          </Link>
-          <Link to="/campaigns" className="hover:text-blue-600">
-            Campaigns
-          </Link>
-          <Link to="/settings" className="hover:text-blue-600">
-            Settings
-          </Link>
+          {!limited && user && (
+            <>
+              <Link to="/dashboard" className="hover:text-blue-600">
+                Dashboard
+              </Link>
+              <Link to="/customers" className="hover:text-blue-600">
+                Customers
+              </Link>
+              <Link to="/campaigns" className="hover:text-blue-600">
+                Campaigns
+              </Link>
+              <Link to="/settings" className="hover:text-blue-600">
+                Settings
+              </Link>
+            </>
+          )}
           <Link to="/help" className="hover:text-blue-600">
             Help
           </Link>
@@ -60,13 +68,15 @@ export default function Header() {
             </button>
             {open && (
               <div className="absolute right-0 mt-2 bg-white border rounded-lg shadow-lg py-2 text-sm w-40">
-                <Link
-                  to="/settings"
-                  className="block px-4 py-2 hover:bg-gray-50"
-                  onClick={() => setOpen(false)}
-                >
-                  Settings
-                </Link>
+                {!limited && (
+                  <Link
+                    to="/settings"
+                    className="block px-4 py-2 hover:bg-gray-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    Settings
+                  </Link>
+                )}
                 <Link
                   to="/help"
                   className="block px-4 py-2 hover:bg-gray-50"
@@ -74,7 +84,7 @@ export default function Header() {
                 >
                   Help
                 </Link>
-                {isAdmin(user) && (
+                {admin && (
                   <Link
                     to="/admin"
                     className="block px-4 py-2 hover:bg-gray-50"

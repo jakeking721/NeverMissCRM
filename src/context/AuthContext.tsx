@@ -38,7 +38,7 @@ async function fetchProfile(u: SupaUser | null | undefined): Promise<Profile | n
   if (!u) return null;
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,email,username,role,credits,avatar")
+    .select("id,email,username,role,credits,avatar,is_approved,is_active,deactivated_at")
     .eq("id", u.id)
     .single();
   if (error) {

@@ -55,6 +55,9 @@ export interface Database {
           role: string | null;
           credits: number | null;
           avatar: string | null;
+          is_approved: boolean;
+          is_active: boolean;
+          deactivated_at: string | null;
         };
         Insert: {
           id: string;
@@ -62,6 +65,9 @@ export interface Database {
           role?: string | null;
           credits?: number | null;
           avatar?: string | null;
+          is_approved?: boolean;
+          is_active?: boolean;
+          deactivated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -69,6 +75,9 @@ export interface Database {
           role?: string | null;
           credits?: number | null;
           avatar?: string | null;
+          is_approved?: boolean;
+          is_active?: boolean;
+          deactivated_at?: string | null;
         };
       };
 

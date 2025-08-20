@@ -254,3 +254,16 @@
     1. Seed at least one admin profile using the SQL above.
     2. Remove any temporary admin login links or placeholder data before launch.
     3. Test `/admin` as both admin and non-admin to confirm navigation and Forbidden messaging.
+- [NEW] Apply Supabase migration `20250807090000_add_profile_approval_flags.sql` to add approval flags and tighten RLS.
+  Steps:
+    1. In Supabase SQL editor or via CLI, run the SQL in `supabase/migrations/20250807090000_add_profile_approval_flags.sql`.
+    2. Confirm `profiles` has `is_approved`, `is_active`, and `deactivated_at` columns with defaults.
+    3. Verify updated policies on `profiles`, `campaigns`, and `customers` enforce admin access and require approved/active profiles for writes.
+- [NEW] Regenerate Supabase types after applying the migration.
+  Steps:
+    1. Execute `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+    2. Commit the regenerated `src/types/supabase.ts`.
+- [NEW] Review new admin user management at `/admin/users`.
+  Steps:
+    1. As an admin, test Approve/Prohibit/Delete/Make Admin actions and ensure toasts reflect results.
+    2. In Supabase dashboard, confirm profile rows update accordingly and remove any test or placeholder accounts.
