@@ -170,7 +170,7 @@ export default function AdminUsers() {
                       <td className="p-2">
                         {u.updated_at
                           ? new Date(u.updated_at).toLocaleDateString()
-                          : ""}
+                          : u.id}
                       </td>
                       <td className="p-2 text-right space-x-2 whitespace-nowrap">
                         {!u.is_approved && (

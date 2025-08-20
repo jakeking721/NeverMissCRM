@@ -1,8 +1,9 @@
-- [NEW] Ensure profiles have a reliable `created_at` timestamp or continue using `updated_at` for ordering.
+- [UPDATED] Admin Users page now displays the `updated_at` field with a fallback to user `id`.
   Steps:
-    1. In Supabase SQL editor, consider adding `created_at timestamptz default now()` to `public.profiles`.
-    2. Backfill from `inserted_at` or `updated_at` as appropriate.
-    3. Regenerate Supabase types:
+    1. In Supabase SQL editor, backfill missing `updated_at` values for existing profiles:
+         update profiles set updated_at = inserted_at where updated_at is null;
+    2. (Optional) Add a trigger to maintain `updated_at` automatically on row updates.
+    3. Regenerate Supabase types if the schema changes:
          supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
 - [NEW] Add `first_name`, `last_name`, and `zip_code` columns to Supabase `customers` table and migrate legacy data.
   Steps:
