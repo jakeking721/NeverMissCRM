@@ -1,3 +1,9 @@
+- [NEW] Apply Supabase migration `20250807091000_add_is_admin_function_and_profile_policies.sql` to add `is_admin` helper and tighten `profiles` policies.
+  Steps:
+    1. From the project root, run `supabase db push` or execute the SQL in Supabase dashboard's SQL editor.
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+
 - [NEW] Client-side profile upserts removed; profiles are now auto-created by the Supabase `handle_new_user` trigger.
   Steps:
     1. Ensure migration `20250807090000_add_profile_approval_flags.sql` (defines `handle_new_user`) is applied in Supabase.
