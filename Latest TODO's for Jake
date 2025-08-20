@@ -1,3 +1,9 @@
+- [NEW] Ensure profiles have a reliable `created_at` timestamp or continue using `updated_at` for ordering.
+  Steps:
+    1. In Supabase SQL editor, consider adding `created_at timestamptz default now()` to `public.profiles`.
+    2. Backfill from `inserted_at` or `updated_at` as appropriate.
+    3. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
 - [NEW] Add `first_name`, `last_name`, and `zip_code` columns to Supabase `customers` table and migrate legacy data.
   Steps:
     1. In Supabase SQL editor run:
