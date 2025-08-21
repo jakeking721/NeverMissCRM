@@ -4,7 +4,11 @@
     1. Run `npm run dev` or build the project.
     2. Navigate to Home, Bulk Import, and Promote Extra Fields pages.
     3. Ensure the global header and footer appear once and spacing looks correct.
-- [TODO] Replace placeholder hero image (`/public/hero-media.jpg`) with final imagery.
+- [TODO] Replace footer headline, description, and pill badges with final copy.
+  Steps:
+    1. Update `src/components/Footer.tsx` with production text and badge labels.
+    2. Run `npm run build` and verify footer content on multiple pages and screen sizes.
+- [TODO] Replace placeholder hero image (`/public/hero-media.jpg`) with final imagery. 
   Steps:
     1. Swap `/public/hero-media.jpg` with production asset.
     2. Run `npm run build` and verify hero renders correctly.
