@@ -46,6 +46,9 @@ export default function Header() {
               <Link to="/campaigns" className="hover:text-blue-600">
                 Campaigns
               </Link>
+              <Link to="/forms" className="hover:text-blue-600">
+                Forms
+              </Link>
               <Link to="/settings" className="hover:text-blue-600">
                 Settings
               </Link>

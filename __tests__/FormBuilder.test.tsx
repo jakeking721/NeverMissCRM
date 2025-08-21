@@ -2,8 +2,8 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { vi } from "vitest";
 
-import FormList from "@/pages/builder/FormList";
-import FormBuilder from "@/pages/builder/FormBuilder";
+import FormList from "@/pages/forms/List";
+import FormBuilder from "@/pages/forms/Edit";
 
 vi.mock("@/services/forms", () => ({
   fetchForms: vi.fn().mockResolvedValue([]),
@@ -25,10 +25,10 @@ vi.spyOn(window, "alert").mockImplementation(() => {});
 test("adds title block and saves", async () => {
   await act(async () => {
     render(
-      <MemoryRouter initialEntries={["/builder"]}>
+      <MemoryRouter initialEntries={["/forms"]}>
         <Routes>
-          <Route path="/builder" element={<FormList />} />
-          <Route path="/builder/:formId" element={<FormBuilder />} />
+          <Route path="/forms" element={<FormList />} />
+          <Route path="/forms/:formId" element={<FormBuilder />} />
         </Routes>
       </MemoryRouter>
     );
@@ -67,10 +67,10 @@ test("adds title block and saves", async () => {
 test("clicking block opens inspector and updates preview", async () => {
   await act(async () => {
     render(
-      <MemoryRouter initialEntries={["/builder"]}>
+      <MemoryRouter initialEntries={["/forms"]}>
         <Routes>
-          <Route path="/builder" element={<FormList />} />
-          <Route path="/builder/:formId" element={<FormBuilder />} />
+          <Route path="/forms" element={<FormList />} />
+          <Route path="/forms/:formId" element={<FormBuilder />} />
         </Routes>
       </MemoryRouter>
     );
@@ -103,10 +103,10 @@ test("mobile palette toggles", async () => {
 
   await act(async () => {
     render(
-      <MemoryRouter initialEntries={["/builder"]}>
+      <MemoryRouter initialEntries={["/forms"]}>
         <Routes>
-          <Route path="/builder" element={<FormList />} />
-          <Route path="/builder/:formId" element={<FormBuilder />} />
+          <Route path="/forms" element={<FormList />} />
+          <Route path="/forms/:formId" element={<FormBuilder />} />
         </Routes>
       </MemoryRouter>
     );

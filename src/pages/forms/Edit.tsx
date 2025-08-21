@@ -210,7 +210,7 @@ export default function FormBuilder() {
     if (formId && formId !== "new") payload.id = formId;
     try {
       await saveForm(payload);
-      navigate("/builder");
+      navigate("/forms");
     } catch (e: any) {
       toast.error(e?.message || "Failed to save form");
     }

@@ -1,3 +1,38 @@
+### Campaign and Forms Enhancements
+- [TODO] Create Supabase `intake_campaigns` table for intake campaign management.
+  Steps:
+    1. In Supabase SQL editor run:
+         create table public.intake_campaigns (
+           id uuid primary key default gen_random_uuid(),
+           owner_id uuid references auth.users(id),
+           title text,
+           slug text,
+           form_id uuid references campaign_forms(id),
+           start_date timestamptz,
+           end_date timestamptz,
+           status text default 'draft',
+           created_at timestamptz default now()
+         );
+    2. Add unique constraint on (owner_id, slug).
+    3. Regenerate Supabase types: supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+
+- [TODO] Configure production QR domain for intake campaign links.
+  Steps:
+    1. Set VITE_PUBLIC_APP_URL to the live domain.
+    2. Regenerate any QR codes or links with the new domain.
+
+- [TODO] Replace SMS placeholders with a real provider.
+  Steps:
+    1. Install and configure provider SDK (e.g., Twilio).
+    2. Update src/services/smsService.ts and src/pages/campaigns/SmsList.tsx to use the provider API.
+    3. Test sending and tracking messages in a sandbox environment.
+
+- [TODO] Implement form template versioning so saves do not mutate active campaigns.
+  Steps:
+    1. Add a version column or companion table to campaign_forms.
+    2. Update saveForm to insert new versions instead of upserts.
+    3. Update any campaign references to lock onto a specific form version.
+
 ### Auth Flow and Supabase Setup
 - [INFO] Auth flow now relies on Supabase's auth listener for session hydration and refresh.
   Steps:

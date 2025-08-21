@@ -2,7 +2,7 @@
 // ------------------------------------------------------------------------------------
 // Central route registry
 // - Public:        /, /login, /register, /help, /u/:username, /intake/:slug
-// - Protected:     /dashboard, /customers, /campaigns, /campaigns/new,
+// - Protected:     /dashboard, /customers, /campaigns, /campaigns/sms, /campaigns/sms/new, /campaigns/intake, /campaigns/intake/new, /forms,
 //                  /analytics, /settings, /settings/fields, /settings/billing,
 //                  /profile, /qrcode
 // - Admin-only:    /admin
@@ -25,7 +25,10 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import CustomerDetail from "./pages/CustomerDetail";
-import Campaigns from "./pages/Campaigns";
+import CampaignDashboard from "./pages/campaigns/Dashboard";
+import SmsList from "./pages/campaigns/SmsList";
+import IntakeCampaignList from "./pages/campaigns/intake/List";
+import NewIntakeCampaign from "./pages/campaigns/intake/New";
 import CampaignBuilder from "./pages/CampaignBuilder";
 import Analytics from "./pages/Analytics";
 
@@ -37,8 +40,8 @@ import Profile from "./pages/Profile";
 import QRCodePage from "./pages/QRCode";
 import CustomerIntake from "./pages/CustomerIntake";
 import IntakeRenderer from "./pages/intake/IntakeRenderer";
-import FormList from "./pages/builder/FormList";
-import FormBuilder from "./pages/builder/FormBuilder";
+import FormList from "./pages/forms/List";
+import FormBuilder from "./pages/forms/Edit";
 
 import Help from "./pages/Help";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -81,10 +84,13 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerDetail />} />
-            <Route path="/campaigns" element={<Campaigns />} />
-            <Route path="/campaigns/new" element={<CampaignBuilder />} />
-            <Route path="/builder" element={<FormList />} />
-            <Route path="/builder/:formId" element={<FormBuilder />} />
+            <Route path="/campaigns" element={<CampaignDashboard />} />
+            <Route path="/campaigns/sms" element={<SmsList />} />
+            <Route path="/campaigns/sms/new" element={<CampaignBuilder />} />
+            <Route path="/campaigns/intake" element={<IntakeCampaignList />} />
+            <Route path="/campaigns/intake/new" element={<NewIntakeCampaign />} />
+            <Route path="/forms" element={<FormList />} />
+            <Route path="/forms/:formId" element={<FormBuilder />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/settings/fields" element={<Fields />} />

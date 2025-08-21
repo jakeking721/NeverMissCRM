@@ -1,9 +1,9 @@
-// src/pages/Campaigns.tsx
+// src/pages/campaigns/SmsList.tsx
 // ------------------------------------------------------------------------------------
-// Campaigns page (Supabase-ready)
+// SMS campaigns list (Supabase-ready)
 // - Async load from campaignService
 // - Delete campaigns
-// - Link to /campaigns/new builder
+// - Placeholder for future SMS builder
 // ------------------------------------------------------------------------------------
 
 import React, { useEffect, useState } from "react";
@@ -13,7 +13,7 @@ import { getCampaigns, removeCampaign, Campaign } from "@/services/campaignServi
 import { creditsService } from "@/services/creditsService";
 import { supabase } from "@/utils/supabaseClient";
 
-export default function Campaigns() {
+export default function SmsList() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState<number>(0);
@@ -68,14 +68,14 @@ export default function Campaigns() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-semibold mb-1">Campaigns</h1>
+            <h1 className="text-2xl font-semibold mb-1">SMS Campaigns</h1>
             <p className="text-sm text-gray-600">
               Create and manage scheduled SMS campaigns. Current credits:{" "}
               <span className="font-semibold">{credits}</span>
             </p>
           </div>
           <Link
-            to="/campaigns/new"
+            to="/campaigns/sms/new"
             className="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
           >
             + New Campaign
@@ -89,7 +89,7 @@ export default function Campaigns() {
           ) : campaigns.length === 0 ? (
             <div className="text-center text-gray-500 py-6">
               No campaigns yet.{" "}
-              <Link to="/campaigns/new" className="text-blue-600 hover:underline">
+              <Link to="/campaigns/sms/new" className="text-blue-600 hover:underline">
                 Create one
               </Link>
               .
@@ -139,7 +139,7 @@ export default function Campaigns() {
 
         {/* Footer Info */}
         <p className="text-xs text-gray-500 text-center">
-          Campaigns are currently stored in Supabase (or locally if stubbed). Future versions will
+           SMS campaigns are stored in Supabase (or locally if stubbed). Future versions will
           support drafts, analytics, and Twilio scheduling.
         </p>
       </div>
