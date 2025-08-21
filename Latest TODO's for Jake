@@ -1,3 +1,23 @@
+### Auth Flow and Supabase Setup
+- [INFO] Auth flow now relies on Supabase's auth listener for session hydration and refresh.
+  Steps:
+    1. Sessions are automatically restored on page load; no manual `getSession` calls are needed.
+    2. AuthContext updates whenever Supabase emits auth events.
+
+- [TODO] Manual Supabase setup.
+  Steps:
+    1. Seed at least one admin profile in Supabase:
+         update profiles set role = 'admin' where email = '<ADMIN_EMAIL>';
+    2. Keep SMS placeholders in `.env` until a real provider is configured:
+         VITE_SMS_API_KEY='placeholder'
+         VITE_SMS_API_URL='placeholder'
+
+- [TEST] Verify session refresh locally.
+  Steps:
+    1. Sign in and navigate to a protected page.
+    2. In the dev console run `await supabase.auth.refreshSession()` and ensure no error is thrown.
+    3. Refresh the browser and confirm the session persists without logging in again.
+
 
  - [UPDATED] Registration page now relies on the auth listener for session hydration.
    Steps:
