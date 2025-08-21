@@ -1,3 +1,15 @@
+### Intake Submissions
+- [TODO] Apply migration `20250903090000_create_intake_submissions.sql` and regenerate types.
+  Steps:
+    1. From the project root run `supabase db push`.
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+    3. Review `intake_submissions` for any placeholder rows and clear them before launch.
+- [TODO] Review existing customers for duplicates after enabling intake submissions.
+  Steps:
+    1. In Supabase dashboard, check `customers` for duplicate phone or email per user.
+    2. Merge or remove any duplicates manually.
+
 ### Campaign Form Snapshot
 - [TODO] Apply migration `20250902090000_add_form_fields_to_campaigns.sql` and regenerate types.
   Steps:

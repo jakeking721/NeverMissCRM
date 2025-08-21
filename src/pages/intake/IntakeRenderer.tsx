@@ -1,7 +1,7 @@
 // src/pages/intake/IntakeRenderer.tsx
 // -----------------------------------------------------------------------------
 // Renders a campaign intake form from JSON schema
-// - Fetches campaign_forms.schema_json by campaign slug & form slug
+// - Loads campaign by slug and renders snapshot or template
 // - Supports blocks: Text, Image, Input (text/email/phone), Choice, Button, PDF, Link
 // - Validates inputs with Yup and submits via services/intake.submitIntake
 // -----------------------------------------------------------------------------
@@ -17,7 +17,6 @@ import Success from "./Success";
 
 interface RouteParams extends Record<string, string | undefined> {
   slug?: string;
-  formSlug?: string;
 }
 
 interface BaseBlock {
@@ -88,7 +87,7 @@ type Block =
   | MultiSelectBlock;
 
 export default function IntakeRenderer() {
-  const { slug = "", formSlug = "" } = useParams<RouteParams>();
+  const { slug = "" } = useParams<RouteParams>();
   const [searchParams] = useSearchParams();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +95,7 @@ export default function IntakeRenderer() {
   const [values, setValues] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [campaignInfo, setCampaignInfo] = useState<{ id: string; owner_id: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -103,7 +103,7 @@ export default function IntakeRenderer() {
       try {
         const { data: camp, error: campErr } = await supabase
           .from("intake_campaigns")
-          .select("id")
+          .select("id, owner_id, form_snapshot_json, form_template_id")
           .eq("slug", slug)
           .single();
         if (!mounted) return;
@@ -112,19 +112,24 @@ export default function IntakeRenderer() {
           setLoading(false);
           return;
         }
-        const { data, error } = await supabase
-          .from("campaign_forms")
-          .select("schema_json")
-          .eq("campaign_id", camp.id)
-          .eq("slug", formSlug)
-          .single();
-        if (!mounted) return;
-        if (error || !data) {
-          setError("Form not found");
-          setLoading(false);
-          return;
+        setCampaignInfo({ id: camp.id, owner_id: camp.owner_id });
+
+        let schemaBlocks: Block[] = [];
+        if (camp.form_snapshot_json) {
+          schemaBlocks = camp.form_snapshot_json.blocks ?? [];
+        } else if (camp.form_template_id) {
+          const { data, error } = await supabase
+            .from("campaign_forms")
+            .select("schema_json")
+            .eq("id", camp.form_template_id)
+            .single();
+          if (error || !data) {
+            setError("Form not found");
+            setLoading(false);
+            return;
+          }
+          schemaBlocks = data.schema_json?.blocks ?? [];
         }
-        const schemaBlocks: Block[] = data.schema_json?.blocks ?? [];
         setBlocks(schemaBlocks);
         const initVals: Record<string, any> = {};
         schemaBlocks.forEach((b) => {
@@ -154,7 +159,7 @@ export default function IntakeRenderer() {
     return () => {
       mounted = false;
     };
-  }, [slug, formSlug, searchParams]);
+  }, [slug, searchParams]);
 
   const buildValidation = () => {
     const shape: Record<string, any> = {};
@@ -203,8 +208,11 @@ export default function IntakeRenderer() {
         return;
       }
       const { first_name, last_name, phone, zip_code, ...extra } = valid as Record<string, any>;
+      if (!campaignInfo) throw new Error("Campaign not loaded");
       await submitIntake({
-        slug: formSlug,
+        slug,
+        campaignId: campaignInfo.id,
+        ownerId: campaignInfo.owner_id,
         firstName: first_name,
         lastName: last_name,
         phone,

@@ -25,7 +25,7 @@ export default function Wizard() {
     let mounted = true;
     (async () => {
       try {
-        const cfg = await fetchWizardConfig(slug);
+    const cfg = await fetchWizardConfig(slug);
         if (!mounted) return;
         setConfig(cfg);
       } catch (e: any) {
@@ -89,7 +89,7 @@ export default function Wizard() {
       return;
     }
 
-    let url = `/intake/${slug}/${config.formSlug}`;
+    let url = `/intake/${slug}`;
     if (config.prefill && normalized) {
       const params = new URLSearchParams({
         gateField: config.gateField,

@@ -75,10 +75,7 @@ export default function App() {
           <Route path="/intake/:slug/wizard" element={<Wizard />} />
 
           {/* Dynamic campaign intake */}
-          <Route path="/intake/:slug/:formSlug" element={<IntakeRenderer />} />
-
-          {/* Public intake (new slug-based path) */}
-          <Route path="/intake/:slug" element={<CustomerIntake />} />
+          <Route path="/intake/:slug" element={<IntakeRenderer />} />
 
           {/* Public help */}
           <Route path="/help" element={<Help />} />

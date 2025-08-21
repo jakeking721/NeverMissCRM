@@ -3,6 +3,8 @@ import { normalizePhone } from "@/utils/phone";
 
 export interface IntakeParams {
   slug: string;
+  campaignId: string;
+  ownerId: string;
   firstName: string;
   lastName: string;
   phone: string;
@@ -12,18 +14,28 @@ export interface IntakeParams {
 
 export async function submitIntake({
   slug,
+  campaignId,
+  ownerId,
   firstName,
   lastName,
   phone,
   zipCode,
   extra,
 }: IntakeParams): Promise<string> {
-  const { data: slugRow, error: slugErr } = await supabase
-    .from("public_slugs")
-    .select("user_id")
-    .eq("slug", slug)
+  const payload = {
+    firstName,
+    lastName,
+    phone,
+    zipCode: zipCode ?? null,
+    extra: extra ?? null,
+  };
+
+  const { data: submission, error: subErr } = await supabase
+    .from("intake_submissions")
+    .insert({ campaign_id: campaignId, payload_json: payload })
+    .select("id")
     .single();
-  if (slugErr || !slugRow) throw slugErr || new Error("Invalid slug");
+  if (subErr || !submission) throw subErr || new Error("Failed to log submission");
 
   const { data, error } = await supabase.rpc("intake_add_customer", {
     p_slug: slug,
@@ -32,16 +44,21 @@ export async function submitIntake({
     p_phone: normalizePhone(phone),
     p_zip_code: zipCode ?? null,
     p_extra: extra ?? null,
-    p_user_id: slugRow.user_id,
+    p_user_id: ownerId,
   });
   if (error) throw error;
+
+  await supabase
+    .from("intake_submissions")
+    .update({ customer_id: data as string })
+    .eq("id", submission.id);
+
   return data as string;
 }
 
 export interface WizardConfig {
   campaignId: string;
   ownerId: string;
-  formSlug: string;
   gateField: "phone" | "email";
   prefill: boolean;
   successMessage: string | null;
@@ -52,7 +69,7 @@ export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
   const { data, error } = await supabase
     .from("intake_campaigns")
     .select(
-      "id, owner_id, gate_field, prefill_gate, success_message, require_consent, campaign_forms!inner(slug)"
+      "id, owner_id, gate_field, prefill_gate, success_message, require_consent"
     )
     .eq("slug", slug)
     .single();
@@ -60,7 +77,6 @@ export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
   return {
     campaignId: data.id,
     ownerId: data.owner_id,
-    formSlug: data.campaign_forms?.[0]?.slug ?? "",
     gateField: (data.gate_field as "phone" | "email") || "phone",
     prefill: data.prefill_gate ?? false,
     successMessage: data.success_message ?? null,
