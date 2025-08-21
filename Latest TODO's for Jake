@@ -1,4 +1,9 @@
 ### Homepage Refresh
+- [TODO] Confirm global header and footer render correctly after removing per-page instances.
+  Steps:
+    1. Run `npm run dev` or build the project.
+    2. Navigate to Home, Bulk Import, and Promote Extra Fields pages.
+    3. Ensure the global header and footer appear once and spacing looks correct.
 - [TODO] Replace placeholder hero image (`/public/hero-media.jpg`) with final imagery.
   Steps:
     1. Swap `/public/hero-media.jpg` with production asset.

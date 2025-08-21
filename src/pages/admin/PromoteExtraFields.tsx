@@ -5,8 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import PageShell from "@/components/PageShell";
 import { supabase } from "@/utils/supabaseClient";
 import { addField, type CustomField } from "@/services/fieldsService";
 import { upsertFieldValues } from "@/services/fieldValuesService";
@@ -78,8 +77,7 @@ export default function PromoteExtraFields() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
-      <Header />
+    <PageShell faintFlag>
       <div className="max-w-3xl mx-auto pt-12 px-4 pb-10">
         <h1 className="text-2xl font-bold mb-6">Promote Extra Fields</h1>
         <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
@@ -136,7 +134,6 @@ export default function PromoteExtraFields() {
           ))}
         </div>
       </div>
-      <Footer />
-    </div>
+    </PageShell>
   );
 }

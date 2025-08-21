@@ -5,9 +5,9 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { v4 as uuid } from "uuid";
+import PageShell from "@/components/PageShell";
+import { useAuth } from "@/context/AuthContext";
 import {
   upsertCustomers,
   type Customer,
@@ -75,7 +75,7 @@ export default function BulkImport() {
       });
     }
     // Refresh fields
-    const updatedFields = await getFields();
+    await getFields();
     // Build customers from rows
     const customers: Customer[] = rows.map((r) => {
       const base: any = {
@@ -110,23 +110,20 @@ export default function BulkImport() {
 
   if (step === 0) {
     return (
-      <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
-        <Header />
+      <PageShell faintFlag>
         <div className="max-w-xl mx-auto pt-12 px-4 pb-10">
           <h1 className="text-2xl md:text-3xl font-extrabold text-blue-900 mb-6">Bulk Import Contacts</h1>
           <div className="bg-white rounded-2xl shadow-lg p-8">
             <input type="file" accept=".csv" onChange={handleFile} />
           </div>
         </div>
-        <Footer />
-      </div>
+      </PageShell>
     );
   }
 
   if (step === 1) {
     return (
-      <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
-        <Header />
+      <PageShell faintFlag>
         <div className="max-w-3xl mx-auto pt-12 px-4 pb-10">
           <h2 className="text-xl font-bold mb-4">Step 1 – Preview & Auto-Map</h2>
           <div className="bg-white rounded-2xl shadow-lg p-4 md:p-8">
@@ -260,15 +257,13 @@ export default function BulkImport() {
             </div>
           </div>
         </div>
-        <Footer />
-      </div>
+      </PageShell>
     );
   }
 
   if (step === 2) {
     return (
-      <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
-        <Header />
+      <PageShell faintFlag>
         <div className="max-w-xl mx-auto pt-12 px-4 pb-10">
           <h2 className="text-xl font-bold mb-4">Step 2 – Duplicates</h2>
           <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
@@ -312,8 +307,7 @@ export default function BulkImport() {
             </div>
           </div>
         </div>
-        <Footer />
-      </div>
+      </PageShell>
     );
   }
 
@@ -323,8 +317,7 @@ export default function BulkImport() {
   const unmapped = mappings.length - mapped - newFields;
 
   return (
-    <div className="min-h-screen w-full bg-blue-50" style={{ background: `url('/flag-bg.svg') center top / cover no-repeat` }}>
-      <Header />
+    <PageShell faintFlag>
       <div className="max-w-xl mx-auto pt-12 px-4 pb-10">
         <h2 className="text-xl font-bold mb-4">Step 3 – Confirm</h2>
         <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
@@ -349,8 +342,7 @@ export default function BulkImport() {
           </div>
         </div>
       </div>
-      <Footer />
-    </div>
+    </PageShell>
   );
 }
 

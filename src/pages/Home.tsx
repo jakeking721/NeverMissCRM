@@ -7,7 +7,6 @@ import FeatureBandTargeting from "../components/home/FeatureBandTargeting";
 import FeatureBandSms from "../components/home/FeatureBandSms";
 import CtaStrip from "../components/home/CtaStrip";
 import AboutBlock from "../components/home/AboutBlock";
-import Footer from "../components/Footer";
 
 export default function Home() {
   return (
@@ -19,7 +18,6 @@ export default function Home() {
       <FeatureBandSms />
       <CtaStrip />
       <AboutBlock />
-      <Footer />
     </div>
   );
 }
