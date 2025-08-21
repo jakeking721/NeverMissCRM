@@ -4,7 +4,7 @@ export default function AboutBlock() {
     return (
         <section className="py-24 bg-white">
             <div className="max-w-5xl mx-auto px-6 text-center">
-                <h2 className="mb-6 text-3xl font-bold text-patriotBlue">About NeverMiss CRM</h2>
+                <h2 className="mb-6 text-3xl md:text-4xl font-bold text-patriotBlue">About NeverMiss CRM</h2>
                 <p className="mb-10 text-gray-700">
                     Our mission copy goes here. Customize this section to tell your story and values.
                 </p>

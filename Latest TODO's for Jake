@@ -8,16 +8,24 @@
   Steps:
     1. Update `src/components/Footer.tsx` with production text and badge labels.
     2. Run `npm run build` and verify footer content on multiple pages and screen sizes.
-- [TODO] Replace placeholder hero image (`/public/hero-media.jpg`) with final imagery. 
+- [TODO] Replace placeholder flag hero background (`/public/flag-bg.jpg`) with final imagery.
   Steps:
-    1. Swap `/public/hero-media.jpg` with production asset.
+    1. Swap `/public/flag-bg.jpg` with production asset.
     2. Run `npm run build` and verify hero renders correctly.
 - [TODO] Swap CSS placeholder mocks in feature bands with final visuals and copy.
   Steps:
     1. Provide final SVGs or media for campaign, QR, targeting, and SMS bands.
     2. Update each component to use the assets and marketing text.
     3. Rebuild and test responsiveness on mobile and desktop.
-- [TODO] Implement actual demo booking route for hero "Book a Demo" button (currently `/demo`).
+  - [TODO] Replace demo QR code link in `src/components/home/FeatureBandQR.tsx` with production intake URL.
+    Steps:
+      1. Update the `QRCodeSVG` value to the real campaign link.
+      2. Rebuild and scan to verify it resolves correctly.
+  - [TODO] Replace temporary `react-icons` lucide imports with the `lucide-react` package once dependencies can be installed.
+    Steps:
+      1. Install `lucide-react` and swap the icon imports in home components.
+      2. Rebuild and ensure icons render properly.
+  - [TODO] Implement actual demo booking route for hero "Book a Demo" button (currently `/demo`).
   Steps:
     1. Create the demo scheduling page or external link.
     2. Update navigation target and test after deployment.
@@ -398,7 +406,7 @@
 - No manual steps required for guarding CSV/JSON import modals behind authentication in `src/pages/Customers.tsx`.
 - No manual steps required for exposing Supabase client and env on `window` in dev mode via `src/utils/supabaseClient.ts`.
 - No manual steps required for replacing placeholder loading spinner with branded `Loader` in `src/routes/ProtectedRoute.tsx` and `RedirectIfLoggedIn`.
-- Replace `/public/hero-media.jpg` placeholder hero image used in `src/components/home/HeroSection.tsx`. Steps: (1) Replace the file with final imagery or update `HERO_MEDIA` to point to the new asset. (2) Run `npm run build` to ensure the hero renders correctly.
+- Replace `/public/flag-bg.jpg` placeholder hero image used in `src/components/home/HeroSection.tsx`. Steps: (1) Replace the file with final imagery or update `HERO_FLAG` to point to the new asset. (2) Run `npm run build` to ensure the hero renders correctly.
 - Replace mock QR/phone/radar/chat visuals in feature bands (`src/components/home/FeatureBandCampaign.tsx`, `FeatureBandQR.tsx`, `FeatureBandTargeting.tsx`, `FeatureBandSms.tsx`). Steps: (1) Supply final SVGs or images for each placeholder `div` with `text-6xl md:text-7xl`. (2) Update the components to use the new visuals and marketing copy. (3) Rebuild and verify responsive layout on desktop and mobile.
 - Audit and replace placeholder marketing copy or routes. Steps: (1) Search for placeholders such as `/demo` or filler text across `src/components/home` and related routes. (2) Update to final copy and links. (3) Run `npm run build` and navigate to updated routes to confirm they work.
 - Implement actual demo booking route for hero "Book a Demo" button (currently `/demo`). Steps: (1) Create the demo scheduling page or external link. (2) Update navigation target. (3) Test navigation after deployment.

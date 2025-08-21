@@ -1,4 +1,6 @@
 import React from "react";
+import { LuQrCode } from "react-icons/lu";
+import { QRCodeSVG } from "qrcode.react";
 import { useNavigate } from "react-router-dom";
 
 export default function FeatureBandQR() {
@@ -6,17 +8,17 @@ export default function FeatureBandQR() {
 
   return (
     <section className="bg-[#0B1220] py-24">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 grid md:grid-cols-2 gap-12 items-center">
-        <div className="order-last md:order-none flex justify-center">
-          <div className="flex items-center gap-6">
-            <div className="w-32 h-32 bg-white rounded-md"></div>
-            <div className="w-24 h-40 rounded-2xl border-4 border-white relative">
-              <div className="absolute inset-1 rounded-xl bg-gray-800"></div>
-            </div>
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row-reverse items-center gap-12">
+        <div className="flex-1 flex justify-center">
+          <div className="w-40 h-40 bg-white rounded-md p-2 flex items-center justify-center">
+            <QRCodeSVG value="https://example.com/intake-demo" size={120} />
           </div>
         </div>
-        <div className="text-white">
-          <h2 className="mb-4 text-3xl font-bold">QR Intake</h2>
+        <div className="flex-1 text-white text-center md:text-left">
+          <h2 className="mb-4 flex items-center justify-center md:justify-start gap-2 text-3xl md:text-4xl font-bold">
+            <LuQrCode className="w-8 h-8 text-blue-400" />
+            QR Intake
+          </h2>
           <p className="mb-6 text-gray-300">
             Generate unique QR codes that lead customers straight to your intake forms.
           </p>

@@ -1,20 +1,22 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-const HERO_MEDIA = "/hero-media.jpg";
+// Placeholder flag background for parallax hero
+const HERO_FLAG = "/flag-bg.jpg";
 
 export default function HeroSection() {
   const navigate = useNavigate();
 
   return (
-    <section className="relative flex items-center justify-center min-h-[600px] md:min-h-screen text-white text-center overflow-hidden">
+    <section className="relative flex items-center justify-center min-h-[500px] md:min-h-screen text-white text-center overflow-hidden">
+      {/* Flag background with parallax effect */}
       <div
         className="absolute inset-0 bg-fixed bg-cover bg-center"
-        style={{ backgroundImage: `url(${HERO_MEDIA})` }}
+        style={{ backgroundImage: `url(${HERO_FLAG})` }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/30" />
+      <div className="absolute inset-0 bg-black/50" />
       <div className="relative z-10 max-w-2xl px-6 py-32 md:py-48 flex flex-col items-center">
-        <h1 className="mb-6 text-4xl font-extrabold sm:text-5xl md:text-6xl">
+        <h1 className="mb-6 text-4xl sm:text-5xl md:text-6xl font-extrabold">
           NEVER MISS A LEAD AGAIN
         </h1>
         <p className="max-w-xl mb-8 text-lg md:text-xl">
