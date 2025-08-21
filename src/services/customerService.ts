@@ -53,9 +53,9 @@ export async function getCustomers(): Promise<Customer[]> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("customers")
-    .select("id,user_id,first_name,last_name,phone,email,zip_code,signup_date,extra")
+    .select("id,user_id,first_name,last_name,phone,email,zip_code,created_at,extra")
     .eq("user_id", userId)
-    .order("signup_date", { ascending: false });
+    .order("created_at", { ascending: false });
   if (error) throw error;
   const ids = (data ?? []).map((r: any) => r.id);
   const fieldValues = await getFieldValuesForCustomers(ids);
@@ -67,7 +67,7 @@ export async function getCustomers(): Promise<Customer[]> {
     phone: row.phone ?? undefined,
     email: row.email ?? undefined,
     zipCode: row.zip_code ?? undefined,
-    signupDate: row.signup_date,
+    signupDate: row.created_at,
     ...(fieldValues[row.id] ?? {}),
     ...(row.extra ?? {}),
   }));
@@ -77,7 +77,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("customers")
-    .select("id,user_id,first_name,last_name,phone,email,zip_code,signup_date,extra")
+    .select("id,user_id,first_name,last_name,phone,email,zip_code,created_at,extra")
     .eq("user_id", userId)
     .eq("id", id)
     .maybeSingle();
@@ -92,7 +92,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
     phone: data.phone ?? undefined,
     email: data.email ?? undefined,
     zipCode: data.zip_code ?? undefined,
-    signupDate: data.signup_date,
+    signupDate: data.created_at,
     ...(fieldValues[data.id] ?? {}),
     ...(data.extra ?? {}),
   };
@@ -114,7 +114,7 @@ function splitCustomerFields(
   if (c.phone !== undefined) base.phone = normalizePhone(c.phone) || null;
   if (c.email !== undefined) base.email = normalizeEmail(c.email) || null;
   if (c.zipCode !== undefined) base.zip_code = c.zipCode ?? null;
-  base.signup_date = c.signupDate ?? new Date().toISOString();
+  base.created_at = c.signupDate ?? new Date().toISOString();
 
   const custom: FieldValueMap = {};
   const extra: Record<string, any> = {};
@@ -157,7 +157,7 @@ export async function updateCustomer(
   if (base.phone !== undefined) payload.phone = base.phone;
   if (base.email !== undefined) payload.email = base.email;
   if (base.zip_code !== undefined) payload.zip_code = base.zip_code;
-  if (patch.signupDate !== undefined) payload.signup_date = base.signup_date;
+  if (patch.signupDate !== undefined) payload.created_at = base.created_at;
   if (Object.keys(extra).length > 0) {
     const { data, error } = await supabase
       .from("customers")

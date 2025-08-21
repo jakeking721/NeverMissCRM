@@ -4,8 +4,7 @@ Supabase Schema Specification
 Canonical Timestamp
 -------------------
 - `created_at` is the canonical creation timestamp.
-- Tables using `created_at`: `campaigns`, `campaign_templates`, `public_slugs`, `campaign_forms`, `credit_ledger`, `profiles`, `intake_campaigns`.
-- `customers` uses `signup_date` as its creation timestamp and `updated_at` maintained by trigger.
+- Tables using `created_at`: `campaigns`, `campaign_templates`, `public_slugs`, `campaign_forms`, `credit_ledger`, `profiles`, `intake_campaigns`, `form_submissions`, `intake_submissions`, `customers`.
 
 Tables
 ------
@@ -29,11 +28,11 @@ Tables
 - Admin vs user: same as regular users; admin-specific actions via `ensure_user_slug` function.
 
 **campaigns**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `name text` not null, `message text`, `recipients text[]` default `{}`, `status text` default `'draft'`, `scheduled_for timestamptz`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
-- Indexes: `campaigns_user_id_idx` on `user_id`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `title text`, `name text`, `slug text`, `type text` default `'sms'`, `message text`, `recipients text[]` default `{}`, `status text` default `'draft'`, `start_at timestamptz`, `end_at timestamptz`, `form_template_id uuid` FK to `campaign_forms(id)`, `form_snapshot_json jsonb`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
+- Indexes: `campaigns_owner_id_idx` on `owner_id`.
 - Triggers: `set_updated_at` before update calling `update_updated_at_column`.
-- RLS: `campaigns_owner_rw` requires `auth.uid() = user_id` and profile is approved & active.
-- Admin vs user: no special admin override; only owner with approved, active profile can access.
+- RLS: `campaigns_owner_rw` requires `auth.uid() = owner_id` and profile is approved & active; `Campaigns public read` allows anonymous select by slug.
+- Admin vs user: no special admin override.
 
 **campaign_templates**
 - Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `name text` not null, `message text`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
@@ -48,7 +47,7 @@ Tables
 - Admin vs user: no admin override.
 
 **campaign_forms**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `template_id uuid`, `owner_id uuid` default `auth.uid()` not null, `slug text` not null, `schema_json jsonb` default `{}`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `template_id uuid`, `owner_id uuid` default `auth.uid()` not null, `slug text` nullable, `schema_json jsonb` default `{}`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
 - Constraints: unique `(owner_id, slug)`.
 - RLS: `campaign_forms_owner_rw` (owner read/write), `campaign_forms_public_select` (public read).
 - Admin vs user: admins act as regular users; public can read forms via slug.
@@ -60,7 +59,7 @@ Tables
 - Admin vs user: no special admin override; public can read campaigns via slug for intake wizard.
 
 **customers**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `signup_date timestamptz` default `now()`, `extra jsonb` default `{}`, `updated_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `created_at timestamptz` default `now()`, `extra jsonb` default `{}`, `updated_at timestamptz` default `now()`.
 - Indexes: `customers_user_id_idx` on `user_id`.
 - Constraints: `uniq_customers_owner_email_norm` on `(user_id, lower(trim(email)))` where email not null; `uniq_customers_owner_phone_e164` on `(user_id, normalize_phone(phone))` where phone not null.
 - Triggers: `set_updated_at` before update using `update_updated_at_column`.
@@ -79,6 +78,16 @@ Tables
 - Indexes: `credit_ledger_owner_id_idx` on `owner_id`.
 - RLS: `credit_ledger_owner_rw` (owner only).
 - Admin vs user: no admin override.
+
+**form_submissions**
+- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `form_id uuid`, `form_version int`, `payload jsonb`, `is_checkin boolean` default `false`, `customer_id uuid`, `created_at timestamptz` default `now()`.
+- RLS: `Form submissions owner select` (owner read), `Form submissions owner insert` (owner insert).
+- Admin vs user: no admin override; submissions tied to owner via campaign.
+
+**intake_submissions**
+- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `payload_json jsonb`, `submitted_at timestamptz` default `now()`, `customer_id uuid`.
+- RLS: `intake_submissions_public_insert` (public insert), `intake_submissions_public_update` (public update), `intake_submissions_owner_select` (owner read).
+- Admin vs user: owner read access; public may insert or update.
 
 **customer_email_collisions / customer_phone_collisions**
 - Temporary tables capturing duplicate contacts during normalization; not intended for production use.
@@ -102,6 +111,4 @@ Admin vs. User Summary
 
 TODO
 ----
-- Confirm whether `customers.signup_date` should be renamed to `created_at` for consistency with the chosen canonical timestamp.
 - Drop `customer_email_collisions` and `customer_phone_collisions` tables once duplicate data is resolved.
-- Keep this specification synchronized with future Supabase migrations.

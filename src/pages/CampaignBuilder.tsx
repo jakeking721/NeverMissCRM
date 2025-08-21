@@ -76,7 +76,7 @@ export default function CampaignBuilder() {
         const now = new Date();
         const existing = await getCampaigns();
         const maybeUpdated = existing.map((c): Campaign => {
-          if (c.status === "scheduled" && c.scheduledFor && new Date(c.scheduledFor) <= now) {
+          if (c.status === "scheduled" && c.startAt && new Date(c.startAt) <= now) {
             // NOTE: If you move to Supabase, do this in the DB or a job; we leave as-is for local demo parity
             return { ...c, status: "sent" };
           }
@@ -188,13 +188,13 @@ export default function CampaignBuilder() {
         recipients,
         status,
         createdAt: new Date().toISOString(),
-        scheduledFor: scheduleDate || undefined,
+        startAt: scheduleDate || undefined,
         slug: slug || undefined,
         formTemplateId: formId || undefined,
       };
 
-      if (status === "scheduled" && newCampaign.scheduledFor) {
-        await sms.scheduleBulk(recipients, message, newCampaign.scheduledFor);
+      if (status === "scheduled" && newCampaign.startAt) {
+        await sms.scheduleBulk(recipients, message, newCampaign.startAt);
       }
 
       // Deduct credits (await DB)
@@ -462,7 +462,7 @@ export default function CampaignBuilder() {
                       <td className="py-2 capitalize">{c.status}</td>
                       <td className="py-2">{c.recipients.length}</td>
                       <td className="py-2">
-                        {c.scheduledFor ? new Date(c.scheduledFor).toLocaleString() : "—"}
+                        {c.startAt ? new Date(c.startAt).toLocaleString() : "—"}
                       </td>
                       <td className="py-2">
                         {new Date(c.createdAt).toLocaleDateString()}{" "}

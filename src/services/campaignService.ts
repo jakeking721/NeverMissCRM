@@ -23,7 +23,6 @@ export type Campaign = {
   updatedAt?: string; // ISO
   startAt?: string; // ISO
   endAt?: string; // ISO
-  scheduledFor?: string; // legacy alias for startAt
 };
 
 async function requireUserId(): Promise<string> {
@@ -48,9 +47,8 @@ function rowToCampaign(row: any): Campaign {
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? undefined,
-    startAt: row.start_at ?? row.scheduled_for ?? undefined,
+    startAt: row.start_at ?? undefined,
     endAt: row.end_at ?? undefined,
-    scheduledFor: row.start_at ?? row.scheduled_for ?? undefined,
   };
 }
 
@@ -66,7 +64,7 @@ async function ensureUniqueSlug(slug: string | undefined, userId: string, exclud
 async function fetchFormSnapshot(userId: string, formId: string | undefined) {
   if (!formId) return null;
   const { data, error } = await supabase
-    .from("forms")
+    .from("campaign_forms")
     .select("schema_json")
     .eq("id", formId)
     .eq("owner_id", userId)
@@ -115,7 +113,7 @@ export async function addCampaign(c: Campaign): Promise<void> {
     status: c.status,
     created_at: c.createdAt ?? new Date().toISOString(),
     updated_at: c.updatedAt ?? new Date().toISOString(),
-    start_at: c.startAt ?? c.scheduledFor ?? null,
+    start_at: c.startAt ?? null,
     end_at: c.endAt ?? null,
     form_template_id: c.formTemplateId ?? null,
     form_snapshot_json: snapshot,
@@ -156,7 +154,7 @@ export async function updateCampaign(c: Campaign): Promise<void> {
     recipients: c.recipients ?? [],
     status: c.status,
     updated_at: c.updatedAt ?? new Date().toISOString(),
-    start_at: c.startAt ?? c.scheduledFor ?? null,
+    start_at: c.startAt ?? null,
     end_at: c.endAt ?? null,
     form_template_id: c.formTemplateId ?? null,
     form_snapshot_json: snapshot,

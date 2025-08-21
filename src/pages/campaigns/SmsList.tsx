@@ -103,7 +103,7 @@ export default function SmsList() {
                     <th className="py-2">Recipients</th>
                     <th className="py-2">Status</th>
                     <th className="py-2">Created</th>
-                    <th className="py-2">Scheduled</th>
+                    <th className="py-2">Start</th>
                     <th className="py-2 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -118,7 +118,7 @@ export default function SmsList() {
                         {new Date(c.createdAt).toLocaleTimeString()}
                       </td>
                       <td className="py-2">
-                        {c.scheduledFor ? new Date(c.scheduledFor).toLocaleString() : "—"}
+                        {c.startAt ? new Date(c.startAt).toLocaleString() : "—"}
                       </td>
                       <td className="py-2 text-right">
                         <button

@@ -10,6 +10,22 @@
     1. In Supabase dashboard, check `customers` for duplicate phone or email per user.
     2. Merge or remove any duplicates manually.
 
+### Customer Schema Cleanup
+- [TODO] Apply migration `20250904090000_update_customers_created_at_and_name_split.sql` and regenerate types.
+  Steps:
+    1. From the project root run `supabase db push`.
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+    3. Review existing customers for proper first/last names and remove any leftover `name` or `location` data.
+
+### Campaign Schema Cleanup
+- [TODO] Apply migration `20250904091000_cleanup_campaigns_drop_scheduled_for.sql` and regenerate types.
+  Steps:
+    1. From the project root run `supabase db push`.
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+    3. Confirm `campaigns` no longer has `scheduled_for` and existing rows use `start_at` / `end_at`.
+
 ### Campaign Form Snapshot
 - [TODO] Apply migration `20250902090000_add_form_fields_to_campaigns.sql` and regenerate types.
   Steps:
@@ -178,24 +194,6 @@
          update profiles set created_at = inserted_at where created_at is null;
     2. Regenerate Supabase types if the schema changes:
          supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
-- [NEW] Add `first_name`, `last_name`, and `zip_code` columns to Supabase `customers` table and migrate legacy data.
-  Steps:
-    1. In Supabase SQL editor run:
-         alter table public.customers add column first_name text not null default '';
-         alter table public.customers add column last_name text not null default '';
-         alter table public.customers add column zip_code text;
-    2. Backfill from existing columns:
-         update customers set first_name = split_part(name,' ',1), last_name = trim(split_part(name,' ',2)), zip_code = location;
-    3. Drop old `name` and `location` columns when satisfied:
-         alter table public.customers drop column name;
-         alter table public.customers drop column location;
-    4. Regenerate Supabase types:
-         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
-- [NEW] Update `intake_add_customer` RPC to use `p_first_name`, `p_last_name`, and `p_zip_code` parameters.
-  Steps:
-    1. In Supabase SQL editor, redefine the function with the new parameters inserting into `customers(first_name,last_name,phone,zip_code,extra,user_id)`.
-    2. Remove legacy `p_name` and `p_location` usage.
-    3. Test by submitting an intake form and verifying row values.
 - [NEW] Swap placeholder radar icon in `src/pages/Customers.tsx` with final marketing asset.
   Steps:
     1. Replace the `FiTarget` icon with the chosen graphic.
@@ -310,7 +308,7 @@
 - [NEW] Apply Supabase migration `20240717120000_update_campaigns_table.sql` to add campaign scheduling columns and triggers.
   Steps:
     1. Run `supabase db push` or execute the SQL file in Supabase's SQL editor.
-    2. Verify `campaigns` now includes `recipients` (text[]), `status`, `scheduled_for`, and the `set_updated_at` trigger.
+      2. Verify `campaigns` now includes `recipients` (text[]), `status`, `start_at`, `end_at`, and the `set_updated_at` trigger.
 
 - [NEW] Apply Supabase migration `20240717121000_add_updated_at_to_customers.sql` to track customer updates.
   Steps:
