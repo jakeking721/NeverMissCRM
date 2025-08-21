@@ -17,6 +17,10 @@ export default function NewIntakeCampaign() {
   const [slug, setSlug] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [gateField, setGateField] = useState<"phone" | "email">("phone");
+  const [prefill, setPrefill] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [requireConsent, setRequireConsent] = useState(false);
   const navigate = useNavigate();
   const [search] = useSearchParams();
 
@@ -40,6 +44,10 @@ export default function NewIntakeCampaign() {
         form_id: formId,
         start_date: start || null,
         end_date: end || null,
+        gate_field: gateField,
+        prefill_gate: prefill,
+        success_message: successMsg || null,
+        require_consent: requireConsent,
       });
       navigate("/campaigns/intake");
     } catch (err) {
@@ -129,14 +137,57 @@ export default function NewIntakeCampaign() {
             </div>
           </div>
         )}
+        <div className="space-y-6">
+          <div className="space-y-1">
+            <label className="font-medium">Gate Field</label>
+            <select
+              className="border rounded w-full p-2"
+              value={gateField}
+              onChange={(e) =>
+                setGateField(e.target.value as "phone" | "email")
+              }
+            >
+              <option value="phone">Phone</option>
+              <option value="email">Email</option>
+            </select>
+          </div>
 
-        <div className="text-right">
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Save Campaign
-          </button>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={prefill}
+              onChange={(e) => setPrefill(e.target.checked)}
+            />
+            <span>Prefill form with gate value</span>
+          </label>
+
+          <div className="space-y-1">
+            <label className="font-medium">Success Message</label>
+            <input
+              className="border rounded w-full p-2"
+              value={successMsg}
+              onChange={(e) => setSuccessMsg(e.target.value)}
+              placeholder="Thanks for checking in!"
+            />
+          </div>
+
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={requireConsent}
+              onChange={(e) => setRequireConsent(e.target.checked)}
+            />
+            <span>Require consent checkbox</span>
+          </label>
+
+          <div className="text-right">
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Save Campaign
+            </button>
+          </div>
         </div>
       </form>
     </PageShell>

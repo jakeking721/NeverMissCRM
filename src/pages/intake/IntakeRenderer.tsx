@@ -1,13 +1,13 @@
 // src/pages/intake/IntakeRenderer.tsx
 // -----------------------------------------------------------------------------
 // Renders a campaign intake form from JSON schema
-// - Fetches campaign_forms.schema_json by :campaignId / :formSlug
+// - Fetches campaign_forms.schema_json by campaign slug & form slug
 // - Supports blocks: Text, Image, Input (text/email/phone), Choice, Button, PDF, Link
 // - Validates inputs with Yup and submits via services/intake.submitIntake
 // -----------------------------------------------------------------------------
 
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import * as yup from "@/utils/yup";
 import { formatPhone, normalizePhone } from "@/utils/phone";
 
@@ -16,7 +16,7 @@ import { submitIntake } from "@/services/intake";
 import Success from "./Success";
 
 interface RouteParams extends Record<string, string | undefined> {
-  campaignId?: string;
+  slug?: string;
   formSlug?: string;
 }
 
@@ -88,7 +88,8 @@ type Block =
   | MultiSelectBlock;
 
 export default function IntakeRenderer() {
-  const { campaignId = "", formSlug = "" } = useParams<RouteParams>();
+  const { slug = "", formSlug = "" } = useParams<RouteParams>();
+  const [searchParams] = useSearchParams();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,10 +101,21 @@ export default function IntakeRenderer() {
     let mounted = true;
     (async () => {
       try {
+        const { data: camp, error: campErr } = await supabase
+          .from("intake_campaigns")
+          .select("id")
+          .eq("slug", slug)
+          .single();
+        if (!mounted) return;
+        if (campErr || !camp) {
+          setError("Form not found");
+          setLoading(false);
+          return;
+        }
         const { data, error } = await supabase
           .from("campaign_forms")
           .select("schema_json")
-          .eq("campaign_id", campaignId)
+          .eq("campaign_id", camp.id)
           .eq("slug", formSlug)
           .single();
         if (!mounted) return;
@@ -122,6 +134,15 @@ export default function IntakeRenderer() {
           if ((b.type === "pdf" || b.type === "link") && b.required)
             initVals[`ack_${b.id}`] = false;
         });
+        const prefillField = searchParams.get("gateField");
+        const prefillValue = searchParams.get("gateValue");
+        if (
+          prefillField &&
+          prefillValue &&
+          Object.prototype.hasOwnProperty.call(initVals, prefillField)
+        ) {
+          initVals[prefillField] = prefillValue;
+        }
         setValues(initVals);
       } catch (e: any) {
         if (!mounted) return;
@@ -133,7 +154,7 @@ export default function IntakeRenderer() {
     return () => {
       mounted = false;
     };
-  }, [campaignId, formSlug]);
+  }, [slug, formSlug, searchParams]);
 
   const buildValidation = () => {
     const shape: Record<string, any> = {};

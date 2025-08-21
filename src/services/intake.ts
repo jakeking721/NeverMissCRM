@@ -37,3 +37,34 @@ export async function submitIntake({
   if (error) throw error;
   return data as string;
 }
+
+export interface WizardConfig {
+  campaignId: string;
+  ownerId: string;
+  formSlug: string;
+  gateField: "phone" | "email";
+  prefill: boolean;
+  successMessage: string | null;
+  requireConsent: boolean;
+}
+
+export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
+  const { data, error } = await supabase
+    .from("intake_campaigns")
+    .select(
+      "id, owner_id, gate_field, prefill_gate, success_message, require_consent, campaign_forms!inner(slug)"
+    )
+    .eq("slug", slug)
+    .single();
+  if (error || !data) throw error || new Error("Campaign not found");
+  return {
+    campaignId: data.id,
+    ownerId: data.owner_id,
+    formSlug: data.campaign_forms?.[0]?.slug ?? "",
+    gateField: (data.gate_field as "phone" | "email") || "phone",
+    prefill: data.prefill_gate ?? false,
+    successMessage: data.success_message ?? null,
+    requireConsent: data.require_consent ?? false,
+  };
+}
+

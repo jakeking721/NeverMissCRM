@@ -8,6 +8,10 @@ export interface IntakeCampaign {
   start_date: string | null;
   end_date: string | null;
   status: string;
+  gate_field: "phone" | "email";
+  prefill_gate: boolean;
+  success_message: string | null;
+  require_consent: boolean;
 }
 
 async function requireUserId(): Promise<string> {
@@ -20,7 +24,9 @@ export async function getIntakeCampaigns(): Promise<IntakeCampaign[]> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("intake_campaigns")
-    .select("id, title, slug, form_id, start_date, end_date, status")
+    .select(
+      "id, title, slug, form_id, start_date, end_date, status, gate_field, prefill_gate, success_message, require_consent",
+    )
     .eq("owner_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -33,6 +39,10 @@ export async function createIntakeCampaign(payload: {
   form_id: string;
   start_date?: string | null;
   end_date?: string | null;
+  gate_field: "phone" | "email";
+  prefill_gate?: boolean;
+  success_message?: string | null;
+  require_consent?: boolean;
 }): Promise<IntakeCampaign> {
   const userId = await requireUserId();
   const { data, error } = await supabase

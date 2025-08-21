@@ -1,7 +1,7 @@
 // src/App.tsx
 // ------------------------------------------------------------------------------------
 // Central route registry
-// - Public:        /, /login, /register, /help, /u/:username, /intake/:slug
+// - Public:        /, /login, /register, /help, /u/:username, /intake/:slug, /intake/:slug/wizard, /intake/:slug/:formSlug
 // - Protected:     /dashboard, /customers, /campaigns, /campaigns/sms, /campaigns/sms/new, /campaigns/intake, /campaigns/intake/new, /forms,
 //                  /analytics, /settings, /settings/fields, /settings/billing,
 //                  /profile, /qrcode
@@ -40,6 +40,7 @@ import Profile from "./pages/Profile";
 import QRCodePage from "./pages/QRCode";
 import CustomerIntake from "./pages/CustomerIntake";
 import IntakeRenderer from "./pages/intake/IntakeRenderer";
+import Wizard from "./pages/intake/Wizard";
 import FormList from "./pages/forms/List";
 import FormBuilder from "./pages/forms/Edit";
 
@@ -70,8 +71,11 @@ export default function App() {
           {/* Public intake (legacy path kept) */}
           <Route path="/u/:username" element={<CustomerIntake />} />
 
+          {/* Dynamic campaign intake wizard */}
+          <Route path="/intake/:slug/wizard" element={<Wizard />} />
+
           {/* Dynamic campaign intake */}
-          <Route path="/intake/:campaignId/:formSlug" element={<IntakeRenderer />} />
+          <Route path="/intake/:slug/:formSlug" element={<IntakeRenderer />} />
 
           {/* Public intake (new slug-based path) */}
           <Route path="/intake/:slug" element={<CustomerIntake />} />

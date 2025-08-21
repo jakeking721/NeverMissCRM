@@ -1,3 +1,27 @@
+### Intake Wizard
+- [TODO] Add gate settings to `intake_campaigns` table.
+  Steps:
+    1. In Supabase SQL editor run:
+         alter table public.intake_campaigns
+           add column gate_field text default 'phone',
+           add column prefill_gate boolean default false,
+           add column success_message text,
+           add column require_consent boolean default false;
+    2. Update RLS so only owners read/update; allow anonymous select by slug for wizard.
+    3. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+- [TODO] Ensure check-ins set `form_submissions.is_checkin` and allow public insert.
+  Steps:
+    1. In Supabase SQL editor run:
+         alter table public.form_submissions add column if not exists is_checkin boolean default false;
+    2. Create policy or RPC permitting anonymous inserts scoped to campaign slug.
+    3. Deploy and test the wizard flow.
+- [TODO] Configure RLS or create an RPC to allow the wizard to look up customers by phone or email for the campaign owner.
+  Steps:
+    1. Implement function `intake_find_customer(owner_id uuid, gate text, value text)` returning matching customer id.
+    2. Grant execute to anon and ensure policy restricts by owner.
+    3. Update wizard service if needed.
+
 ### Campaign and Forms Enhancements
 - [TODO] Create Supabase `intake_campaigns` table for intake campaign management.
   Steps:
