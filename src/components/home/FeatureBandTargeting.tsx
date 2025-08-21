@@ -1,20 +1,34 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function FeatureBandTargeting() {
+  const navigate = useNavigate();
+
   return (
-    <section className="py-16 bg-white">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-10 px-6">
-        <div className="text-6xl md:text-7xl">í¾¯</div>
-        <div className="flex-1">
-          <h2 className="mb-4 text-3xl font-bold text-patriotBlue">Targeting</h2>
-          <p className="mb-4 text-gray-700">
+    <section className="bg-[#0B1220] py-24">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 grid md:grid-cols-2 gap-12 items-center">
+        <div className="flex justify-center">
+          <div className="relative w-48 h-48">
+            <div className="absolute inset-0 rounded-full border-2 border-green-400"></div>
+            <div className="absolute inset-4 rounded-full border border-green-400/60"></div>
+            <div className="absolute inset-0 rounded-full overflow-hidden">
+              <div className="absolute w-1/2 h-1/2 origin-bottom-left bg-green-400/40 animate-[spin_4s_linear_infinite]"></div>
+            </div>
+            <div className="absolute w-2 h-2 bg-green-400 rounded-full top-1/3 left-2/3 animate-ping"></div>
+            <div className="absolute w-2 h-2 bg-green-400 rounded-full top-2/3 left-1/3 animate-ping"></div>
+          </div>
+        </div>
+        <div className="text-white">
+          <h2 className="mb-4 text-3xl font-bold">Targeting</h2>
+          <p className="mb-6 text-gray-300">
             Filter customers by zip code radius, engagement, or custom fields to deliver the right message.
           </p>
-          <ul className="space-y-2 text-gray-700 list-disc list-inside">
-            <li>Zip code radius searches</li>
-            <li>Segment by behavior or tags</li>
-            <li>Save favorite filters</li>
-          </ul>
+          <button
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
+            onClick={() => navigate("/customers")}
+          >
+            Try Targeting
+          </button>
         </div>
       </div>
     </section>

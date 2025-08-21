@@ -1,3 +1,19 @@
+### Homepage Refresh
+- [TODO] Replace placeholder hero image (`/public/hero-media.jpg`) with final imagery.
+  Steps:
+    1. Swap `/public/hero-media.jpg` with production asset.
+    2. Run `npm run build` and verify hero renders correctly.
+- [TODO] Swap CSS placeholder mocks in feature bands with final visuals and copy.
+  Steps:
+    1. Provide final SVGs or media for campaign, QR, targeting, and SMS bands.
+    2. Update each component to use the assets and marketing text.
+    3. Rebuild and test responsiveness on mobile and desktop.
+- [TODO] Implement actual demo booking route for hero "Book a Demo" button (currently `/demo`).
+  Steps:
+    1. Create the demo scheduling page or external link.
+    2. Update navigation target and test after deployment.
+- [TODO] Audit homepage for temporary text or placeholder links and replace with final content.
+
 ### Intake Submissions
 - [TODO] Apply migration `20250903090000_create_intake_submissions.sql` and regenerate types.
   Steps:

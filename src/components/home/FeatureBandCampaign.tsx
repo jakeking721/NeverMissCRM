@@ -1,20 +1,34 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function FeatureBandCampaign() {
+  const navigate = useNavigate();
+
   return (
-    <section className="py-16 bg-white">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-10 px-6">
-        <div className="text-6xl md:text-7xl">í³£</div>
-        <div className="flex-1">
-          <h2 className="mb-4 text-3xl font-bold text-patriotBlue">Campaign Management</h2>
-          <p className="mb-4 text-gray-700">
+    <section className="bg-[#0B1220] py-24">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 grid md:grid-cols-2 gap-12 items-center">
+        <div className="flex justify-center">
+          <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-6 space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-32 bg-gray-100 rounded"></div>
+            <div className="flex justify-end gap-2">
+              <div className="w-12 h-3 bg-blue-600 rounded"></div>
+              <div className="w-12 h-3 bg-gray-300 rounded"></div>
+            </div>
+          </div>
+        </div>
+        <div className="text-white">
+          <h2 className="mb-4 text-3xl font-bold">Campaign Management</h2>
+          <p className="mb-6 text-gray-300">
             Craft marketing messages, schedule them, and watch performance in real time.
           </p>
-          <ul className="space-y-2 text-gray-700 list-disc list-inside">
-            <li>Plan SMS blasts and promotions</li>
-            <li>Track open and response rates</li>
-            <li>Reuse successful templates</li>
-          </ul>
+          <button
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
+            onClick={() => navigate("/campaigns")}
+          >
+            Build a Campaign
+          </button>
         </div>
       </div>
     </section>

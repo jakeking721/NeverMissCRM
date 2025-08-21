@@ -3,14 +3,15 @@ import { useNavigate } from "react-router-dom";
 
 export default function CtaStrip() {
   const navigate = useNavigate();
+
   return (
-    <section className="py-12 text-center text-white bg-patriotBlue">
-      <h2 className="mb-4 text-2xl font-bold">Ready to grow your business?</h2>
+    <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-20 text-center text-white">
+      <h2 className="mb-8 text-3xl font-bold">Ready to Grow Your Customer Base?</h2>
       <button
-        className="px-8 py-3 font-semibold text-patriotBlue bg-white rounded-full shadow hover:bg-gray-100"
+        className="px-8 py-3 font-semibold bg-white text-blue-700 rounded-full shadow hover:bg-gray-100"
         onClick={() => navigate("/register")}
       >
-        Get Started Free
+        Start Free Today
       </button>
     </section>
   );
