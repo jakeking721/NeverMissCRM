@@ -1,3 +1,13 @@
+
+ - [UPDATED] Registration page now relies on the auth listener for session hydration.
+   Steps:
+     1. Register a new account with email confirmation disabled.
+     2. Confirm redirect to `/dashboard` and that the user session appears without manual refresh.
+ - [UPDATED] Dashboard admin credit addition now awaits refresh.
+   Steps:
+     1. Sign in as an admin and add credits from the dashboard.
+     2. Ensure the displayed credit count updates immediately after closing the prompt.
+
 - [NEW] Verify header logout uses AuthContext and clears local placeholders.
   Steps:
     1. Sign in and open the user menu from both desktop and mobile views.
@@ -316,5 +326,3 @@
 
 - [NEW] Review and maintain `SUPABASE_SCHEMA_SPEC.txt` after applying Supabase migrations.
   Steps:
-    1. After running new migrations, open the file at repo root and document any table/column/policy changes.
-    2. Commit the updated spec so it stays in sync with the database.

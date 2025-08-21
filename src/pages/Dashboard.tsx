@@ -276,7 +276,7 @@ export default function Dashboard() {
     const res = await creditsService.adminAddToCurrentUser(amount);
     if (res.ok) {
       alert(`Added ${amount} credits.`);
-      refresh();
+      await refresh();
     } else {
       alert(res.message || "Failed to add credits.");
     }

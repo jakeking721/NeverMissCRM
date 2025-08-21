@@ -9,7 +9,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/utils/supabaseClient"; // Fixed import path
-import { useAuth } from "../context/AuthContext";
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -20,7 +19,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { refresh } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +48,6 @@ export default function Register() {
     }
 
     // If email confirmations are disabled, user is logged in right away
-    await refresh();
     navigate("/dashboard");
   };
 
