@@ -3,6 +3,8 @@
 // analyticsService: stub data for charts (credits usage, customers, campaigns)
 // ------------------------------------------------------------------------------------
 
+import { getCampaignSubmissionStats } from "./formSubmissions";
+
 export type CreditUsageEntry = { date: string; creditsUsed: number };
 export type CustomerGrowthEntry = { date: string; totalCustomers: number };
 export type CampaignStatsEntry = { name: string; sent: number; scheduled: number };
@@ -44,4 +46,9 @@ export function getCampaignStats(): CampaignStatsEntry[] {
     { name: "Event Blast", sent: 80, scheduled: 10 },
     { name: "Holiday Offer", sent: 50, scheduled: 20 },
   ];
+}
+
+// New analytics endpoint using real submission data
+export async function getCampaignAnalytics(campaignId: string) {
+  return getCampaignSubmissionStats(campaignId);
 }

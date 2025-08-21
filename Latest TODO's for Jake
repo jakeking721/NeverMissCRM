@@ -1,3 +1,15 @@
+### Campaign/Form Schema Migration
+- [TODO] Apply new campaign/form schema migration and regenerate types.
+  Steps:
+    1. From the project root run `supabase db push`.
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+    3. Verify RLS policies allow anonymous form access by campaign slug and restrict all other rows to `auth.uid() = owner_id`.
+- [TODO] Replace placeholder QR links and SMS credentials.
+  Steps:
+    1. Update any sample QR codes or links with the production domain.
+    2. Set `VITE_SMS_API_KEY` and `VITE_SMS_API_URL` with real provider values in `.env`.
+
 ### Intake Wizard
 - [TODO] Add gate settings to `intake_campaigns` table.
   Steps:

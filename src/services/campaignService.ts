@@ -7,14 +7,21 @@
 
 import { supabase } from "@/utils/supabaseClient";
 
+// Campaign type now supports both SMS and intake flows
 export type Campaign = {
   id: string;
-  name: string;
-  message: string;
-  recipients: string[];
+  title?: string; // new field, replaces name
+  name?: string; // legacy support
+  slug?: string;
+  type?: "sms" | "intake";
+  message?: string;
+  recipients?: string[];
   status: "draft" | "scheduled" | "sent";
   createdAt: string; // ISO
-  scheduledFor?: string; // ISO | undefined
+  updatedAt?: string; // ISO
+  startAt?: string; // ISO
+  endAt?: string; // ISO
+  scheduledFor?: string; // legacy alias for startAt
 };
 
 async function requireUserId(): Promise<string> {
@@ -28,12 +35,18 @@ async function requireUserId(): Promise<string> {
 function rowToCampaign(row: any): Campaign {
   return {
     id: row.id,
-    name: row.name,
+    title: row.title ?? row.name,
+    name: row.name, // legacy field for backward compatibility
+    slug: row.slug,
+    type: row.type,
     message: row.message,
     recipients: (row.recipients ?? []) as string[],
     status: row.status,
     createdAt: row.created_at,
-    scheduledFor: row.scheduled_for ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
+    startAt: row.start_at ?? row.scheduled_for ?? undefined,
+    endAt: row.end_at ?? undefined,
+    scheduledFor: row.start_at ?? row.scheduled_for ?? undefined,
   };
 }
 
@@ -45,8 +58,10 @@ export async function getCampaigns(): Promise<Campaign[]> {
 
   const { data, error } = await supabase
     .from("campaigns")
-    .select("id, user_id, name, message, recipients, status, created_at, scheduled_for")
-    .eq("user_id", userId)
+    .select(
+      "id, owner_id, title, name, slug, type, message, recipients, status, created_at, updated_at, start_at, end_at"
+    )
+    .eq("owner_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -62,13 +77,18 @@ export async function addCampaign(c: Campaign): Promise<void> {
 
   const payload = {
     id: c.id,
-    user_id: userId,
-    name: c.name,
+    owner_id: userId,
+    title: c.title ?? c.name,
+    name: c.name, // legacy field if still used
+    slug: c.slug,
+    type: c.type ?? "sms",
     message: c.message,
     recipients: c.recipients ?? [],
     status: c.status,
     created_at: c.createdAt ?? new Date().toISOString(),
-    scheduled_for: c.scheduledFor ?? null,
+    updated_at: c.updatedAt ?? new Date().toISOString(),
+    start_at: c.startAt ?? c.scheduledFor ?? null,
+    end_at: c.endAt ?? null,
   };
 
   const { error } = await supabase.from("campaigns").insert(payload);
@@ -80,7 +100,7 @@ export async function addCampaign(c: Campaign): Promise<void> {
  */
 export async function removeCampaign(id: string): Promise<void> {
   const userId = await requireUserId();
-  const { error } = await supabase.from("campaigns").delete().eq("id", id).eq("user_id", userId);
+  const { error } = await supabase.from("campaigns").delete().eq("id", id).eq("owner_id", userId);
   if (error) throw error;
 }
 
@@ -91,9 +111,9 @@ export async function updateCampaignStatus(id: string, status: Campaign["status"
   const userId = await requireUserId();
   const { error } = await supabase
     .from("campaigns")
-    .update({ status })
+    .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("user_id", userId);
+    .eq("owner_id", userId);
 
   if (error) throw error;
 }
@@ -111,10 +131,10 @@ export async function markSentIfDue(): Promise<Campaign[]> {
   // Update all that are due
   const { error: updErr } = await supabase
     .from("campaigns")
-    .update({ status: "sent" })
-    .eq("user_id", userId)
+    .update({ status: "sent", updated_at: new Date().toISOString() })
+    .eq("owner_id", userId)
     .eq("status", "scheduled")
-    .lte("scheduled_for", nowIso);
+    .lte("start_at", nowIso);
 
   if (updErr) throw updErr;
 

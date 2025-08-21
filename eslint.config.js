@@ -13,6 +13,7 @@ export default [
       "node_modules/**",
       "coverage/**",
       "src/types/supabase-auth.ts",
+      "src/types/supabase.ts",
     ],
   },
   {
