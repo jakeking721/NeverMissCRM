@@ -22,11 +22,13 @@ export default function FeatureBandTargeting() {
         <div className="flex-1 text-white text-center md:text-left">
           <h2 className="mb-4 flex items-center justify-center md:justify-start gap-2 text-3xl md:text-4xl font-bold">
             <LuRadar className="w-8 h-8 text-blue-400" />
-            Targeting
+            Hit the right audience every time
           </h2>
-          <p className="mb-6 text-gray-300">
-            Filter customers by zip code radius, engagement, or custom fields to deliver the right message.
-          </p>
+          <ul className="mb-6 text-gray-300 list-disc list-inside space-y-2">
+            <li>Filter by zip code radius</li>
+            <li>Segment with custom fields</li>
+            <li>Save smart audiences</li>
+          </ul>
           <button
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
             onClick={() => navigate("/customers")}

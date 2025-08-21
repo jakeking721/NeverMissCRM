@@ -18,11 +18,13 @@ export default function FeatureBandSms() {
         <div className="flex-1 text-white text-center md:text-left">
           <h2 className="mb-4 flex items-center justify-center md:justify-start gap-2 text-3xl md:text-4xl font-bold">
             <LuMessageSquare className="w-8 h-8 text-blue-400" />
-            SMS Messaging
+            Send texts with confidence
           </h2>
-          <p className="mb-6 text-gray-300">
-            Reach customers instantly with personalized texts and track every interaction.
-          </p>
+          <ul className="mb-6 text-gray-300 list-disc list-inside space-y-2">
+            <li>Personalize every message</li>
+            <li>Respect opt-out rules automatically</li>
+            <li>See delivery status in one place</li>
+          </ul>
           <button
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
             onClick={() => navigate("/campaigns")}

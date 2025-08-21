@@ -17,11 +17,13 @@ export default function FeatureBandQR() {
         <div className="flex-1 text-white text-center md:text-left">
           <h2 className="mb-4 flex items-center justify-center md:justify-start gap-2 text-3xl md:text-4xl font-bold">
             <LuQrCode className="w-8 h-8 text-blue-400" />
-            QR Intake
+            Launch QR intake in seconds
           </h2>
-          <p className="mb-6 text-gray-300">
-            Generate unique QR codes that lead customers straight to your intake forms.
-          </p>
+          <ul className="mb-6 text-gray-300 list-disc list-inside space-y-2">
+            <li>Create unique codes instantly</li>
+            <li>Link customers to custom forms</li>
+            <li>Track every scan in real time</li>
+          </ul>
           <button
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
             onClick={() => navigate("/campaigns")}

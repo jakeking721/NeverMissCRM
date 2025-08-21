@@ -17,23 +17,23 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-black/50" />
       <div className="relative z-10 max-w-2xl px-6 py-32 md:py-48 flex flex-col items-center">
         <h1 className="mb-6 text-4xl sm:text-5xl md:text-6xl font-extrabold">
-          NEVER MISS A LEAD AGAIN
+          Never Miss a Customer Again
         </h1>
         <p className="max-w-xl mb-8 text-lg md:text-xl">
-          Capture, manage, and engage your audience from anywhere.
+          All-in-one tools to capture leads and grow your business on the go.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             className="px-8 py-3 text-lg font-bold text-white bg-blue-700 rounded-full shadow hover:bg-blue-800"
             onClick={() => navigate("/register")}
           >
-            Get Started Free
+            Start Free
           </button>
           <button
             className="px-8 py-3 text-lg font-bold text-blue-700 bg-white rounded-full shadow hover:bg-gray-100"
             onClick={() => navigate("/demo")}
           >
-            Book a Demo
+            Watch Demo
           </button>
         </div>
       </div>

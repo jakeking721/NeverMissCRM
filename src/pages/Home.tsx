@@ -6,7 +6,7 @@ import FeatureBandQR from "../components/home/FeatureBandQR";
 import FeatureBandTargeting from "../components/home/FeatureBandTargeting";
 import FeatureBandSms from "../components/home/FeatureBandSms";
 import CtaStrip from "../components/home/CtaStrip";
-import AboutBlock from "../components/home/AboutBlock";
+import SmallBizBlock from "../components/home/SmallBizBlock";
 
 export default function Home() {
   return (
@@ -17,7 +17,7 @@ export default function Home() {
       <FeatureBandTargeting />
       <FeatureBandSms />
       <CtaStrip />
-      <AboutBlock />
+      <SmallBizBlock />
     </div>
   );
 }
