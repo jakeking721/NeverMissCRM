@@ -4,15 +4,12 @@ Keep this file updated after every code change with any manual steps, placeholde
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
 ### Homepage Refresh
-- [TODO] Confirm global header and footer render correctly after removing per-page instances.
+- [TODO] Verify simplified global footer renders below the SmallBizBlock on Home and across routes.
   Steps:
     1. Run `npm run dev` or build the project.
     2. Navigate to Home, Bulk Import, and Promote Extra Fields pages.
-    3. Ensure the global header and footer appear once and spacing looks correct.
-- [TODO] Replace footer headline, description, and pill badges with final copy.
-  Steps:
-    1. Update `src/components/Footer.tsx` with production text and badge labels.
-    2. Run `npm run build` and verify footer content on multiple pages and screen sizes.
+    3. Confirm the footer shows once with dark background and centered text.
+    4. Check legibility and spacing on mobile and desktop.
 - [TODO] Replace placeholder flag hero background (`/public/flag-bg.jpg`) with final imagery.
   Steps:
     1. Swap `/public/flag-bg.jpg` with production asset.
