@@ -373,7 +373,9 @@
 - No manual steps required for guarding CSV/JSON import modals behind authentication in `src/pages/Customers.tsx`.
 - No manual steps required for exposing Supabase client and env on `window` in dev mode via `src/utils/supabaseClient.ts`.
 - No manual steps required for replacing placeholder loading spinner with branded `Loader` in `src/routes/ProtectedRoute.tsx` and `RedirectIfLoggedIn`.
-- Replace placeholder hero and patriot banner images in `src/components/home/HeroSection.tsx` and `src/components/home/PatriotBanner.tsx` with production assets. Steps: (1) Upload final images to an assets directory or CDN. (2) Update `HERO_MEDIA` and `PEOPLE_IMG` constants with the new URLs or imports. (3) Run `npm run build` to verify they load correctly.
+- Replace placeholder hero background image in `src/components/home/HeroSection.tsx` with a production asset. Steps: (1) Upload final image to an assets directory or CDN. (2) Update `HERO_MEDIA` with the new URL or import. (3) Run `npm run build` to verify it loads correctly.
+- Replace placeholder icons/copy in new feature bands (`FeatureBandCampaign.tsx`, `FeatureBandQR.tsx`, `FeatureBandTargeting.tsx`, `FeatureBandSms.tsx`) with final imagery and marketing text. Steps: (1) Provide production-ready images or illustrations. (2) Update component markup accordingly. (3) Rebuild to confirm responsive layout.
+- Implement actual demo booking route for hero "Book a Demo" button (currently `/demo`). Steps: (1) Create the demo scheduling page or external link. (2) Update navigation target. (3) Test navigation after deployment.
 - Replace the temporary SMS service in `src/services/smsService.ts` with a real provider (e.g., Twilio) and remove `alert` calls and localStorage logging. Ensure the provider is configured to accept E.164-formatted numbers.
 - Configure production environment variables for SMS API credentials and scheduling backend.
 - [UPDATED] Demo SMS logs are now cleared automatically on logout. Verify no placeholder keys remain before launch.

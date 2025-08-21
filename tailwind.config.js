@@ -32,6 +32,9 @@ module.exports = {
       fontFamily: {
         sans: ["Inter", "Helvetica Neue", "Arial", "sans-serif"],
       },
+      opacity: {
+        15: "0.15",
+      },
     },
   },
   plugins,
