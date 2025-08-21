@@ -98,10 +98,8 @@ export default function NewIntakeCampaign() {
           </select>
           <div className="text-right">
             <a
-              href="/forms/new"
+              href={`/forms/new?returnTo=${encodeURIComponent("/campaigns/intake/new")}`}
               className="text-sm text-blue-600 hover:underline"
-              target="_blank"
-              rel="noreferrer"
             >
               Create new form
             </a>

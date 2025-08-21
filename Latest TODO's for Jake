@@ -1,3 +1,12 @@
+### Campaign Form Snapshot
+- [TODO] Apply migration `20250902090000_add_form_fields_to_campaigns.sql` and regenerate types.
+  Steps:
+    1. From the project root run `supabase db push`.
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+    3. Backfill existing `campaigns` rows with the appropriate `form_template_id` or set to NULL; remove any demo forms or slugs.
+- [INFO] Campaigns now store a snapshot of the form definition. Updating a form later will not change already-saved snapshots.
+
 ### Form Template Refactor
 - [TODO] Apply migration `20250901090000_form_template_refactor.sql` and regenerate types.
   Steps:

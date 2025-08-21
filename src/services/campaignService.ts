@@ -13,6 +13,8 @@ export type Campaign = {
   title?: string; // new field, replaces name
   name?: string; // legacy support
   slug?: string;
+  formTemplateId?: string;
+  formSnapshotJson?: any;
   type?: "sms" | "intake";
   message?: string;
   recipients?: string[];
@@ -38,6 +40,8 @@ function rowToCampaign(row: any): Campaign {
     title: row.title ?? row.name,
     name: row.name, // legacy field for backward compatibility
     slug: row.slug,
+    formTemplateId: row.form_template_id ?? undefined,
+    formSnapshotJson: row.form_snapshot_json ?? undefined,
     type: row.type,
     message: row.message,
     recipients: (row.recipients ?? []) as string[],
@@ -50,6 +54,27 @@ function rowToCampaign(row: any): Campaign {
   };
 }
 
+async function ensureUniqueSlug(slug: string | undefined, userId: string, excludeId?: string) {
+  if (!slug) return;
+  let query = supabase.from("campaigns").select("id").eq("owner_id", userId).eq("slug", slug);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data, error } = await query;
+  if (error) throw error;
+  if (data && data.length > 0) throw new Error("Slug already in use");
+}
+
+async function fetchFormSnapshot(userId: string, formId: string | undefined) {
+  if (!formId) return null;
+  const { data, error } = await supabase
+    .from("forms")
+    .select("schema_json")
+    .eq("id", formId)
+    .eq("owner_id", userId)
+    .single();
+  if (error) throw error;
+  return data?.schema_json ?? null;
+}
+
 /**
  * Get all campaigns (newest first).
  */
@@ -59,7 +84,7 @@ export async function getCampaigns(): Promise<Campaign[]> {
   const { data, error } = await supabase
     .from("campaigns")
     .select(
-      "id, owner_id, title, name, slug, type, message, recipients, status, created_at, updated_at, start_at, end_at"
+      "id, owner_id, title, name, slug, type, message, recipients, status, created_at, updated_at, start_at, end_at, form_template_id, form_snapshot_json"
     )
     .eq("owner_id", userId)
     .order("created_at", { ascending: false });
@@ -75,6 +100,9 @@ export async function getCampaigns(): Promise<Campaign[]> {
 export async function addCampaign(c: Campaign): Promise<void> {
   const userId = await requireUserId();
 
+  await ensureUniqueSlug(c.slug, userId);
+  const snapshot = await fetchFormSnapshot(userId, c.formTemplateId);
+
   const payload = {
     id: c.id,
     owner_id: userId,
@@ -89,9 +117,56 @@ export async function addCampaign(c: Campaign): Promise<void> {
     updated_at: c.updatedAt ?? new Date().toISOString(),
     start_at: c.startAt ?? c.scheduledFor ?? null,
     end_at: c.endAt ?? null,
+    form_template_id: c.formTemplateId ?? null,
+    form_snapshot_json: snapshot,
   };
 
   const { error } = await supabase.from("campaigns").insert(payload);
+  if (error) throw error;
+}
+
+/**
+ * Update a campaign you own.
+ */
+export async function updateCampaign(c: Campaign): Promise<void> {
+  const userId = await requireUserId();
+  await ensureUniqueSlug(c.slug, userId, c.id);
+
+  let snapshot = c.formSnapshotJson ?? null;
+  if (c.formTemplateId) {
+    const { data: existing } = await supabase
+      .from("campaigns")
+      .select("form_template_id")
+      .eq("id", c.id)
+      .eq("owner_id", userId)
+      .single();
+    if (existing?.form_template_id !== c.formTemplateId) {
+      snapshot = await fetchFormSnapshot(userId, c.formTemplateId);
+    }
+  } else {
+    snapshot = null;
+  }
+
+  const payload = {
+    title: c.title ?? c.name,
+    name: c.name,
+    slug: c.slug,
+    type: c.type ?? "sms",
+    message: c.message,
+    recipients: c.recipients ?? [],
+    status: c.status,
+    updated_at: c.updatedAt ?? new Date().toISOString(),
+    start_at: c.startAt ?? c.scheduledFor ?? null,
+    end_at: c.endAt ?? null,
+    form_template_id: c.formTemplateId ?? null,
+    form_snapshot_json: snapshot,
+  };
+
+  const { error } = await supabase
+    .from("campaigns")
+    .update(payload)
+    .eq("id", c.id)
+    .eq("owner_id", userId);
   if (error) throw error;
 }
 

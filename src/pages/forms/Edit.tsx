@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   DndContext,
   closestCenter,
@@ -29,6 +29,7 @@ interface Block {
 export default function FormBuilder() {
   const { formId } = useParams();
   const navigate = useNavigate();
+  const [search] = useSearchParams();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [style, setStyle] = useState<Record<string, any>>({ backgroundColor: "#ffffff" });
@@ -201,8 +202,14 @@ export default function FormBuilder() {
     const payload: any = { title, description, schema_json: { blocks, style } };
     if (formId && formId !== "new") payload.id = formId;
     try {
-      await saveForm(payload);
-      navigate("/forms");
+      const saved = await saveForm(payload);
+      const returnTo = search.get("returnTo");
+      if (returnTo) {
+        const url = `${returnTo}?id=${saved.id}`;
+        navigate(url);
+      } else {
+        navigate("/forms");
+      }
     } catch (e: any) {
       toast.error(e?.message || "Failed to save form");
     }

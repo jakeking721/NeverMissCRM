@@ -19,6 +19,9 @@ import { getSmsService } from "@/services/smsService";
 import SegmentBuilder, { Segment, SegmentRule } from "@/components/segments/SegmentBuilder";
 import { FiSave } from "react-icons/fi";
 import { formatPhone, normalizePhone } from "@/utils/phone";
+import { fetchForms } from "@/services/forms";
+import { useSearchParams } from "react-router-dom";
+import { QRCodeCanvas } from "qrcode.react";
 
 type AnyValue = string | number | boolean | null | undefined;
 
@@ -45,6 +48,11 @@ export default function CampaignBuilder() {
   const [message, setMessage] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [scheduleDate, setScheduleDate] = useState<string>("");
+
+  const [slug, setSlug] = useState("");
+  const [forms, setForms] = useState<any[]>([]);
+  const [formId, setFormId] = useState("");
+  const [search] = useSearchParams();
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -85,6 +93,9 @@ export default function CampaignBuilder() {
           .sort((a: CustomField, b: CustomField) => a.order - b.order);
         setFields(allFields);
 
+        const formsList = await fetchForms();
+        setForms(formsList);
+
         const balance = await creditsService.getBalance();
         setCreditsBalance(balance);
       } catch (e) {
@@ -97,6 +108,11 @@ export default function CampaignBuilder() {
       mounted = false;
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    const existingId = search.get("id");
+    if (existingId) setFormId(existingId);
+  }, [search]);
 
   // Keep credits estimate + canAfford up to date
   const filteredBySegment = useMemo(() => {
@@ -173,6 +189,8 @@ export default function CampaignBuilder() {
         status,
         createdAt: new Date().toISOString(),
         scheduledFor: scheduleDate || undefined,
+        slug: slug || undefined,
+        formTemplateId: formId || undefined,
       };
 
       if (status === "scheduled" && newCampaign.scheduledFor) {
@@ -199,6 +217,8 @@ export default function CampaignBuilder() {
       setMessage("");
       setSelectedIds([]);
       setScheduleDate("");
+      setSlug("");
+      setFormId("");
       setSegment({ rules: [], match: "all" });
 
       alert("Campaign saved.");
@@ -292,6 +312,51 @@ export default function CampaignBuilder() {
               className="border rounded w-full px-2 py-1"
               placeholder="Spring Promo Blast"
             />
+          </div>
+
+          {/* Slug */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Campaign Slug</label>
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              className="border rounded w-full px-2 py-1"
+              placeholder="spring-promo"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Forms will be available at /intake/{slug || "your-slug"}
+            </p>
+            {slug && (
+              <div className="mt-2 flex justify-center">
+                <QRCodeCanvas value={`${window.location.origin}/intake/${slug}`} size={120} />
+              </div>
+            )}
+          </div>
+
+          {/* Form Template */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Form Template</label>
+            <select
+              className="border rounded w-full px-2 py-1"
+              value={formId}
+              onChange={(e) => setFormId(e.target.value)}
+            >
+              <option value="">None</option>
+              {forms.map((f: any) => (
+                <option key={f.id} value={f.id}>
+                  {f.title || f.id}
+                </option>
+              ))}
+            </select>
+            <div className="text-right">
+              <a
+                href={`/forms/new?returnTo=${encodeURIComponent("/campaigns/sms/new")}`}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Create new form
+              </a>
+            </div>
           </div>
 
           {/* Message */}
