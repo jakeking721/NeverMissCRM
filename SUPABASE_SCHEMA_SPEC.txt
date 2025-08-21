@@ -4,14 +4,19 @@ Supabase Schema Specification
 Canonical Timestamp
 -------------------
 - `created_at` is the canonical creation timestamp.
-- Tables using `created_at`: `campaigns`, `campaign_templates`, `public_slugs`, `campaign_forms`, `credit_ledger`, `profiles`.
+- Tables using `created_at`: `campaigns`, `campaign_templates`, `public_slugs`, `campaign_forms`, `credit_ledger`, `profiles`, `intake_campaigns`.
 - `customers` uses `signup_date` as its creation timestamp and `updated_at` maintained by trigger.
 
 Tables
 ------
 
+**admin_users**
+- Columns: `user_id uuid` PK references `auth.users`, `permissions jsonb` nullable.
+- RLS: none; requires service role.
+- Admin vs user: internal mapping of users to admin privileges.
+
 **profiles**
-- Columns: `id uuid` PK, `email text`, `username text`, `role text` (default `user`), `credits int`, `avatar text`, `is_approved boolean` (default `false`), `is_active boolean` (default `true`), `deactivated_at timestamptz`.
+- Columns: `id uuid` PK, `email text`, `username text`, `role text` default `user`, `credits int`, `avatar text`, `is_approved boolean` default `false`, `is_active boolean` default `true`, `deactivated_at timestamptz`, `created_at timestamptz` default `now()`, `updated_at timestamptz`.
 - Indexes: primary key on `id`.
 - Triggers: `handle_new_user` on `auth.users` inserts profile on user signup.
 - RLS: `profiles_rw` (owner or admin may select), `profiles_update` (owner or admin), `profiles_delete` (admin only).
@@ -48,8 +53,14 @@ Tables
 - RLS: `campaign_forms_owner_rw` (owner read/write), `campaign_forms_public_select` (public read).
 - Admin vs user: admins act as regular users; public can read forms via slug.
 
+**intake_campaigns**
+- Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `title text`, `slug text`, `form_id uuid` FK, `start_date timestamptz`, `end_date timestamptz`, `status text` default `'draft'`, `gate_field text` default `'phone'`, `prefill_gate boolean` default `false`, `success_message text`, `require_consent boolean` default `false`, `created_at timestamptz` default `now()`.
+- Constraints: unique `(owner_id, slug)`.
+- RLS: `intake_campaigns_owner_rw` (owner read/write), `intake_campaigns_public_select` (public read by slug).
+- Admin vs user: no special admin override; public can read campaigns via slug for intake wizard.
+
 **customers**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `name text` default `''`, `phone text` nullable, `location text`, `signup_date timestamptz` default `now()`, `extra jsonb` default `{}`, `email text`, `updated_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `signup_date timestamptz` default `now()`, `extra jsonb` default `{}`, `updated_at timestamptz` default `now()`.
 - Indexes: `customers_user_id_idx` on `user_id`.
 - Constraints: `uniq_customers_owner_email_norm` on `(user_id, lower(trim(email)))` where email not null; `uniq_customers_owner_phone_e164` on `(user_id, normalize_phone(phone))` where phone not null.
 - Triggers: `set_updated_at` before update using `update_updated_at_column`.
@@ -57,15 +68,15 @@ Tables
 - Admin vs user: no admin override; only owner with approved, active profile.
 
 **customer_custom_field_values**
-- Columns: `customer_id uuid` FK, `field_id uuid` FK, `value text` default `''`.
+- Columns: `customer_id uuid` FK, `field_id uuid` FK, `value text` default null.
 - Primary key: `(customer_id, field_id)`.
 - Indexes: `ccfv_customer_idx` on `customer_id`.
 - RLS: `customer_custom_field_values_owner` ensures linked customer belongs to current user.
 - Admin vs user: no admin override.
 
 **credit_ledger**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `change integer` not null, `reason text`, `created_at timestamptz` default `now()`.
-- Indexes: `credit_ledger_user_id_idx` on `user_id`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `delta integer` not null, `reason text`, `related_id uuid`, `created_at timestamptz` default `now()`.
+- Indexes: `credit_ledger_owner_id_idx` on `owner_id`.
 - RLS: `credit_ledger_owner_rw` (owner only).
 - Admin vs user: no admin override.
 
@@ -77,7 +88,7 @@ Functions & Triggers
 - `update_updated_at_column()` → sets `updated_at` on row updates.
 - `handle_new_user()` → trigger on `auth.users` to insert a profile row.
 - `normalize_phone(text)` → returns E.164-format string.
-- `intake_add_customer(p_slug, p_name, p_phone, p_location, p_extra, p_user_id)` → inserts customer and custom field values.
+- `intake_add_customer(p_slug, p_first_name, p_last_name, p_phone, p_zip_code, p_extra, p_user_id)` → inserts customer and custom field values.
 - `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
 - `ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.
 - `upsert_customer_custom_field_value(p_customer_id, p_field_id, p_value)` → helper for custom field values.
@@ -87,7 +98,7 @@ Functions & Triggers
 Admin vs. User Summary
 ----------------------
 - **Profiles**: admins may read/update/delete any profile; users limited to their own.
-- **Public Slugs, Campaigns, Campaign Templates, Custom Fields, Campaign Forms, Customers, Customer Custom Field Values, Credit Ledger**: admins have no implicit elevated access—ownership is required. Forms and slugs offer public read access where noted.
+- **Public Slugs, Campaigns, Campaign Templates, Custom Fields, Campaign Forms, Intake Campaigns, Customers, Customer Custom Field Values, Credit Ledger**: admins have no implicit elevated access—ownership is required. Forms, slugs, and intake campaigns offer public read access where noted.
 
 TODO
 ----

@@ -1,3 +1,11 @@
+### Schema Specification Alignment
+- [TODO] Ensure Supabase database matches the updated `SUPABASE_SCHEMA_SPEC.txt`.
+  Steps:
+    1. Review the spec and verify all tables, columns, and policies exist in Supabase.
+    2. Apply any missing migrations or SQL updates.
+    3. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+
 ### Campaign/Form Schema Migration
 - [TODO] Apply new campaign/form schema migration and regenerate types.
   Steps:
