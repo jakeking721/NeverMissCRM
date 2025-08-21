@@ -29,7 +29,7 @@ export default function FormList() {
             className="border p-4 rounded cursor-pointer hover:bg-gray-50"
             onClick={() => navigate(`/forms/${f.id}`)}
           >
-            <h3 className="font-semibold">{f.slug || "Untitled"}</h3>
+            <h3 className="font-semibold">{f.title || "Untitled"}</h3>
           </div>
         ))}
       </div>

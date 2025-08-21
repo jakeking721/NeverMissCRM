@@ -12,12 +12,6 @@ vi.mock("@/services/forms", () => ({
   deleteForm: vi.fn(),
 }));
 
-vi.mock("@/services/campaignService", () => ({
-  getCampaigns: vi.fn().mockResolvedValue([
-    { id: "c1", name: "Test Campaign", message: "", recipients: [], status: "draft", createdAt: "" },
-  ]),
-}));
-
 import { saveForm } from "@/services/forms";
 
 vi.spyOn(window, "alert").mockImplementation(() => {});
@@ -45,11 +39,8 @@ test("adds title block and saves", async () => {
   const colorInput = screen.getByLabelText("Background Color");
   fireEvent.change(colorInput, { target: { value: "#ff0000" } });
 
-  const slugInput = screen.getByLabelText(/Slug/i);
-  fireEvent.change(slugInput, { target: { value: "test-form" } });
-
-  const campaignSelect = await screen.findByLabelText(/Campaign/i);
-  fireEvent.change(campaignSelect, { target: { value: "c1" } });
+  const titleInput = screen.getByLabelText(/Title/i);
+  fireEvent.change(titleInput, { target: { value: "Test Form" } });
 
   const saveBtn = await screen.findByText("Save");
   await act(async () => {
@@ -61,7 +52,7 @@ test("adds title block and saves", async () => {
   const payload = (saveForm as any).mock.calls[0][0];
   expect(payload.schema_json.blocks[0].type).toBe("title");
   expect(payload.schema_json.style.backgroundColor).toBe("#ff0000");
-  expect(payload.slug).toBe("test-form");
+  expect(payload.title).toBe("Test Form");
 });
 
 test("clicking block opens inspector and updates preview", async () => {

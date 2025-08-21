@@ -18,7 +18,6 @@ import BlockPalette from "@/components/builder/BlockPalette";
 import DraggableBlock from "@/components/builder/DraggableBlock";
 import PropertyPanel from "@/components/builder/PropertyPanel";
 import { fetchForm, saveForm } from "@/services/forms";
-import { getCampaigns, Campaign } from "@/services/campaignService";
 import { toast } from "react-toastify";
 
 interface Block {
@@ -33,9 +32,8 @@ export default function FormBuilder() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [style, setStyle] = useState<Record<string, any>>({ backgroundColor: "#ffffff" });
-  const [slug, setSlug] = useState("");
-  const [campaignId, setCampaignId] = useState<string | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [showPalette, setShowPalette] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
@@ -47,18 +45,12 @@ export default function FormBuilder() {
         .then((f) => {
           setBlocks(f?.schema_json?.blocks || []);
           setStyle(f?.schema_json?.style || { backgroundColor: "#f9fafb" });
-          setSlug(f?.slug || "");
-          setCampaignId(f?.campaign_id || null);
+          setTitle(f?.title || "");
+          setDescription(f?.description || "");
         })
         .catch(console.error);
     }
   }, [formId]);
-
-  useEffect(() => {
-    getCampaigns()
-      .then(setCampaigns)
-      .catch((e) => console.error("Failed to load campaigns", e));
-  }, []);
 
   const createBlock = (paletteType: string): Block => {
     const id = uuidv4();
@@ -202,11 +194,11 @@ export default function FormBuilder() {
   };
 
   const handleSave = async () => {
-    if (!campaignId) {
-      toast.error("Please select a campaign before saving.");
+    if (!title.trim()) {
+      toast.error("Title is required.");
       return;
     }
-    const payload: any = { schema_json: { blocks, style }, slug, campaign_id: campaignId };
+    const payload: any = { title, description, schema_json: { blocks, style } };
     if (formId && formId !== "new") payload.id = formId;
     try {
       await saveForm(payload);
@@ -253,33 +245,28 @@ export default function FormBuilder() {
         {/* Preview area */}
         <div className="flex-1 flex flex-col bg-blue-50 md:p-6 overflow-y-auto">
           <div className="mb-4 p-4 bg-white rounded shadow-sm">
-            <label htmlFor="form-campaign" className="block text-sm font-medium mb-1">
-              Campaign
-            </label>
-            <select
-              id="form-campaign"
-              value={campaignId || ""}
-              onChange={(e) => setCampaignId(e.target.value || null)}
-              className="w-full border rounded px-2 py-1"
-            >
-              <option value="">Select campaign</option>
-              {campaigns.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-4 p-4 bg-white rounded shadow-sm">
-            <label htmlFor="form-slug" className="block text-sm font-medium mb-1">
-              Slug
+            <label htmlFor="form-title" className="block text-sm font-medium mb-1">
+              Title
             </label>
             <input
-              id="form-slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="unique-form-slug"
+              id="form-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="My form title"
               className="w-full border rounded px-2 py-1"
+            />
+          </div>
+          <div className="mb-4 p-4 bg-white rounded shadow-sm">
+            <label htmlFor="form-description" className="block text-sm font-medium mb-1">
+              Description
+            </label>
+            <textarea
+              id="form-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional description"
+              className="w-full border rounded px-2 py-1"
+              rows={3}
             />
           </div>
           <div className="mb-2 flex gap-2 md:hidden">

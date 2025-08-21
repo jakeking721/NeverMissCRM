@@ -1,3 +1,11 @@
+### Form Template Refactor
+- [TODO] Apply migration `20250901090000_form_template_refactor.sql` and regenerate types.
+  Steps:
+    1. From the project root run `supabase db push`.
+    2. Regenerate Supabase types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+    3. Review existing `forms` rows and remove any leftover `slug` or `version` data.
+
 ### Schema Specification Alignment
 - [TODO] Ensure Supabase database matches the updated `SUPABASE_SCHEMA_SPEC.txt`.
   Steps:
