@@ -103,14 +103,18 @@ export default function NewIntakeCampaign() {
 
   useEffect(() => {
     if (!slug) return;
-    supabase
-      .from("intake_campaigns")
-      .select("id")
-      .eq("slug", slug)
-      .maybeSingle()
-      .then(({ data }) => {
-        setSlugTaken(!!data && data.id !== campaignId);
-      });
+    void (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return;
+      const { data } = await supabase
+        .from("intake_campaigns")
+        .select("id")
+        .eq("slug", slug)
+        .eq("owner_id", userId)
+        .maybeSingle();
+      setSlugTaken(!!data && data.id !== campaignId);
+    })();
   }, [slug, campaignId]);
 
   return (
