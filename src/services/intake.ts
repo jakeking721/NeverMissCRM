@@ -32,43 +32,35 @@ export async function submitIntake({
     extra: extra ?? null,
   };
 
-  const { data: existing } = await supabase.rpc("intake_find_customer", {
-    owner_id: ownerId,
-    gate: "phone",
-    value: normalizePhone(phone),
-  });
-  if (existing) {
-    return "already";
-  }
+// Check if this phone already exists for this owner (short-circuit if so)
+const { data: existing } = await supabase.rpc("intake_find_customer", {
+  owner_id: ownerId,
+  gate: "phone",
+  value: normalizePhone(phone),
+});
+if (existing) {
+  return "already";
+}
 
-  const { data: submission, error: subErr } = await supabase
-    .from("intake_submissions")
-    .insert({
-      campaign_id: campaignId,
-      form_version_id: formVersionId,
-      payload_json: payload,
-    })
-    .select("id")
-    .single();
-  if (subErr || !submission) throw subErr || new Error("Failed to log submission");
+// Submit intake + attach customer in one server-side step (RPC)
+const { data: customerId, error } = await supabase.rpc("intake_submit_attach", {
+  p_campaign_id: campaignId,
+  p_form_version_id: formVersionId,
+  p_payload_json: payload,            // { firstName, lastName, phone, zipCode, extra }
+  p_slug: slug,
+  p_first_name: firstName,
+  p_last_name: lastName,
+  p_phone: normalizePhone(phone),
+  p_zip_code: zipCode ?? null,
+  p_extra: extra ?? null,
+  p_user_id: ownerId,
+});
 
-  const { data, error } = await supabase.rpc("intake_add_customer", {
-    p_slug: slug,
-    p_first_name: firstName,
-    p_last_name: lastName,
-    p_phone: normalizePhone(phone),
-    p_zip_code: zipCode ?? null,
-    p_extra: extra ?? null,
-    p_user_id: ownerId,
-  });
-  if (error) throw error;
+if (error || !customerId) {
+  throw error || new Error("Failed to submit intake with customer");
+}
 
-  await supabase
-    .from("intake_submissions")
-    .update({ customer_id: data as string })
-    .eq("id", submission.id);
-
-  return data as string;
+return customerId as string;
 }
 
 export interface WizardConfig {
@@ -100,4 +92,3 @@ export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
     requireConsent: data.require_consent ?? false,
   };
 }
-
