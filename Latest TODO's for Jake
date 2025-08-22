@@ -3,6 +3,34 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### Form Save Standardization
+- [TODO] Ensure Supabase has `campaign_forms` table with columns `id`, `owner_id`, `title`, `description`, `slug`, `schema_json`, `created_at`, and `updated_at`.
+  Steps:
+    1. In the Supabase SQL editor run:
+
+         create table if not exists public.campaign_forms (
+           id uuid primary key default gen_random_uuid(),
+           campaign_id uuid,
+           template_id uuid,
+           owner_id uuid references auth.users(id) not null default auth.uid(),
+           slug text,
+           title text not null,
+           description text,
+           schema_json jsonb default '{}',
+           created_at timestamptz default now(),
+           updated_at timestamptz default now(),
+           unique (owner_id, slug)
+         );
+
+    2. Drop legacy `forms` table if present:
+
+         drop table if exists public.forms;
+
+    3. Regenerate Supabase types:
+
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+- [TODO] Remove any placeholder rows used for testing from `campaign_forms` before launch.
+
 ### Homepage Refresh
 - [TODO] Verify simplified global footer renders below the SmallBizBlock on Home and across routes.
   Steps:

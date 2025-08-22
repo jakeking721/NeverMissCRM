@@ -12,7 +12,7 @@ export default function HeroSection() {
       {/* Flag background with parallax effect */}
       <div
         className="absolute inset-0 bg-fixed bg-cover bg-center"
-        style={{ backgroundImage: `url(${HERO_FLAG})` }}
+        style={{ backgroundImage: `url(hero-media.jpg)` }}
       />
       <div className="absolute inset-0 bg-black/50" />
       <div className="relative z-10 max-w-2xl px-6 py-32 md:py-48 flex flex-col items-center">

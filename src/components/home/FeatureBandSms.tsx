@@ -1,5 +1,4 @@
 import React from "react";
-import { LuMessageSquare } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 
 export default function FeatureBandSms() {
@@ -7,23 +6,18 @@ export default function FeatureBandSms() {
 
   return (
     <section className="bg-[#0B1220] py-24">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row-reverse items-center gap-12">
-        <div className="flex-1 flex justify-center">
-          <div className="w-56 h-80 rounded-2xl border-4 border-white p-4 flex flex-col gap-3 bg-gray-900">
-            <div className="bg-blue-600 text-white px-4 py-2 rounded-xl rounded-bl-none w-max">Hi there!</div>
-            <div className="bg-gray-700 text-white px-4 py-2 rounded-xl rounded-br-none w-max ml-auto">Can we help you?</div>
-            <div className="bg-blue-600 text-white px-4 py-2 rounded-xl rounded-bl-none w-max">Let's chat!</div>
-          </div>
-        </div>
-        <div className="flex-1 text-white text-center md:text-left">
-          <h2 className="mb-4 flex items-center justify-center md:justify-start gap-2 text-3xl md:text-4xl font-bold">
-            <LuMessageSquare className="w-8 h-8 text-blue-400" />
-            Send texts with confidence
-          </h2>
-          <ul className="mb-6 text-gray-300 list-disc list-inside space-y-2">
-            <li>Personalize every message</li>
-            <li>Respect opt-out rules automatically</li>
-            <li>See delivery status in one place</li>
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 grid md:grid-cols-2 gap-12 items-center">
+        {/* Text (left) */}
+        <div className="text-white">
+          <p className="uppercase tracking-widest text-xs text-blue-300 mb-3">SMS</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Send texts with confidence</h2>
+          <p className="text-gray-300 leading-relaxed mb-6">
+            Pay-as-you-send with no hidden fees. Draft, schedule, and track replies — all inside NeverMissCRM.
+          </p>
+          <ul className="text-gray-300 text-sm space-y-2 list-disc pl-5 mb-6">
+            <li>Scheduling + credit tracking</li>
+            <li>Two-way reply capture</li>
+            <li>Fast, reliable delivery</li>
           </ul>
           <button
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
@@ -31,6 +25,27 @@ export default function FeatureBandSms() {
           >
             Open SMS Tools
           </button>
+        </div>
+
+        {/* Chat mock (right) */}
+        <div className="relative">
+          {/* subtle background accents */}
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_30%_20%,rgba(96,165,250,0.25),transparent_60%),radial-gradient(circle_at_80%_70%,rgba(99,102,241,0.2),transparent_55%)] rounded-3xl" />
+          {/* card container */}
+          <div className="bg-[#0F182A] border border-white/10 rounded-3xl p-6 shadow-2xl">
+            {/* light chat area */}
+            <div className="h-64 rounded-2xl bg-slate-50 p-4 flex flex-col gap-3">
+              <div className="self-start bg-white border border-gray-200 shadow-sm rounded-2xl px-4 py-2 max-w-[75%] text-sm">
+                Sportsman's Outdoor trade show this weekend! Reply Y to confirm your attendance.
+              </div>
+              <div className="self-end bg-blue-600 text-white rounded-2xl px-4 py-2 max-w-[75%] text-sm">
+                Y
+              </div>
+              <div className="self-start bg-white border border-gray-200 shadow-sm rounded-2xl px-4 py-2 max-w-[75%] text-sm">
+                You’re in! Watch for exclusive offers and updates.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

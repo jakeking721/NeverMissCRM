@@ -1,9 +1,9 @@
-// src/components/Header.tsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { clearLocalPlaceholders } from "@/utils/localCleanup";
 import { isAdmin } from "@/utils/roles";
+import { ChevronDown } from "lucide-react";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -11,8 +11,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   const admin = isAdmin(user || undefined);
-  const limited =
-    !!user && !admin && (!user.is_approved || !user.is_active);
+  const limited = !!user && !admin && (!user.is_approved || !user.is_active);
 
   const handleLogout = async () => {
     clearLocalPlaceholders();
@@ -21,60 +20,58 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b shadow-sm z-20 relative">
-      <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
+    <header className="sticky top-0 z-30 w-full border-b border-gray-200 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src="/NeverMissCRM_Logo.png" alt="Logo" className="h-8 w-8" />
-          <span className="text-xl font-bold text-blue-700">NeverMiss</span>
-          <span className="text-sm text-gray-600">CRM</span>
+          <img src="/NeverMissCRM_Logo.png" alt="Logo" className="h-9 w-9" />
+          <span className="text-xl font-extrabold tracking-tight text-blue-700">NeverMiss</span>
+          <span className="text-sm font-semibold text-gray-500">CRM</span>
         </Link>
 
         {/* Nav links */}
-        <nav className="hidden md:flex gap-6 text-md font-bold text-gray-700">
-          <Link to="/" className="hover:text-blue-600">
+        <nav className="hidden md:flex gap-8 text-base font-semibold text-gray-800">
+          <Link to="/" className="transition-colors hover:text-blue-600">
             Home
           </Link>
           {!limited && user && (
             <>
-              <Link to="/dashboard" className="hover:text-blue-600">
+              <Link to="/dashboard" className="transition-colors hover:text-blue-600">
                 Dashboard
               </Link>
-              <Link to="/customers" className="hover:text-blue-600">
+              <Link to="/customers" className="transition-colors hover:text-blue-600">
                 Customers
               </Link>
-              <Link to="/campaigns" className="hover:text-blue-600">
+              <Link to="/campaigns" className="transition-colors hover:text-blue-600">
                 Campaigns
               </Link>
-              <Link to="/forms" className="hover:text-blue-600">
+              <Link to="/forms" className="transition-colors hover:text-blue-600">
                 Forms
               </Link>
-              <Link to="/settings" className="hover:text-blue-600">
+              <Link to="/settings" className="transition-colors hover:text-blue-600">
                 Settings
               </Link>
             </>
           )}
-          <Link to="/help" className="hover:text-blue-600">
-            Help
-          </Link>
         </nav>
 
-        {/* User actions */}
+        {/* User actions or Login/Help */}
         {user ? (
           <div className="relative">
             <button
               onClick={() => setOpen((o) => !o)}
-              className="flex items-center gap-2 px-3 py-1 border rounded-full hover:bg-gray-50"
+              className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
             >
               <span className="material-icons text-gray-600">person</span>
-              <span className="text-sm font-medium">{user.username || "User"}</span>
+              <span>{user.username || "User"}</span>
+              <ChevronDown className="h-4 w-4 text-gray-500" />
             </button>
             {open && (
-              <div className="absolute right-0 mt-2 bg-white border rounded-lg shadow-lg py-2 text-sm w-40">
+              <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
                 {!limited && (
                   <Link
                     to="/settings"
-                    className="block px-4 py-2 hover:bg-gray-50"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setOpen(false)}
                   >
                     Settings
@@ -82,7 +79,7 @@ export default function Header() {
                 )}
                 <Link
                   to="/help"
-                  className="block px-4 py-2 hover:bg-gray-50"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => setOpen(false)}
                 >
                   Help
@@ -90,7 +87,7 @@ export default function Header() {
                 {admin && (
                   <Link
                     to="/admin"
-                    className="block px-4 py-2 hover:bg-gray-50"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     onClick={() => setOpen(false)}
                   >
                     Admin
@@ -98,7 +95,7 @@ export default function Header() {
                 )}
                 <button
                   onClick={handleLogout}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600"
+                  className="block w-full px-4 py-2 text-left text-sm font-semibold text-red-600 hover:bg-gray-50"
                 >
                   Logout
                 </button>
@@ -106,12 +103,20 @@ export default function Header() {
             )}
           </div>
         ) : (
-          <Link
-            to="/login"
-            className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-          >
-            Login
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/help"
+              className="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+            >
+              Help
+            </Link>
+            <Link
+              to="/login"
+              className="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              Login
+            </Link>
+          </div>
         )}
       </div>
     </header>

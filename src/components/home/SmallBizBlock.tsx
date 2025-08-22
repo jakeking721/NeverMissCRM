@@ -2,24 +2,22 @@ import React from "react";
 
 export default function SmallBizBlock() {
   return (
-    <section className="py-24 bg-white">
-      <div className="max-w-5xl mx-auto px-6 text-center">
-        <h2 className="mb-6 text-3xl md:text-4xl font-bold text-patriotBlue">
-          Built for America’s Small Businesses
-        </h2>
-        <p className="mb-10 text-gray-700">
-          From one entrepreneur to another, NeverMiss CRM was created to help
-          local businesses capture more leads and keep customers coming back.
+    <section className="bg-[#0A0F1A] text-gray-400 py-12">
+      <div className="max-w-4xl mx-auto px-6 text-center space-y-4">
+        <h3 className="text-lg font-semibold text-white">Built for America’s Small Businesses</h3>
+        <p className="text-sm text-gray-400">
+          From one entrepreneur to another — NeverMissCRM is proudly built in the USA for small
+          businesses who want to stay independent, connected, and competitive.
         </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <span className="px-4 py-2 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full">
+        <div className="flex justify-center gap-4 flex-wrap">
+          <span className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
             Proudly American Made
           </span>
-          <span className="px-4 py-2 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full">
+          <span className="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-medium">
             For Local Businesses
           </span>
-          <span className="px-4 py-2 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full">
-            No Contracts, No Risk
+          <span className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+            No Contracts, No Hassle
           </span>
         </div>
       </div>

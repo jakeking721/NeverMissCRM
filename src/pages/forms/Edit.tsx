@@ -199,6 +199,14 @@ export default function FormBuilder() {
       toast.error("Title is required.");
       return;
     }
+    if (blocks.length === 0) {
+      toast.error("At least one field is required.");
+      return;
+    }
+    if (!style.backgroundColor) {
+      toast.error("Background color is required.");
+      return;
+    }
     const payload: any = { title, description, schema_json: { blocks, style } };
     if (formId && formId !== "new") payload.id = formId;
     try {
