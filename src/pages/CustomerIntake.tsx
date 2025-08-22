@@ -10,7 +10,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/utils/supabaseClient";
-import { submitIntake } from "@/services/intake";
+import { submitIntake, fetchWizardConfig, WizardConfig } from "@/services/intake";
 import { formatPhone, normalizePhone } from "@/utils/phone";
 
 type RouteParams = {
@@ -35,12 +35,15 @@ export default function CustomerIntake() {
   const [ownerName, setOwnerName] = useState<string>("");
   const [loadingOwner, setLoadingOwner] = useState<boolean>(true);
 
+  const [config, setConfig] = useState<WizardConfig | null>(null);
+  const [loadingConfig, setLoadingConfig] = useState<boolean>(true);
+
   const [form, setForm] = useState<FormState>({ firstName: "", lastName: "", phone: "", zipCode: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch the owner's public name via the slug (public_slugs -> profiles)
+  // Fetch the owner's public name and campaign config
   useEffect(() => {
     let mounted = true;
 
@@ -48,6 +51,7 @@ export default function CustomerIntake() {
       try {
         if (!slug) {
           setLoadingOwner(false);
+          setLoadingConfig(false);
           return;
         }
 
@@ -58,20 +62,26 @@ export default function CustomerIntake() {
           .eq("slug", slug)
           .single();
 
-        if (!mounted) return;
-
-        if (error || !data) {
-          setOwnerName("");
-        } else {
-          // @ts-ignore - without generated types, we rely on runtime
-          setOwnerName(data.profiles?.username ?? "");
+        if (mounted) {
+          if (error || !data) {
+            setOwnerName("");
+          } else {
+            // @ts-ignore - without generated types, we rely on runtime
+            setOwnerName(data.profiles?.username ?? "");
+          }
+          setLoadingOwner(false);
         }
+
+        const cfg = await fetchWizardConfig(slug);
+        if (mounted) setConfig(cfg);
       } catch (e) {
-        if (!mounted) return;
-        console.error(e);
-        setOwnerName("");
+        if (mounted) {
+          console.error(e);
+          setOwnerName("");
+          setConfig(null);
+        }
       } finally {
-        if (mounted) setLoadingOwner(false);
+        if (mounted) setLoadingConfig(false);
       }
     })();
 
@@ -92,6 +102,24 @@ export default function CustomerIntake() {
           Missing slug/username. Please scan a valid QR code.
         </p>
         <PrimaryButton onClick={() => navigate("/")}>Go Home</PrimaryButton>
+      </ScreenWrapper>
+    );
+  }
+
+  if (loadingConfig) {
+    return (
+      <ScreenWrapper>
+        <p className="text-sm text-gray-500">Loading…</p>
+      </ScreenWrapper>
+    );
+  }
+
+  if (!config) {
+    return (
+      <ScreenWrapper>
+        <h1 className="text-2xl font-bold text-red-700 mb-4">Campaign Unavailable</h1>
+        <p className="mb-6 text-sm text-gray-600">This campaign is inactive or expired.</p>
+        <PrimaryButton onClick={() => navigate("/")}>Return Home</PrimaryButton>
       </ScreenWrapper>
     );
   }
@@ -147,6 +175,9 @@ export default function CustomerIntake() {
             try {
               await submitIntake({
                 slug,
+                campaignId: config.campaignId,
+                formVersionId: config.formVersionId,
+                ownerId: config.ownerId,
                 firstName: form.firstName,
                 lastName: form.lastName,
                 phone: form.phone,

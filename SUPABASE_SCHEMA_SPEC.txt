@@ -97,9 +97,9 @@ Tables
 - Admin vs user: no admin override; submissions tied to owner via campaign.
 
 **intake_submissions**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `payload_json jsonb`, `submitted_at timestamptz` default `now()`, `customer_id uuid`.
-- RLS: `intake_submissions_public_insert` (public insert), `intake_submissions_public_update` (public update), `intake_submissions_owner_select` (owner read).
-- Admin vs user: owner read access; public may insert or update.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `form_version_id uuid`, `payload_json jsonb`, `submitted_at timestamptz` default `now()`, `customer_id uuid`.
+- RLS: `intake_submissions_public_insert` (anon insert when campaign active and within start/end dates), `intake_submissions_public_update` (public update), `intake_submissions_owner_select` (owner read).
+- Admin vs user: owner read access; anonymous inserts permitted only for active campaigns within schedule.
 
 **customer_email_collisions / customer_phone_collisions**
 - Temporary tables capturing duplicate contacts during normalization; not intended for production use.

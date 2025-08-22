@@ -4,6 +4,7 @@ import { normalizePhone } from "@/utils/phone";
 export interface IntakeParams {
   slug: string;
   campaignId: string;
+  formVersionId: string;
   ownerId: string;
   firstName: string;
   lastName: string;
@@ -15,6 +16,7 @@ export interface IntakeParams {
 export async function submitIntake({
   slug,
   campaignId,
+  formVersionId,
   ownerId,
   firstName,
   lastName,
@@ -32,7 +34,11 @@ export async function submitIntake({
 
   const { data: submission, error: subErr } = await supabase
     .from("intake_submissions")
-    .insert({ campaign_id: campaignId, payload_json: payload })
+    .insert({
+      campaign_id: campaignId,
+      form_version_id: formVersionId,
+      payload_json: payload,
+    })
     .select("id")
     .single();
   if (subErr || !submission) throw subErr || new Error("Failed to log submission");
@@ -58,6 +64,7 @@ export async function submitIntake({
 
 export interface WizardConfig {
   campaignId: string;
+  formVersionId: string;
   ownerId: string;
   gateField: "phone" | "email";
   prefill: boolean;
@@ -69,13 +76,14 @@ export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
   const { data, error } = await supabase
     .from("intake_resolver")
     .select(
-      "campaign_id, owner_id, gate_field, prefill_gate, success_message, require_consent"
+      "campaign_id, owner_id, form_version_id, gate_field, prefill_gate, success_message, require_consent"
     )
     .eq("slug", slug)
     .single();
   if (error || !data) throw error || new Error("Campaign not found");
   return {
     campaignId: data.campaign_id,
+    formVersionId: data.form_version_id,
     ownerId: data.owner_id,
     gateField: (data.gate_field as "phone" | "email") || "phone",
     prefill: data.prefill_gate ?? false,

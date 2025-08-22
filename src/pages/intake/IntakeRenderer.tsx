@@ -95,7 +95,9 @@ export default function IntakeRenderer() {
   const [values, setValues] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [campaignInfo, setCampaignInfo] = useState<{ id: string; owner_id: string } | null>(null);
+  const [campaignInfo, setCampaignInfo] = useState<
+    { id: string; owner_id: string; form_version_id: string }
+  | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -104,7 +106,7 @@ export default function IntakeRenderer() {
         const { data: camp, error: campErr } = await supabase
           .from("intake_resolver")
           .select(
-            "campaign_id, owner_id, form_json, status, start_date, end_date"
+            "campaign_id, owner_id, form_version_id, form_json, status, start_date, end_date"
           )
           .eq("slug", slug)
           .single();
@@ -129,7 +131,11 @@ export default function IntakeRenderer() {
           return;
         }
 
-        setCampaignInfo({ id: camp.campaign_id, owner_id: camp.owner_id });
+        setCampaignInfo({
+          id: camp.campaign_id,
+          owner_id: camp.owner_id,
+          form_version_id: camp.form_version_id,
+        });
 
         const schemaBlocks: Block[] = camp.form_json?.blocks ?? [];
         setBlocks(schemaBlocks);
@@ -214,6 +220,7 @@ export default function IntakeRenderer() {
       await submitIntake({
         slug,
         campaignId: campaignInfo.id,
+        formVersionId: campaignInfo.form_version_id,
         ownerId: campaignInfo.owner_id,
         firstName: first_name,
         lastName: last_name,
