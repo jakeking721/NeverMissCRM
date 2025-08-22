@@ -33,6 +33,20 @@ export async function getIntakeCampaigns(): Promise<IntakeCampaign[]> {
   return data || [];
 }
 
+export async function getIntakeCampaign(id: string): Promise<IntakeCampaign | null> {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("intake_campaigns")
+    .select(
+      "id, title, slug, form_id, start_date, end_date, status, gate_field, prefill_gate, success_message, require_consent",
+    )
+    .eq("id", id)
+    .eq("owner_id", userId)
+    .single();
+  if (error) throw error;
+  return (data as IntakeCampaign) ?? null;
+}
+
 export async function createIntakeCampaign(payload: {
   title: string;
   slug: string;
@@ -48,6 +62,32 @@ export async function createIntakeCampaign(payload: {
   const { data, error } = await supabase
     .from("intake_campaigns")
     .insert({ owner_id: userId, status: "draft", ...payload })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as IntakeCampaign;
+}
+
+export async function updateIntakeCampaign(
+  id: string,
+  payload: {
+    title: string;
+    slug: string;
+    form_id: string;
+    start_date?: string | null;
+    end_date?: string | null;
+    gate_field: "phone" | "email";
+    prefill_gate?: boolean;
+    success_message?: string | null;
+    require_consent?: boolean;
+  },
+): Promise<IntakeCampaign> {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("intake_campaigns")
+    .update(payload)
+    .eq("id", id)
+    .eq("owner_id", userId)
     .select()
     .single();
   if (error) throw error;

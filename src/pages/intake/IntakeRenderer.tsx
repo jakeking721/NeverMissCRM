@@ -103,11 +103,14 @@ export default function IntakeRenderer() {
       try {
         const { data: camp, error: campErr } = await supabase
           .from("intake_campaigns")
-          .select("id, owner_id, form_snapshot_json, form_template_id")
+          .select("id, owner_id, form_snapshot_json, form_id")
           .eq("slug", slug)
           .single();
         if (!mounted) return;
         if (campErr || !camp) {
+          if (import.meta.env.DEV) {
+            console.debug("[IntakeRenderer] slug not found", { slug, campErr });
+          }
           setError("Form not found");
           setLoading(false);
           return;
@@ -117,13 +120,20 @@ export default function IntakeRenderer() {
         let schemaBlocks: Block[] = [];
         if (camp.form_snapshot_json) {
           schemaBlocks = camp.form_snapshot_json.blocks ?? [];
-        } else if (camp.form_template_id) {
+        } else if (camp.form_id) {
           const { data, error } = await supabase
             .from("campaign_forms")
             .select("schema_json")
-            .eq("id", camp.form_template_id)
+            .eq("id", camp.form_id)
             .single();
           if (error || !data) {
+            if (import.meta.env.DEV) {
+              console.debug("[IntakeRenderer] form lookup failed", {
+                slug,
+                form_id: camp.form_id,
+                error,
+              });
+            }
             setError("Form not found");
             setLoading(false);
             return;

@@ -3,7 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import PageShell from "@/components/PageShell";
 import { fetchForms } from "@/services/forms";
-import { createIntakeCampaign } from "@/services/intakeCampaignService";
+import {
+  createIntakeCampaign,
+  getIntakeCampaign,
+  updateIntakeCampaign,
+} from "@/services/intakeCampaignService";
 
 interface FormTemplate {
   id: string;
@@ -13,6 +17,7 @@ interface FormTemplate {
 export default function NewIntakeCampaign() {
   const [forms, setForms] = useState<FormTemplate[]>([]);
   const [formId, setFormId] = useState<string>("");
+  const [campaignId, setCampaignId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [start, setStart] = useState("");
@@ -29,8 +34,26 @@ export default function NewIntakeCampaign() {
   }, []);
 
   useEffect(() => {
-    const existingId = search.get("id");
-    if (existingId) setFormId(existingId);
+    const presetFormId = search.get("id");
+    if (presetFormId) setFormId(presetFormId);
+    const editId = search.get("campaignId");
+    if (editId) {
+      setCampaignId(editId);
+      getIntakeCampaign(editId)
+        .then((c) => {
+          if (!c) return;
+          setTitle(c.title);
+          setSlug(c.slug);
+          setFormId(c.form_id);
+          setStart(c.start_date ?? "");
+          setEnd(c.end_date ?? "");
+          setGateField(c.gate_field);
+          setPrefill(c.prefill_gate);
+          setSuccessMsg(c.success_message ?? "");
+          setRequireConsent(c.require_consent);
+        })
+        .catch(console.error);
+    }
   }, [search]);
 
   const url = slug ? `${window.location.origin}/intake/${slug}` : "";
@@ -38,28 +61,44 @@ export default function NewIntakeCampaign() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createIntakeCampaign({
-        title,
-        slug,
-        form_id: formId,
-        start_date: start || null,
-        end_date: end || null,
-        gate_field: gateField,
-        prefill_gate: prefill,
-        success_message: successMsg || null,
-        require_consent: requireConsent,
-      });
+      if (campaignId) {
+        await updateIntakeCampaign(campaignId, {
+          title,
+          slug,
+          form_id: formId,
+          start_date: start || null,
+          end_date: end || null,
+          gate_field: gateField,
+          prefill_gate: prefill,
+          success_message: successMsg || null,
+          require_consent: requireConsent,
+        });
+      } else {
+        await createIntakeCampaign({
+          title,
+          slug,
+          form_id: formId,
+          start_date: start || null,
+          end_date: end || null,
+          gate_field: gateField,
+          prefill_gate: prefill,
+          success_message: successMsg || null,
+          require_consent: requireConsent,
+        });
+      }
       navigate("/campaigns/intake");
     } catch (err) {
       console.error(err);
-      alert("Failed to create campaign");
+      alert("Failed to save campaign");
     }
   };
 
   return (
     <PageShell faintFlag>
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-4 space-y-6">
-        <h1 className="text-2xl font-semibold">New Intake Campaign</h1>
+        <h1 className="text-2xl font-semibold">
+          {campaignId ? "Edit Intake Campaign" : "New Intake Campaign"}
+        </h1>
 
         <div className="space-y-1">
           <label className="font-medium">Title</label>

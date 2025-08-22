@@ -179,6 +179,19 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     2. Update src/services/smsService.ts and src/pages/campaigns/SmsList.tsx to use the provider API.
     3. Test sending and tracking messages in a sandbox environment.
 
+- [TODO] Backfill legacy intake campaigns missing `form_id` and verify public select policies.
+  Steps:
+    1. In Supabase SQL editor, run a one-time update to resolve any `intake_campaigns` rows that stored a form slug:
+
+         update intake_campaigns ic
+           set form_id = cf.id
+         from campaign_forms cf
+         where ic.form_id is null and ic.slug = cf.slug;
+
+    2. Ensure policy `intake_campaigns_public_select` permits anonymous read by slug and returns `id`, `owner_id`, `form_snapshot_json`, and `form_id`.
+    3. Confirm `campaign_forms_public_select` only exposes published forms; add a `published boolean default true` column if missing and adjust policy accordingly.
+    4. After applying changes, test creating a form, attaching it to an intake campaign, editing the campaign, and loading `/intake/:slug`.
+
 - [TODO] Implement form template versioning so saves do not mutate active campaigns.
   Steps:
     1. Add a version column or companion table to campaign_forms.

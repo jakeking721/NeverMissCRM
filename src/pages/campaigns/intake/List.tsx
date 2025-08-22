@@ -91,7 +91,7 @@ export default function IntakeCampaignList() {
                           Submissions
                         </Link>
                         <Link
-                          to={`/campaigns/intake/new?id=${c.id}`}
+                          to={`/campaigns/intake/new?campaignId=${c.id}`}
                           className="text-blue-600 hover:underline"
                         >
                           Edit
