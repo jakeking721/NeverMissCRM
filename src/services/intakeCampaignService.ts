@@ -96,3 +96,12 @@ export async function updateIntakeCampaign(
   if (error) throw error;
   return data as IntakeCampaign;
 }
+export async function removeIntakeCampaign(id: string): Promise<void> {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("intake_campaigns")
+    .delete()
+    .eq("id", id)
+    .eq("owner_id", userId);
+  if (error) throw error;
+}

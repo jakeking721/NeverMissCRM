@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { QRCodeCanvas } from "qrcode.react";
+import { Link, useNavigate } from "react-router-dom";
 import PageShell from "@/components/PageShell";
-import { IntakeCampaign, getIntakeCampaigns } from "@/services/intakeCampaignService";
+import ActionsDropdown from "@/components/ActionsDropdown";
+import QrModal from "@/components/QrModal";
+import {
+  IntakeCampaign,
+  getIntakeCampaigns,
+  removeIntakeCampaign,
+} from "@/services/intakeCampaignService";
 
 export default function IntakeCampaignList() {
   const [campaigns, setCampaigns] = useState<IntakeCampaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [qrSlug, setQrSlug] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     getIntakeCampaigns()
@@ -20,13 +27,14 @@ export default function IntakeCampaignList() {
     navigator.clipboard.writeText(url);
   };
 
-  const downloadQR = (slug: string) => {
-    const canvas = document.getElementById(`qr-${slug}`) as HTMLCanvasElement | null;
-    if (!canvas) return;
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = `${slug}.png`;
-    link.click();
+  const onDelete = async (id: string) => {
+    if (!confirm("Delete this campaign?")) return;
+    try {
+      await removeIntakeCampaign(id);
+      setCampaigns(await getIntakeCampaigns());
+    } catch (e) {
+      console.error("Failed to delete intake campaign", e);
+    }
   };
 
   return (
@@ -71,35 +79,22 @@ export default function IntakeCampaignList() {
                       <td className="py-2">{c.start_date ? new Date(c.start_date).toLocaleDateString() : "—"}</td>
                       <td className="py-2">{c.end_date ? new Date(c.end_date).toLocaleDateString() : "—"}</td>
                       <td className="py-2 capitalize">{c.status}</td>
-                      <td className="py-2 text-right space-x-2">
-                        <button
-                          onClick={() => downloadQR(c.slug)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          QR
-                        </button>
-                        <button
-                          onClick={() => copyLink(c.slug)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          Copy Link
-                        </button>
-                        <Link
-                          to="#"
-                          className="text-blue-600 hover:underline"
-                        >
-                          Submissions
-                        </Link>
-                        <Link
-                          to={`/campaigns/intake/new?campaignId=${c.id}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          Edit
-                        </Link>
-                        {/* Hidden canvas for QR download */}
-                        <div className="hidden">
-                          <QRCodeCanvas id={`qr-${c.slug}`} value={`${window.location.origin}/intake/${c.slug}`} />
-                        </div>
+                      <td className="py-2 text-right">
+                        <ActionsDropdown
+                          items={[
+                            { label: "QR Code", onClick: () => setQrSlug(c.slug) },
+                            { label: "Copy Link", onClick: () => copyLink(c.slug) },
+                            {
+                              label: "Submissions",
+                              onClick: () => navigate(`/campaigns/intake/${c.id}/submissions`),
+                            },
+                            {
+                              label: "Edit",
+                              onClick: () => navigate(`/campaigns/intake/new?campaignId=${c.id}`),
+                            },
+                            { label: "Delete", onClick: () => onDelete(c.id) },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -109,6 +104,11 @@ export default function IntakeCampaignList() {
           )}
         </section>
       </div>
+      <QrModal
+        isOpen={!!qrSlug}
+        url={qrSlug ? `${window.location.origin}/intake/${qrSlug}` : ""}
+        onClose={() => setQrSlug(null)}
+      />
     </PageShell>
   );
 }

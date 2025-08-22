@@ -2,6 +2,17 @@
 
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
+### Intake Campaign Actions Dropdown
+- [TODO] Implement submissions view for intake campaigns. Dropdown's "Submissions" item currently navigates to `/campaigns/intake/<id>/submissions` which does not yet exist.
+  Steps:
+    1. Create the intake campaign submissions route and page.
+    2. Ensure the dropdown item navigates correctly once the page is available.
+- [TODO] Test QR Code modal copy/download on iOS and Android browsers.
+  Steps:
+    1. Build the project or run on a physical device.
+    2. From Intake Campaigns list, open the actions menu and select "QR Code".
+    3. Verify copying the URL and downloading the image works on mobile.
+
 
 
 ### Form Versioning
