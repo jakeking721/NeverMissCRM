@@ -95,6 +95,9 @@ export default function IntakeRenderer() {
   const [values, setValues] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [buttonLabel, setButtonLabel] = useState("Submit");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [canSubmit, setCanSubmit] = useState(false);
   const [campaignInfo, setCampaignInfo] = useState<
     {
       id: string;
@@ -144,9 +147,18 @@ export default function IntakeRenderer() {
         });
 
         const schemaBlocks: Block[] = camp.form_json?.blocks ?? [];
-        setBlocks(schemaBlocks);
+        let btnText = "Submit";
+        const filteredBlocks = schemaBlocks.filter((b) => {
+          if (b.type === "button" && btnText === "Submit") {
+            btnText = (b as ButtonBlock).text;
+            return false;
+          }
+          return b.type !== "button";
+        });
+        setButtonLabel(btnText);
+        setBlocks(filteredBlocks);
         const initVals: Record<string, any> = {};
-        schemaBlocks.forEach((b) => {
+        filteredBlocks.forEach((b) => {
           if (b.type === "input" || b.type === "choice") initVals[b.name] = "";
           if (b.type === "checkbox") initVals[b.name] = false;
           if (b.type === "multiselect") initVals[b.name] = [];
@@ -197,8 +209,36 @@ export default function IntakeRenderer() {
     return yup.object().shape(shape);
   };
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const schema = buildValidation();
+        await schema.validate(values, { abortEarly: true });
+        let extraValid = true;
+        blocks.forEach((b) => {
+          if (b.type === "checkbox" && b.required && !values[b.name]) extraValid = false;
+          if (
+            b.type === "multiselect" &&
+            b.required &&
+            (!values[b.name] || values[b.name].length === 0)
+          )
+            extraValid = false;
+        });
+        if (active) setCanSubmit(extraValid);
+      } catch {
+        if (active) setCanSubmit(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [values, blocks]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setFieldErrors({});
     setError(null);
     try {
@@ -249,6 +289,8 @@ export default function IntakeRenderer() {
       } else {
         setError(err.message || "Failed to submit");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -397,16 +439,6 @@ export default function IntakeRenderer() {
                     )}
                   </div>
                 );
-              case "button":
-                return (
-                  <button
-                    key={block.id}
-                    type="submit"
-                    className="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800"
-                  >
-                    {block.text}
-                  </button>
-                );
               case "pdf":
                 return (
                   <div key={block.id}>
@@ -469,6 +501,15 @@ export default function IntakeRenderer() {
           <p className="text-[10px] text-gray-500 text-center">
             Reply STOP to opt out at any time.
           </p>
+          <div className="sticky bottom-0 bg-white pt-4">
+            <button
+              type="submit"
+              disabled={!canSubmit || isSubmitting}
+              className="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800 disabled:opacity-50"
+            >
+              {isSubmitting ? "Submitting…" : buttonLabel}
+            </button>
+          </div>
         </form>
       </div>
     </div>

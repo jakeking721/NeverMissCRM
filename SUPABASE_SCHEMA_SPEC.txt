@@ -126,3 +126,4 @@ Admin vs. User Summary
 TODO
 ----
 - Drop `customer_email_collisions` and `customer_phone_collisions` tables once duplicate data is resolved.
+- No schema changes required for IntakeRenderer footer submit button.

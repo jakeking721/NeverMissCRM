@@ -3,6 +3,9 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### IntakeRenderer footer button
+- [INFO] No manual deployment steps required. Rebuild and verify sticky submit button on mobile devices.
+
 ### Intake Flow Migration
 - [TODO] Apply migration `20250808000000_intake_flow.sql` to create/alter intake tables and RPCs.
   Steps:
