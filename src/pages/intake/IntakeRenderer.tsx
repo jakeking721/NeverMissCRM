@@ -102,8 +102,10 @@ export default function IntakeRenderer() {
     (async () => {
       try {
         const { data: camp, error: campErr } = await supabase
-          .from("intake_campaigns")
-          .select("id, owner_id, form_snapshot_json, form_id")
+          .from("intake_resolver")
+          .select(
+            "campaign_id, owner_id, form_json, status, start_date, end_date"
+          )
           .eq("slug", slug)
           .single();
         if (!mounted) return;
@@ -115,31 +117,21 @@ export default function IntakeRenderer() {
           setLoading(false);
           return;
         }
-        setCampaignInfo({ id: camp.id, owner_id: camp.owner_id });
 
-        let schemaBlocks: Block[] = [];
-        if (camp.form_snapshot_json) {
-          schemaBlocks = camp.form_snapshot_json.blocks ?? [];
-        } else if (camp.form_id) {
-          const { data, error } = await supabase
-            .from("campaign_forms")
-            .select("schema_json")
-            .eq("id", camp.form_id)
-            .single();
-          if (error || !data) {
-            if (import.meta.env.DEV) {
-              console.debug("[IntakeRenderer] form lookup failed", {
-                slug,
-                form_id: camp.form_id,
-                error,
-              });
-            }
-            setError("Form not found");
-            setLoading(false);
-            return;
-          }
-          schemaBlocks = data.schema_json?.blocks ?? [];
+        const now = new Date();
+        if (
+          camp.status !== "active" ||
+          (camp.start_date && new Date(camp.start_date) > now) ||
+          (camp.end_date && new Date(camp.end_date) < now)
+        ) {
+          setError("This intake is not currently available.");
+          setLoading(false);
+          return;
         }
+
+        setCampaignInfo({ id: camp.campaign_id, owner_id: camp.owner_id });
+
+        const schemaBlocks: Block[] = camp.form_json?.blocks ?? [];
         setBlocks(schemaBlocks);
         const initVals: Record<string, any> = {};
         schemaBlocks.forEach((b) => {
@@ -246,6 +238,15 @@ export default function IntakeRenderer() {
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
   }
+  if (error) {
+    return (
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-md p-6 rounded shadow text-center">
+          <p className="text-gray-700">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return <Success />;
@@ -254,7 +255,6 @@ export default function IntakeRenderer() {
   return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md p-6 rounded shadow">
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           {blocks.map((block) => {
             switch (block.type) {

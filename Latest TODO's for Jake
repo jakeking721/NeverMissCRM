@@ -3,6 +3,45 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### Intake Resolver View
+- [TODO] Create `public.intake_resolver` view joining `intake_campaigns` to `campaign_forms` for anonymous form access.
+  Steps:
+    1. In the Supabase SQL editor run:
+
+         create or replace view public.intake_resolver as
+         select ic.slug,
+                ic.id as campaign_id,
+                ic.form_id as form_version_id,
+                coalesce(ic.form_snapshot_json, cf.schema_json) as form_json,
+                ic.status,
+                ic.start_date,
+                ic.end_date,
+                ic.owner_id,
+                ic.gate_field,
+                ic.prefill_gate,
+                ic.success_message,
+                ic.require_consent
+         from intake_campaigns ic
+         left join campaign_forms cf on ic.form_id = cf.id;
+
+    2. Grant anonymous read access:
+
+         grant select on public.intake_resolver to anon;
+
+    3. Revoke direct public access to the source tables:
+
+         revoke all on public.intake_campaigns from public;
+         revoke all on public.campaign_forms from public;
+
+    4. Remove public select policies so reads only occur via the view:
+
+         drop policy if exists intake_campaigns_public_select on public.intake_campaigns;
+         drop policy if exists campaign_forms_public_select on public.campaign_forms;
+
+    5. Regenerate Supabase types after applying the view:
+
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+
 ### Form Save Standardization
 - [TODO] Ensure Supabase has `campaign_forms` table with columns `id`, `owner_id`, `title`, `description`, `slug`, `schema_json`, `created_at`, and `updated_at`.
   Steps:

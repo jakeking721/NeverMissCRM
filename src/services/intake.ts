@@ -67,15 +67,15 @@ export interface WizardConfig {
 
 export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
   const { data, error } = await supabase
-    .from("intake_campaigns")
+    .from("intake_resolver")
     .select(
-      "id, owner_id, gate_field, prefill_gate, success_message, require_consent"
+      "campaign_id, owner_id, gate_field, prefill_gate, success_message, require_consent"
     )
     .eq("slug", slug)
     .single();
   if (error || !data) throw error || new Error("Campaign not found");
   return {
-    campaignId: data.id,
+    campaignId: data.campaign_id,
     ownerId: data.owner_id,
     gateField: (data.gate_field as "phone" | "email") || "phone",
     prefill: data.prefill_gate ?? false,

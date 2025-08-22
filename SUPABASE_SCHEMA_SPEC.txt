@@ -55,8 +55,13 @@ Tables
 **intake_campaigns**
 - Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `title text`, `slug text`, `form_id uuid` FK, `start_date timestamptz`, `end_date timestamptz`, `status text` default `'draft'`, `gate_field text` default `'phone'`, `prefill_gate boolean` default `false`, `success_message text`, `require_consent boolean` default `false`, `created_at timestamptz` default `now()`.
 - Constraints: unique `(owner_id, slug)`.
-- RLS: `intake_campaigns_owner_rw` (owner read/write), `intake_campaigns_public_select` (public read by slug).
-- Admin vs user: no special admin override; public can read campaigns via slug for intake wizard.
+- RLS: `intake_campaigns_owner_rw` (owner read/write).
+- Admin vs user: no special admin override; anonymous access occurs via the `intake_resolver` view.
+
+**intake_resolver** (view)
+- Columns: `slug text`, `campaign_id uuid`, `form_version_id uuid`, `form_json jsonb`, `status text`, `start_date timestamptz`, `end_date timestamptz`, `owner_id uuid`, `gate_field text`, `prefill_gate boolean`, `success_message text`, `require_consent boolean`.
+- Grants: `anon` SELECT.
+- RLS: none (inherits from base tables).
 
 **customers**
 - Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `created_at timestamptz` default `now()`, `extra jsonb` default `{}`, `updated_at timestamptz` default `now()`.
