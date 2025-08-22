@@ -10,13 +10,13 @@ async function requireUserId(): Promise<string> {
 export async function fetchForms() {
   const userId = await requireUserId();
   const { data, error } = await supabase
-    .from("forms")
+    .from("campaign_forms")
     .select(
       "id, title, description, created_at, form_versions(id, version_number, version_label)"
     )
     .eq("owner_id", userId)
     .order("version_number", {
-      referencedTable: "form_versions",
+      foreignTable: "form_versions",
       ascending: false,
     })
     .limit(1, { foreignTable: "form_versions" });
@@ -36,14 +36,14 @@ export async function fetchForms() {
 export async function fetchForm(id: string) {
   const userId = await requireUserId();
   const { data, error } = await supabase
-    .from("forms")
+    .from("campaign_forms")
     .select(
       "id, title, description, form_versions(id, version_number, version_label, schema_json)"
     )
     .eq("id", id)
     .eq("owner_id", userId)
     .order("version_number", {
-      referencedTable: "form_versions",
+      foreignTable: "form_versions",
       ascending: false,
     })
     .limit(1, { foreignTable: "form_versions" })
@@ -76,11 +76,11 @@ export async function saveForm(payload: any) {
 
   if (id) {
     const { error: updErr } = await supabase
-      .from("forms")
+      .from("campaign_forms")
       .update({ title, description: description ?? null })
       .eq("id", id)
       .eq("owner_id", userId);
-    if (updErr) handleError("PATCH", updErr);
+    if (updErr) handleError("PATCH", updErr, "campaign_forms");
 
     const { data: latest, error: latestErr } = await supabase
       .from("form_versions")
@@ -89,7 +89,7 @@ export async function saveForm(payload: any) {
       .order("version_number", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (latestErr) handleError("GET", latestErr);
+    if (latestErr) handleError("GET", latestErr, "form_versions");
     const nextVersion = (latest?.version_number || 0) + 1;
     const versionLabel = `${title} v${nextVersion}`;
     const { data, error } = await supabase
@@ -103,15 +103,15 @@ export async function saveForm(payload: any) {
       })
       .select()
       .single();
-    if (error) handleError("POST", error);
+    if (error) handleError("POST", error, "form_versions");
     return { id, title, description, ...data };
   } else {
     const { data: form, error: formErr } = await supabase
-      .from("forms")
+      .from("campaign_forms")
       .insert({ owner_id: userId, title, description: description ?? null })
       .select()
       .single();
-    if (formErr) handleError("POST", formErr);
+    if (formErr) handleError("POST", formErr, "campaign_forms");
     const versionLabel = `${title} v1`;
     const { data, error } = await supabase
       .from("form_versions")
@@ -124,15 +124,15 @@ export async function saveForm(payload: any) {
       })
       .select()
       .single();
-    if (error) handleError("POST", error);
+    if (error) handleError("POST", error, "form_versions");
     return { ...form, ...data };
   }
 }
 
-function handleError(method: string, error: any): never {
+function handleError(method: string, error: any, resource: string): never {
   if (import.meta.env.DEV) {
     console.error(
-      `[Supabase] ${method} ${SUPABASE_URL}/rest/v1/forms?select=*`,
+      `[Supabase] ${method} ${SUPABASE_URL}/rest/v1/${resource}?select=*`,
       error,
     );
   }
@@ -149,7 +149,7 @@ function handleError(method: string, error: any): never {
 export async function deleteForm(id: string) {
   const userId = await requireUserId();
   const { error } = await supabase
-    .from("forms")
+    .from("campaign_forms")
     .delete()
     .eq("id", id)
     .eq("owner_id", userId);

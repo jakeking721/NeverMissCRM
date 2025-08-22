@@ -91,6 +91,16 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
 
          supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
 - [TODO] Remove any placeholder rows used for testing from `campaign_forms` before launch.
+- [TODO] Verify RLS policies require `auth.uid() = owner_id` on `campaign_forms` and `form_versions`.
+  Steps:
+    1. In the Supabase dashboard, open each table's **Policies** tab.
+    2. Confirm select/insert/update/delete policies check `auth.uid() = owner_id`.
+    3. Adjust policies via SQL editor if any are missing or incorrect.
+- [TODO] Confirm app requests use `/rest/v1/campaign_forms` and no 404s occur.
+  Steps:
+    1. Run `npm run dev` and open browser developer tools.
+    2. Navigate to the Forms list and builder pages.
+    3. Ensure network calls hit `/rest/v1/campaign_forms` and respond with 200; clear any test data.
 
 ### Homepage Refresh
 - [TODO] Verify simplified global footer renders below the SmallBizBlock on Home and across routes.

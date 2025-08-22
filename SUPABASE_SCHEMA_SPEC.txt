@@ -49,14 +49,14 @@ Tables
 **campaign_forms**
 - Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `template_id uuid`, `owner_id uuid` default `auth.uid()` not null, `slug text` nullable, `title text` not null, `description text` nullable, `schema_json jsonb` default `{}`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
 - Constraints: unique `(owner_id, slug)`.
-- RLS: `campaign_forms_owner_rw` (owner read/write), `campaign_forms_public_select` (public read).
+- RLS: `campaign_forms_owner_rw` enforces `auth.uid() = owner_id` for read/write; `campaign_forms_public_select` allows public read.
 - Admin vs user: admins act as regular users; public can read forms via slug.
 
 
 **form_versions**
 - Columns: `id uuid` PK default `gen_random_uuid()`, `form_id uuid` FK, `owner_id uuid` FK, `version_number int`, `schema_json jsonb`, `version_label text`, `created_at timestamptz` default `now()`.
 - Constraints: unique `(form_id, version_number)`.
-- RLS: `Form versions owner rw` (owner read/write).
+- RLS: `form_versions_owner_rw` enforces `auth.uid() = owner_id` for read/write.
 - Admin vs user: no special admin override.
 
 **intake_campaigns**
