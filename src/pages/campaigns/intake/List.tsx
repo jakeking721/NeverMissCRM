@@ -8,6 +8,7 @@ import {
   getIntakeCampaigns,
   removeIntakeCampaign,
 } from "@/services/intakeCampaignService";
+import { getQrBaseUrl } from "@/utils/url";
 
 export default function IntakeCampaignList() {
   const [campaigns, setCampaigns] = useState<IntakeCampaign[]>([]);
@@ -23,7 +24,7 @@ export default function IntakeCampaignList() {
   }, []);
 
   const copyLink = (slug: string) => {
-    const url = `${window.location.origin}/intake/${slug}`;
+    const url = `${getQrBaseUrl()}/intake/${slug}`;
     navigator.clipboard.writeText(url);
   };
 
@@ -106,7 +107,7 @@ export default function IntakeCampaignList() {
       </div>
       <QrModal
         isOpen={!!qrSlug}
-        url={qrSlug ? `${window.location.origin}/intake/${qrSlug}` : ""}
+        url={qrSlug ? `${getQrBaseUrl()}/intake/${qrSlug}` : ""}
         onClose={() => setQrSlug(null)}
       />
     </PageShell>

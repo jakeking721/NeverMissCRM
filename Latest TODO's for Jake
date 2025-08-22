@@ -10,7 +10,23 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     2. Regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
     3. Review and adjust RLS policies in Supabase UI if any conflicts arise.
 - [TODO] Remove any placeholder campaigns, forms, or submission rows added for testing after verification.
-- [TODO] Configure production QR domain to point to deployed `/intake/:slug` routes.
+### QR Domain Setup
+- [TODO] Set `VITE_QR_BASE_URL` in production environment to the canonical QR domain (e.g., `https://qr.example.com`).
+  Steps:
+    1. Edit the environment variables for each deployment and add the real QR base URL.
+    2. Redeploy the app so QR links use the new domain.
+- [TODO] Configure DNS/hosting so the QR domain serves the app and rewrites `/intake/*` to `index.html`.
+  Steps:
+    1. Point the QR domain's DNS to the hosting provider.
+    2. Add a rewrite rule forwarding `/intake/*` requests to the SPA entry.
+- [TODO] Set up 301 redirects from any legacy QR domains to the canonical `/intake/:slug` path.
+  Steps:
+    1. In host or proxy settings, map each legacy host to `https://<QR_DOMAIN>/intake/:slug`.
+    2. Verify scanning old QR codes reaches the active campaign.
+- [TODO] Regenerate any existing QR codes to use the canonical domain.
+  Steps:
+    1. In the app, open each campaign and download new QR codes.
+    2. Replace printed materials or digital assets with updated codes.
 ### Intake Campaign Actions Dropdown
 - [TODO] Implement submissions view for intake campaigns. Dropdown's "Submissions" item currently navigates to `/campaigns/intake/<id>/submissions` which does not yet exist.
   Steps:

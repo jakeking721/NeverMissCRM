@@ -5,6 +5,7 @@ import PageShell from "../components/PageShell";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "@/utils/supabaseClient";
+import { getQrBaseUrl } from "@/utils/url";
 
 export default function QRCodePage() {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ export default function QRCodePage() {
 
   if (!user) return null;
 
-  const qrValue = `${window.location.origin}/u/${encodeURIComponent(identifier)}`;
+  const qrValue = `${getQrBaseUrl()}/u/${encodeURIComponent(identifier)}`;
 
   return (
     <PageShell faintFlag>

@@ -9,6 +9,7 @@ import {
   getIntakeCampaign,
   updateIntakeCampaign,
 } from "@/services/intakeCampaignService";
+import { getQrBaseUrl } from "@/utils/url";
 
 interface FormTemplate {
   id: string;
@@ -61,7 +62,7 @@ export default function NewIntakeCampaign() {
     }
   }, [search]);
 
-  const url = slug ? `${window.location.origin}/intake/${slug}` : "";
+  const url = slug ? `${getQrBaseUrl()}/intake/${slug}` : "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

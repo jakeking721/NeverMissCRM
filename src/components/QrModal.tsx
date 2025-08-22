@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { getQrBaseUrl } from "@/utils/url";
 
 interface Props {
   isOpen: boolean;
@@ -9,11 +10,14 @@ interface Props {
 
 export default function QrModal({ isOpen, url, onClose }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fullUrl = url.startsWith("http")
+    ? url
+    : `${getQrBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
 
   if (!isOpen) return null;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(fullUrl);
   };
 
   const handleDownload = () => {
@@ -35,11 +39,11 @@ export default function QrModal({ isOpen, url, onClose }: Props) {
           </button>
         </div>
         <div className="flex flex-col items-center gap-4">
-          <QRCodeCanvas value={url} size={180} ref={canvasRef as any} />
+          <QRCodeCanvas value={fullUrl} size={180} ref={canvasRef as any} />
           <input
             type="text"
             readOnly
-            value={url}
+            value={fullUrl}
             className="w-full border rounded px-2 py-1 text-sm"
           />
           <div className="flex flex-col sm:flex-row w-full gap-2">

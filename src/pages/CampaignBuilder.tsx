@@ -22,6 +22,7 @@ import { formatPhone, normalizePhone } from "@/utils/phone";
 import { fetchForms } from "@/services/forms";
 import { useSearchParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
+import { getQrBaseUrl } from "@/utils/url";
 
 type AnyValue = string | number | boolean | null | undefined;
 
@@ -329,7 +330,7 @@ export default function CampaignBuilder() {
             </p>
             {slug && (
               <div className="mt-2 flex justify-center">
-                <QRCodeCanvas value={`${window.location.origin}/intake/${slug}`} size={120} />
+                <QRCodeCanvas value={`${getQrBaseUrl()}/intake/${slug}`} size={120} />
               </div>
             )}
           </div>

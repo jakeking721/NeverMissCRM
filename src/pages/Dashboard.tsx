@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "@/utils/supabaseClient";
 import { creditsService } from "@/services/creditsService";
+import { getQrBaseUrl } from "@/utils/url";
 
 import {
   getCustomers,
@@ -282,9 +283,7 @@ export default function Dashboard() {
     }
   };
 
-  const appOrigin =
-    import.meta.env.VITE_PUBLIC_APP_URL?.replace(/\/$/, "") || window.location.origin;
-  const qrValue = slug ? `${appOrigin}/intake/${slug}` : "";
+  const qrValue = slug ? `${getQrBaseUrl()}/intake/${slug}` : "";
 
   const copyQrLink = async () => {
     try {

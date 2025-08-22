@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import { getQrBaseUrl } from "@/utils/url";
 
 export default function FeatureBandQR() {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ export default function FeatureBandQR() {
             <div className="flex gap-6 items-center">
               {/* QR card */}
               <div className="w-40 h-40 shrink-0 rounded-xl bg-white flex items-center justify-center">
-                <QRCodeSVG value="https://example.com/intake-demo" size={120} />
+                <QRCodeSVG value={`${getQrBaseUrl()}/intake-demo`} size={120} />
               </div>
 
               {/* phone mock (light form) */}
