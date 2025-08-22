@@ -60,7 +60,10 @@ async function incrementCredits(userId: string, delta: number) {
 
 async function recordLedger(userId: string, change: number, reason: string) {
   try {
-    await supabase.from("credit_ledger").insert({ user_id: userId, change, reason });
+    // credit_ledger schema uses owner_id and delta columns
+    await supabase
+      .from("credit_ledger")
+      .insert({ owner_id: userId, delta: change, reason });
   } catch (e) {
     console.error("ledger insert failed", e);
   }
