@@ -1,9 +1,20 @@
 # Node dependencies
 node_modules/
 
+# Build output
+dist/
+
+# Local environment files (never commit secrets)
+.env
+.env.local
+.env.*.local
+.env.keys
+
 # Supabase CLI cache (safe to ignore)
 supabase/.temp/
-supabase/.history/
+supabase/.branches
+supabase/.history
 
-# Keep migrations + config under version control
-# (No blanket supabase/ ignore!)
+# OS / editor junk
+.DS_Store
+*.log
