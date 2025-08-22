@@ -32,6 +32,15 @@ export async function submitIntake({
     extra: extra ?? null,
   };
 
+  const { data: existing } = await supabase.rpc("intake_find_customer", {
+    owner_id: ownerId,
+    gate: "phone",
+    value: normalizePhone(phone),
+  });
+  if (existing) {
+    return "already";
+  }
+
   const { data: submission, error: subErr } = await supabase
     .from("intake_submissions")
     .insert({

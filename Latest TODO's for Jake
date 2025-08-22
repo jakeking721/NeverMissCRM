@@ -2,6 +2,15 @@
 
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
+
+### Intake Flow Migration
+- [TODO] Apply migration `20250808000000_intake_flow.sql` to create/alter intake tables and RPCs.
+  Steps:
+    1. From project root run `supabase db push` or execute the SQL in Supabase's SQL editor.
+    2. Regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+    3. Review and adjust RLS policies in Supabase UI if any conflicts arise.
+- [TODO] Remove any placeholder campaigns, forms, or submission rows added for testing after verification.
+- [TODO] Configure production QR domain to point to deployed `/intake/:slug` routes.
 ### Intake Campaign Actions Dropdown
 - [TODO] Implement submissions view for intake campaigns. Dropdown's "Submissions" item currently navigates to `/campaigns/intake/<id>/submissions` which does not yet exist.
   Steps:

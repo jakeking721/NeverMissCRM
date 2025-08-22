@@ -71,20 +71,12 @@ export default function Wizard() {
       return;
     }
 
-    const { data: customer } = await supabase
-      .from("customers")
-      .select("id")
-      .eq(config.gateField, normalized)
-      .eq("user_id", config.ownerId)
-      .maybeSingle();
-
-    if (customer) {
-      // Record check-in
-      await supabase.from("form_submissions").insert({
-        campaign_id: config.campaignId,
-        customer_id: customer.id,
-        is_checkin: true,
-      });
+    const { data: existing } = await supabase.rpc("intake_find_customer", {
+      owner_id: config.ownerId,
+      gate: config.gateField,
+      value: normalized,
+    });
+    if (existing) {
       setCheckedIn(true);
       return;
     }
@@ -105,9 +97,7 @@ export default function Wizard() {
       <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded shadow text-center space-y-4">
           <FaCheckCircle className="text-green-600 text-5xl mx-auto" />
-          <h1 className="text-xl font-bold">
-            YOU’RE CHECKED IN — THANK YOU!
-          </h1>
+          <h1 className="text-xl font-bold">Already checked in</h1>
           {config?.successMessage && (
             <p className="text-sm text-gray-700">{config.successMessage}</p>
           )}

@@ -96,7 +96,12 @@ export default function IntakeRenderer() {
   const [submitted, setSubmitted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [campaignInfo, setCampaignInfo] = useState<
-    { id: string; owner_id: string; form_version_id: string }
+    {
+      id: string;
+      owner_id: string;
+      form_version_id: string;
+      success_message: string | null;
+    }
   | null>(null);
 
   useEffect(() => {
@@ -106,7 +111,7 @@ export default function IntakeRenderer() {
         const { data: camp, error: campErr } = await supabase
           .from("intake_resolver")
           .select(
-            "campaign_id, owner_id, form_version_id, form_json, status, start_date, end_date"
+            "campaign_id, owner_id, form_version_id, form_json, status, start_date, end_date, success_message"
           )
           .eq("slug", slug)
           .single();
@@ -135,6 +140,7 @@ export default function IntakeRenderer() {
           id: camp.campaign_id,
           owner_id: camp.owner_id,
           form_version_id: camp.form_version_id,
+          success_message: camp.success_message ?? null,
         });
 
         const schemaBlocks: Block[] = camp.form_json?.blocks ?? [];
@@ -217,7 +223,7 @@ export default function IntakeRenderer() {
       }
       const { first_name, last_name, phone, zip_code, ...extra } = valid as Record<string, any>;
       if (!campaignInfo) throw new Error("Campaign not loaded");
-      await submitIntake({
+      const result = await submitIntake({
         slug,
         campaignId: campaignInfo.id,
         formVersionId: campaignInfo.form_version_id,
@@ -228,6 +234,10 @@ export default function IntakeRenderer() {
         zipCode: zip_code,
         extra,
       });
+      if (result === "already") {
+        setError("Already checked in");
+        return;
+      }
       setSubmitted(true);
     } catch (err: any) {
       if (err.name === "ValidationError") {
@@ -256,7 +266,7 @@ export default function IntakeRenderer() {
   }
 
   if (submitted) {
-    return <Success />;
+    return <Success message={campaignInfo?.success_message || undefined} />;
   }
 
   return (

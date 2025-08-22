@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import PageShell from "@/components/PageShell";
 import { fetchForms } from "@/services/forms";
+import { supabase } from "@/utils/supabaseClient";
 import {
   createIntakeCampaign,
   getIntakeCampaign,
@@ -27,6 +28,8 @@ export default function NewIntakeCampaign() {
   const [prefill, setPrefill] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [requireConsent, setRequireConsent] = useState(false);
+  const [status, setStatus] = useState("draft");
+  const [slugTaken, setSlugTaken] = useState(false);
   const navigate = useNavigate();
   const [search] = useSearchParams();
 
@@ -52,6 +55,7 @@ export default function NewIntakeCampaign() {
           setPrefill(c.prefill_gate);
           setSuccessMsg(c.success_message ?? "");
           setRequireConsent(c.require_consent);
+          setStatus(c.status);
         })
         .catch(console.error);
     }
@@ -73,6 +77,7 @@ export default function NewIntakeCampaign() {
           prefill_gate: prefill,
           success_message: successMsg || null,
           require_consent: requireConsent,
+          status,
         });
       } else {
         await createIntakeCampaign({
@@ -85,6 +90,7 @@ export default function NewIntakeCampaign() {
           prefill_gate: prefill,
           success_message: successMsg || null,
           require_consent: requireConsent,
+          status,
         });
       }
       navigate("/campaigns/intake");
@@ -93,6 +99,18 @@ export default function NewIntakeCampaign() {
       alert("Failed to save campaign");
     }
   };
+
+  useEffect(() => {
+    if (!slug) return;
+    supabase
+      .from("intake_campaigns")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle()
+      .then(({ data }) => {
+        setSlugTaken(!!data && data.id !== campaignId);
+      });
+  }, [slug, campaignId]);
 
   return (
     <PageShell faintFlag>
@@ -119,6 +137,9 @@ export default function NewIntakeCampaign() {
             onChange={(e) => setSlug(e.target.value)}
             required
           />
+          {slugTaken && (
+            <p className="text-sm text-red-600">Slug already in use</p>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -176,6 +197,14 @@ export default function NewIntakeCampaign() {
           </div>
         )}
         <div className="space-y-6">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={status === "active"}
+              onChange={(e) => setStatus(e.target.checked ? "active" : "draft")}
+            />
+            <span>Active</span>
+          </label>
           <div className="space-y-1">
             <label className="font-medium">Gate Field</label>
             <select

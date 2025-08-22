@@ -38,7 +38,6 @@ import Billing from "./pages/Settings/Billing";
 
 import Profile from "./pages/Profile";
 import QRCodePage from "./pages/QRCode";
-import CustomerIntake from "./pages/CustomerIntake";
 import IntakeRenderer from "./pages/intake/IntakeRenderer";
 import Wizard from "./pages/intake/Wizard";
 import FormList from "./pages/forms/List";
@@ -67,9 +66,6 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
           </Route>
-
-          {/* Public intake (legacy path kept) */}
-          <Route path="/u/:username" element={<CustomerIntake />} />
 
           {/* Dynamic campaign intake wizard */}
           <Route path="/intake/:slug/wizard" element={<Wizard />} />

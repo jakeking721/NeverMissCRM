@@ -60,7 +60,7 @@ Tables
 - Admin vs user: no special admin override.
 
 **intake_campaigns**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `title text`, `slug text`, `form_version_id uuid` FK, `form_snapshot_json jsonb`, `start_date timestamptz`, `end_date timestamptz`, `status text` default `'draft'`, `gate_field text` default `'phone'`, `prefill_gate boolean` default `false`, `success_message text`, `require_consent boolean` default `false`, `created_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `title text`, `slug text`, `form_version_id uuid` FK, `form_snapshot_json jsonb`, `start_date date`, `end_date date`, `status text` default `'draft'`, `gate_field text` default `'phone'`, `prefill_gate boolean` default `false`, `success_message text`, `require_consent boolean` default `false`, `created_at timestamptz` default `now()`.
 - Constraints: unique `(owner_id, slug)`.
 - RLS: `intake_campaigns_owner_rw` (owner read/write).
 - Admin vs user: no special admin override; anonymous access occurs via the `intake_resolver` view.
@@ -97,8 +97,8 @@ Tables
 - Admin vs user: no admin override; submissions tied to owner via campaign.
 
 **intake_submissions**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `form_version_id uuid`, `payload_json jsonb`, `submitted_at timestamptz` default `now()`, `customer_id uuid`.
-- RLS: `intake_submissions_public_insert` (anon insert when campaign active and within start/end dates), `intake_submissions_public_update` (public update), `intake_submissions_owner_select` (owner read).
+- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `form_version_id uuid`, `payload_json jsonb` not null, `customer_id uuid`, `submitted_at timestamptz` default `now()`.
+- RLS: `intake_submissions_anon_insert` (anon insert when campaign active and within dates), `intake_submissions_anon_update` (anon update `customer_id`), `intake_submissions_owner_select` (owner read).
 - Admin vs user: owner read access; anonymous inserts permitted only for active campaigns within schedule.
 
 **customer_email_collisions / customer_phone_collisions**
@@ -108,6 +108,8 @@ Functions & Triggers
 --------------------
 - `update_updated_at_column()` → sets `updated_at` on row updates.
 - `handle_new_user()` → trigger on `auth.users` to insert a profile row.
+- `intake_find_customer(owner_id uuid, gate text, value text)` → returns existing customer id for owner when gate value matches.
+- `intake_add_customer()` → adds a customer if not found; now checks via `intake_find_customer`.
 - `normalize_phone(text)` → returns E.164-format string.
 - `intake_add_customer(p_slug, p_first_name, p_last_name, p_phone, p_zip_code, p_extra, p_user_id)` → inserts customer and custom field values.
 - `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.

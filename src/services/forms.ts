@@ -12,7 +12,7 @@ export async function fetchForms() {
   const { data, error } = await supabase
     .from("campaign_forms")
     .select(
-      "id, title, description, created_at, form_versions(id, version_number, version_label)"
+      "id, title, description, created_at, form_versions(id, version_number, version_label, schema_json)"
     )
     .eq("owner_id", userId)
     .order("version_number", {
@@ -29,6 +29,7 @@ export async function fetchForms() {
     form_version_id: f.form_versions?.[0]?.id,
     version_number: f.form_versions?.[0]?.version_number,
     version_label: f.form_versions?.[0]?.version_label,
+    schema_json: f.form_versions?.[0]?.schema_json ?? null,
   }));
 }
 

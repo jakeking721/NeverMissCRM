@@ -59,11 +59,23 @@ export async function createIntakeCampaign(payload: {
   prefill_gate?: boolean;
   success_message?: string | null;
   require_consent?: boolean;
+  status?: string;
 }): Promise<IntakeCampaign> {
   const userId = await requireUserId();
+  const { data: version } = await supabase
+    .from("form_versions")
+    .select("schema_json")
+    .eq("id", payload.form_version_id)
+    .single();
+  const insertPayload = {
+    owner_id: userId,
+    status: payload.status ?? "draft",
+    ...payload,
+    form_snapshot_json: version?.schema_json ?? null,
+  };
   const { data, error } = await supabase
     .from("intake_campaigns")
-    .insert({ owner_id: userId, status: "draft", ...payload })
+    .insert(insertPayload)
     .select()
     .single();
   if (error) throw error;
@@ -83,12 +95,22 @@ export async function updateIntakeCampaign(
     prefill_gate?: boolean;
     success_message?: string | null;
     require_consent?: boolean;
+    status?: string;
   },
 ): Promise<IntakeCampaign> {
   const userId = await requireUserId();
+  const { data: version } = await supabase
+    .from("form_versions")
+    .select("schema_json")
+    .eq("id", payload.form_version_id)
+    .single();
+  const updatePayload = {
+    ...payload,
+    form_snapshot_json: version?.schema_json ?? null,
+  };
   const { data, error } = await supabase
     .from("intake_campaigns")
-    .update(payload)
+    .update(updatePayload)
     .eq("id", id)
     .eq("owner_id", userId)
     .select()
