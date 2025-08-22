@@ -3,16 +3,27 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+
+### Form Versioning
+- [TODO] Apply migration `20250904110000_create_form_versions_table.sql` to create `form_versions` and update `intake_campaigns`.
+  Steps:
+    1. From the project root run `supabase db push`.
+    2. Regenerate types:
+         supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+    3. In Supabase, copy existing form schemas into `form_versions` as needed and update `intake_campaigns.form_version_id`/`form_snapshot_json` for active campaigns.
+    4. Remove any temporary or placeholder form records once migrated.
+
+
 ### Intake Resolver View
-- [TODO] Create `public.intake_resolver` view joining `intake_campaigns` to `campaign_forms` for anonymous form access.
+- [TODO] Create `public.intake_resolver` view joining `intake_campaigns` to `form_versions` for anonymous form access.
   Steps:
     1. In the Supabase SQL editor run:
 
          create or replace view public.intake_resolver as
          select ic.slug,
                 ic.id as campaign_id,
-                ic.form_id as form_version_id,
-                coalesce(ic.form_snapshot_json, cf.schema_json) as form_json,
+                ic.form_version_id as form_version_id,
+                coalesce(ic.form_snapshot_json, fv.schema_json) as form_json,
                 ic.status,
                 ic.start_date,
                 ic.end_date,
@@ -22,7 +33,7 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
                 ic.success_message,
                 ic.require_consent
          from intake_campaigns ic
-         left join campaign_forms cf on ic.form_id = cf.id;
+         left join form_versions fv on ic.form_version_id = fv.id;
 
     2. Grant anonymous read access:
 
@@ -31,12 +42,12 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     3. Revoke direct public access to the source tables:
 
          revoke all on public.intake_campaigns from public;
-         revoke all on public.campaign_forms from public;
+         revoke all on public.form_versions from public;
 
     4. Remove public select policies so reads only occur via the view:
 
          drop policy if exists intake_campaigns_public_select on public.intake_campaigns;
-         drop policy if exists campaign_forms_public_select on public.campaign_forms;
+         drop policy if exists form_versions_public_select on public.form_versions;
 
     5. Regenerate Supabase types after applying the view:
 

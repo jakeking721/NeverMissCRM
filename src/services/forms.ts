@@ -6,34 +6,64 @@ async function requireUserId(): Promise<string> {
   return data.user.id;
 }
 
-// Fetch all forms for current user
+// Fetch all forms for current user (latest version only)
 export async function fetchForms() {
   const userId = await requireUserId();
   const { data, error } = await supabase
-    .from("campaign_forms")
-    .select("id, title, description, created_at")
+    .from("forms")
+    .select(
+      "id, title, description, created_at, form_versions(id, version_number, version_label)"
+    )
     .eq("owner_id", userId)
-    .order("created_at", { ascending: false });
+    .order("version_number", {
+      referencedTable: "form_versions",
+      ascending: false,
+    })
+    .limit(1, { foreignTable: "form_versions" });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((f: any) => ({
+    id: f.id,
+    title: f.title,
+    description: f.description,
+    created_at: f.created_at,
+    form_version_id: f.form_versions?.[0]?.id,
+    version_number: f.form_versions?.[0]?.version_number,
+    version_label: f.form_versions?.[0]?.version_label,
+  }));
 }
 
-// Fetch specific form
+// Fetch specific form with latest version
 export async function fetchForm(id: string) {
   const userId = await requireUserId();
   const { data, error } = await supabase
-    .from("campaign_forms")
-    .select("*")
+    .from("forms")
+    .select(
+      "id, title, description, form_versions(id, version_number, version_label, schema_json)"
+    )
     .eq("id", id)
     .eq("owner_id", userId)
+    .order("version_number", {
+      referencedTable: "form_versions",
+      ascending: false,
+    })
+    .limit(1, { foreignTable: "form_versions" })
     .single();
   if (error) throw error;
-  const blocks = data?.schema_json?.blocks || [];
-  const style = data?.schema_json?.style || {};
-  return { ...data, schema_json: { blocks, style } };
+  const version = (data as any).form_versions?.[0] || {};
+  const blocks = version.schema_json?.blocks || [];
+  const style = version.schema_json?.style || {};
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    form_version_id: version.id,
+    version_number: version.version_number,
+    version_label: version.version_label,
+    schema_json: { blocks, style },
+  };
 }
 
-// Save a form (insert or update)
+// Save a form by creating a new version
 export async function saveForm(payload: any) {
   const userId = await requireUserId();
   const { id, title, description, schema_json } = payload;
@@ -44,42 +74,65 @@ export async function saveForm(payload: any) {
   if (!Array.isArray(blocks)) throw new Error("Fields JSON is required.");
   if (!style.backgroundColor) throw new Error("Background color is required.");
 
-  const table = supabase.from("campaign_forms");
-
   if (id) {
-    const { data, error } = await table
-      .update({
-        title,
-        description: description ?? null,
-        schema_json: { blocks, style },
-      })
+    const { error: updErr } = await supabase
+      .from("forms")
+      .update({ title, description: description ?? null })
       .eq("id", id)
-      .eq("owner_id", userId)
-      .select()
-      .single();
-    if (error) handleError("PATCH", error);
-    return data;
-  } else {
-    const { data, error } = await table
-      .insert([
-        {
-          owner_id: userId,
-          title,
-          description: description ?? null,
-          schema_json: { blocks, style },
-        },
-      ])
+      .eq("owner_id", userId);
+    if (updErr) handleError("PATCH", updErr);
+
+    const { data: latest, error: latestErr } = await supabase
+      .from("form_versions")
+      .select("version_number")
+      .eq("form_id", id)
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestErr) handleError("GET", latestErr);
+    const nextVersion = (latest?.version_number || 0) + 1;
+    const versionLabel = `${title} v${nextVersion}`;
+    const { data, error } = await supabase
+      .from("form_versions")
+      .insert({
+        form_id: id,
+        owner_id: userId,
+        version_number: nextVersion,
+        schema_json: { blocks, style },
+        version_label: versionLabel,
+      })
       .select()
       .single();
     if (error) handleError("POST", error);
-    return data;
+    return { id, title, description, ...data };
+  } else {
+    const { data: form, error: formErr } = await supabase
+      .from("forms")
+      .insert({ owner_id: userId, title, description: description ?? null })
+      .select()
+      .single();
+    if (formErr) handleError("POST", formErr);
+    const versionLabel = `${title} v1`;
+    const { data, error } = await supabase
+      .from("form_versions")
+      .insert({
+        form_id: form.id,
+        owner_id: userId,
+        version_number: 1,
+        schema_json: { blocks, style },
+        version_label: versionLabel,
+      })
+      .select()
+      .single();
+    if (error) handleError("POST", error);
+    return { ...form, ...data };
   }
 }
 
 function handleError(method: string, error: any): never {
   if (import.meta.env.DEV) {
     console.error(
-      `[Supabase] ${method} ${SUPABASE_URL}/rest/v1/campaign_forms?select=*`,
+      `[Supabase] ${method} ${SUPABASE_URL}/rest/v1/forms?select=*`,
       error,
     );
   }
@@ -96,22 +149,9 @@ function handleError(method: string, error: any): never {
 export async function deleteForm(id: string) {
   const userId = await requireUserId();
   const { error } = await supabase
-    .from("campaign_forms")
+    .from("forms")
     .delete()
     .eq("id", id)
     .eq("owner_id", userId);
-  if (error) throw error;
-}
-
-// Link a form version to a campaign
-export async function linkFormToCampaign(
-  campaignId: string,
-  formId: string,
-  formVersion: number
-) {
-  await requireUserId();
-  const { error } = await supabase
-    .from("campaign_forms")
-    .upsert({ campaign_id: campaignId, form_id: formId, form_version: formVersion });
   if (error) throw error;
 }

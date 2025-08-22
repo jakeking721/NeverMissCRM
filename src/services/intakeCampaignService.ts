@@ -4,7 +4,8 @@ export interface IntakeCampaign {
   id: string;
   title: string;
   slug: string;
-  form_id: string;
+  form_version_id: string;
+  form_snapshot_json: any | null;
   start_date: string | null;
   end_date: string | null;
   status: string;
@@ -25,12 +26,12 @@ export async function getIntakeCampaigns(): Promise<IntakeCampaign[]> {
   const { data, error } = await supabase
     .from("intake_campaigns")
     .select(
-      "id, title, slug, form_id, start_date, end_date, status, gate_field, prefill_gate, success_message, require_consent",
+      "id, title, slug, form_version_id, form_snapshot_json, start_date, end_date, status, gate_field, prefill_gate, success_message, require_consent"
     )
     .eq("owner_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data || [];
+  return (data as IntakeCampaign[]) || [];
 }
 
 export async function getIntakeCampaign(id: string): Promise<IntakeCampaign | null> {
@@ -38,7 +39,7 @@ export async function getIntakeCampaign(id: string): Promise<IntakeCampaign | nu
   const { data, error } = await supabase
     .from("intake_campaigns")
     .select(
-      "id, title, slug, form_id, start_date, end_date, status, gate_field, prefill_gate, success_message, require_consent",
+      "id, title, slug, form_version_id, form_snapshot_json, start_date, end_date, status, gate_field, prefill_gate, success_message, require_consent"
     )
     .eq("id", id)
     .eq("owner_id", userId)
@@ -50,7 +51,8 @@ export async function getIntakeCampaign(id: string): Promise<IntakeCampaign | nu
 export async function createIntakeCampaign(payload: {
   title: string;
   slug: string;
-  form_id: string;
+  form_version_id: string;
+  form_snapshot_json?: any | null;
   start_date?: string | null;
   end_date?: string | null;
   gate_field: "phone" | "email";
@@ -73,7 +75,8 @@ export async function updateIntakeCampaign(
   payload: {
     title: string;
     slug: string;
-    form_id: string;
+    form_version_id: string;
+    form_snapshot_json?: any | null;
     start_date?: string | null;
     end_date?: string | null;
     gate_field: "phone" | "email";

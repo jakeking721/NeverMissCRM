@@ -11,12 +11,13 @@ import {
 
 interface FormTemplate {
   id: string;
-  slug: string;
+  form_version_id: string;
+  version_label: string;
 }
 
 export default function NewIntakeCampaign() {
   const [forms, setForms] = useState<FormTemplate[]>([]);
-  const [formId, setFormId] = useState<string>("");
+  const [formVersionId, setFormVersionId] = useState<string>("");
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -34,8 +35,8 @@ export default function NewIntakeCampaign() {
   }, []);
 
   useEffect(() => {
-    const presetFormId = search.get("id");
-    if (presetFormId) setFormId(presetFormId);
+    const presetVersionId = search.get("id");
+    if (presetVersionId) setFormVersionId(presetVersionId);
     const editId = search.get("campaignId");
     if (editId) {
       setCampaignId(editId);
@@ -44,7 +45,7 @@ export default function NewIntakeCampaign() {
           if (!c) return;
           setTitle(c.title);
           setSlug(c.slug);
-          setFormId(c.form_id);
+          setFormVersionId(c.form_version_id);
           setStart(c.start_date ?? "");
           setEnd(c.end_date ?? "");
           setGateField(c.gate_field);
@@ -65,7 +66,7 @@ export default function NewIntakeCampaign() {
         await updateIntakeCampaign(campaignId, {
           title,
           slug,
-          form_id: formId,
+          form_version_id: formVersionId,
           start_date: start || null,
           end_date: end || null,
           gate_field: gateField,
@@ -77,7 +78,7 @@ export default function NewIntakeCampaign() {
         await createIntakeCampaign({
           title,
           slug,
-          form_id: formId,
+          form_version_id: formVersionId,
           start_date: start || null,
           end_date: end || null,
           gate_field: gateField,
@@ -124,14 +125,14 @@ export default function NewIntakeCampaign() {
           <label className="font-medium">Form Template</label>
           <select
             className="border rounded w-full p-2"
-            value={formId}
-            onChange={(e) => setFormId(e.target.value)}
+            value={formVersionId}
+            onChange={(e) => setFormVersionId(e.target.value)}
             required
           >
             <option value="">Select a form</option>
             {forms.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.slug || f.id}
+              <option key={f.form_version_id} value={f.form_version_id}>
+                {f.version_label}
               </option>
             ))}
           </select>
@@ -200,11 +201,10 @@ export default function NewIntakeCampaign() {
 
           <div className="space-y-1">
             <label className="font-medium">Success Message</label>
-            <input
+            <textarea
               className="border rounded w-full p-2"
               value={successMsg}
               onChange={(e) => setSuccessMsg(e.target.value)}
-              placeholder="Thanks for checking in!"
             />
           </div>
 
@@ -216,15 +216,15 @@ export default function NewIntakeCampaign() {
             />
             <span>Require consent checkbox</span>
           </label>
+        </div>
 
-          <div className="text-right">
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Save Campaign
-            </button>
-          </div>
+        <div className="text-center">
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Save Campaign
+          </button>
         </div>
       </form>
     </PageShell>
