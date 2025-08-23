@@ -131,7 +131,6 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     1. From the project root run `supabase db push` or paste the SQL below into Supabase's SQL editor.
     2. Regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
     3. Verify `custom_fields` policy and `customers_extra_gin_idx` index in the Supabase dashboard.
-    4. Drop legacy table `customer_custom_field_values` if it still exists: `drop table if exists customer_custom_field_values;`.
   SQL snippet:
     ```sql
     alter table public.customers
@@ -672,7 +671,7 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
   Steps:
     1. Navigate to `/admin/promote-extra-fields` as an admin.
     2. Promote each listed key, selecting the correct type and options.
-    3. After promotion, confirm values moved to `customer_custom_field_values` and keys removed from `customers.extra`.
+    3. After promotion, confirm values moved to `customer_latest_values` and keys removed from `customers.extra`.
 
 - [NEW] Apply Supabase migration `20250806070000_convert_unique_indexes_to_constraints.sql` to convert unique indexes on customer emails and phones into table constraints.
   Steps:
@@ -814,10 +813,10 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
   Steps:
     1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL in the Supabase dashboard's SQL editor.
     2. In Table editor, verify both tables include all expected columns, unique constraints, and row level security policies.
-- [NEW] Apply Supabase migration `20250806030000_add_customers_table_and_values.sql` to create `customers` and `customer_custom_field_values` tables.
+- [NEW] Apply Supabase migration `20250806030000_add_customers_table_and_values.sql` to create the `customers` table.
   Steps:
     1. From the project root, run `supabase db push` (requires Supabase CLI) or run the SQL from that migration in the Supabase dashboard's SQL editor.
-    2. In Table editor, confirm both tables exist with RLS policies and the index `customers_user_id_idx`.
+    2. In Table editor, confirm the table exists with RLS policies and the index `customers_user_id_idx`.
 - [NEW] Apply Supabase migration `20250806040000_add_intake_function_and_bucket.sql` to create the `intake_add_customer` RPC and ensure the `form-uploads` bucket exists.
   Steps:
     1. From the project root, run `supabase db push` (requires Supabase CLI) or run the SQL from that migration in the Supabase dashboard's SQL editor.
@@ -827,7 +826,7 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
 - [NEW] Sync updated migrations using `supabase db push` to apply the new `create or replace` policies and `IF NOT EXISTS` constraints.
   Steps:
     1. From the project root, run `supabase db push`.
-    2. In Supabase dashboard, verify policies on affected tables (e.g., `campaigns`, `campaign_templates`, `public_slugs`, `custom_fields`, `campaign_forms`, `customers`, and `customer_custom_field_values`) appear without duplicates and constraints exist as expected.
+    2. In Supabase dashboard, verify policies on affected tables (e.g., `campaigns`, `campaign_templates`, `public_slugs`, `custom_fields`, `campaign_forms`, and `customers`) appear without duplicates and constraints exist as expected.
 - No manual steps required for removal of placeholder `/* FOOTER */` comment in `src/pages/Home.tsx`.
 - No manual steps required for replacing alert dialogs with toast notifications in `src/pages/Customers.tsx` and `src/pages/builder/FormBuilder.tsx`.
 - No manual steps required for guarding CSV/JSON import modals behind authentication in `src/pages/Customers.tsx`.
@@ -946,3 +945,13 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     1. Ensure customers in Supabase include `extra` fields and matching entries in `custom_fields`.
     2. In the Customers page, enable those fields as columns and export CSV and JSON.
     3. Confirm CSV headers show registry labels and JSON objects use `field_name` keys.
+
+### Legacy Table Cleanup
+- [TODO] Remove deprecated `customer_custom_field_values` table to align with updated schema.
+  Steps:
+    1. In Supabase SQL editor, run:
+       ```sql
+       drop table if exists public.customer_custom_field_values cascade;
+       ```
+    2. Regenerate types:
+       supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts

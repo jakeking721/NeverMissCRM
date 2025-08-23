@@ -13,7 +13,7 @@ DataKey & Latest Values
 - Keys prefixed with `r.` map to custom registry fields using their `field_name`.
 - Keys not following these prefixes are treated as raw custom keys.
 - Only keys with provided answers create rows in `customer_latest_values`; blank values are ignored.
- - Custom field values live under `customers.extra[field_name]` and can be filtered/sorted via JSONB operators.
+ - Registry answers using `r.<field_name>` keys populate `customer_latest_values`; `customers.extra` now only stores unregistered keys.
 
 Tables
 ------
