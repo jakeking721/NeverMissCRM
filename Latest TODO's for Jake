@@ -3,6 +3,13 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### Forms Navigation Adjustment
+- [INFO] Removed "Forms" link from the header; access forms via the new "Manage Forms" button on the Intake Campaigns page.
+- [TODO] After deployment, navigate to Intake Campaigns and verify the "Manage Forms" button routes to `/forms` and displays correctly on mobile and desktop.
+
+### Intake Campaign Slug Validation
+- [INFO] Slug uniqueness check now scoped to the current user in the UI, matching database constraint `(owner_id, slug)`. No manual action required.
+
 ### IntakeRenderer footer button
 - [INFO] No manual deployment steps required. Rebuild and verify sticky submit button on mobile devices.
 

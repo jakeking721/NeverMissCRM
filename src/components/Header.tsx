@@ -45,9 +45,6 @@ export default function Header() {
               <Link to="/campaigns" className="transition-colors hover:text-blue-600">
                 Campaigns
               </Link>
-              <Link to="/forms" className="transition-colors hover:text-blue-600">
-                Forms
-              </Link>
               <Link to="/settings" className="transition-colors hover:text-blue-600">
                 Settings
               </Link>
