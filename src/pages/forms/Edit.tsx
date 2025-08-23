@@ -4,6 +4,7 @@ import {
   DndContext,
   closestCenter,
   DragEndEvent,
+  DragStartEvent,
   PointerSensor,
   TouchSensor,
   useSensor,
@@ -80,13 +81,14 @@ export default function FormBuilder() {
     getFields().then(setRegistryFields).catch(console.error);
   }, []);
 
-  /**
-   * Ensure generic palette items that should map to factory columns
-   * (e.g., Phone/Email) do so even if they aren’t the explicit factory-* types.
-   */
+  // Auto-open panel on mobile when a block is selected
+  useEffect(() => {
+    if (selected && window.innerWidth < 768) setShowInspector(true);
+  }, [selected]);
+
+  /** Map generic palette items to factory keys when appropriate */
   const inferFactoryKey = (paletteBlock: PaletteBlock): string | null => {
     if ((paletteBlock as any)?.factoryKey) return (paletteBlock as any).factoryKey;
-
     switch (paletteBlock.type) {
       case "phone":
       case "factory-phone":
@@ -124,12 +126,14 @@ export default function FormBuilder() {
     let block: Block = { ...(base as Block), type: paletteBlock.type };
 
     switch (paletteBlock.type) {
+      // --- META CONTENT BLOCKS (renamed for clarity)
       case "title":
         block = {
           ...block,
           type: "title",
           control_type: "title",
-          text: "Form Title",
+          label: "Header",
+          text: "Header",
         };
         break;
       case "description":
@@ -137,9 +141,12 @@ export default function FormBuilder() {
           ...block,
           type: "description",
           control_type: "description",
-          text: "Form description",
+          label: "Body Text",
+          text: "Body text",
         };
         break;
+
+      // --- GENERIC INPUTS
       case "text":
         block = {
           ...block,
@@ -191,13 +198,26 @@ export default function FormBuilder() {
           fieldName: "",
         };
         break;
+      // Single-choice (radio) – for “multiple choices but select one”
+      case "single-choice":
+        block = {
+          ...block,
+          type: "single-choice",
+          control_type: "radio",
+          label: "Single Choice",
+          name: `single_${block_id}`,
+          options: ["Choice 1"],
+          required: false,
+          fieldName: "",
+        };
+        break;
       case "textarea":
         block = {
           ...block,
           type: "input",
           control_type: "textarea",
           fieldType: "textarea",
-          label: "Textarea",
+          label: "Comment Section",
           name: `textarea_${block_id}`,
           placeholder: "",
           required: false,
@@ -246,7 +266,7 @@ export default function FormBuilder() {
         };
         break;
 
-      // Explicit factory palette items
+      // --- FACTORY ITEMS
       case "factory-first-name":
         block = {
           ...block,
@@ -321,12 +341,20 @@ export default function FormBuilder() {
 
   const addBlock = (paletteBlock: PaletteBlock) => {
     const block = createBlock(paletteBlock);
-    setBlocks([...blocks, block]);
-    setSelected(block.id);
+    setBlocks((prev) => [...prev, block]);
+    setSelected(block.id); // auto-select on add
+  };
+
+  const onDragStart = (e: DragStartEvent) => {
+    const id = e.active?.id as string | undefined;
+    if (!id) return;
+    // When dragging existing canvas item, auto-select it
+    const exists = blocks.some((b) => b.id === id);
+    if (exists) setSelected(id);
   };
 
   const onDragEnd = (e: DragEndEvent) => {
-    if (isPreview) return; // disable reordering in preview
+    if (isPreview) return; // disable reordering while previewing
     const { active, over } = e;
     if (!over) return;
 
@@ -348,17 +376,31 @@ export default function FormBuilder() {
       let newIndex = blocks.findIndex((b) => b.id === over.id);
       if (over.id === "canvas") newIndex = blocks.length - 1;
       setBlocks(arrayMove(blocks, oldIndex, newIndex));
+      setSelected(active.id as string);
     }
   };
 
   const updateBlock = (updates: Record<string, any>) => {
     if (!selected) return;
-    setBlocks(blocks.map((b) => (b.id === selected ? { ...b, ...updates } : b)));
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === selected ? { ...b, ...updates } : b))
+    );
   };
 
   const deleteBlock = (id: string) => {
-    setBlocks(blocks.filter((b) => b.id !== id));
+    setBlocks((prev) => prev.filter((b) => b.id !== id));
     if (selected === id) setSelected(null);
+  };
+
+  const handlePanelSave = () => {
+    // Blocks update as-you-type; this is mainly UX “Save” + close mobile drawer.
+    toast.success("Block settings saved");
+    if (showInspector) setShowInspector(false);
+  };
+
+  const handleDeleteSelected = () => {
+    if (!selected) return;
+    deleteBlock(selected);
   };
 
   const handleSave = async () => {
@@ -377,29 +419,22 @@ export default function FormBuilder() {
 
     const seenFactory = new Set<string>();
     const filteredBlocks: Block[] = [];
-
-    // Existing registry keys
     const existing = new Set(registryFields.map((f) => f.key));
     const newFields: CustomField[] = [];
 
-    // Last-wins for factory mappings; register custom fields; assign r.<fieldName>
+    // Last-wins for factory; register custom fields; switch to r.<fieldName>
     for (let i = blocks.length - 1; i >= 0; i--) {
       const b = blocks[i];
 
-      // De-dup factory mappings (last instance wins)
       if (b.mapsToFactory) {
         if (seenFactory.has(b.mapsToFactory)) continue;
         seenFactory.add(b.mapsToFactory);
-      }
-
-      // Custom fields must have a name and be registered once
-      if (!b.mapsToFactory) {
+      } else {
         if (!b.fieldName || !b.fieldName.trim()) {
           toast.error("Field name is required for custom fields.");
           return;
         }
         const key = b.fieldName.trim();
-
         if (!existing.has(key)) {
           const fType: FieldType =
             b.control_type === "phone"
@@ -408,7 +443,7 @@ export default function FormBuilder() {
               ? "email"
               : b.control_type === "checkbox"
               ? "boolean"
-              : b.type === "dropdown"
+              : b.type === "dropdown" || b.type === "single-choice"
               ? "select"
               : "text";
 
@@ -422,24 +457,15 @@ export default function FormBuilder() {
             order: registryFields.length + newFields.length,
             visibleOn: { dashboard: true, customers: true, campaigns: true },
           };
-
           newFields.push(nf);
           existing.add(key);
         }
-
-        // Point the block at the registry key space
         b.dataKey = `r.${key}`;
-      }
-
-      // Drop purely decorative empty value props if present
-      if ("value" in b && (b.value === undefined || b.value === "")) {
-        // ignore naked empty value-only adornments
       }
 
       filteredBlocks.unshift(b);
     }
 
-    // Persist any newly defined registry fields
     for (const nf of newFields) {
       try {
         await addField(nf);
@@ -592,6 +618,7 @@ export default function FormBuilder() {
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
               >
                 <SortableContext
@@ -617,7 +644,8 @@ export default function FormBuilder() {
                           block={b}
                           selected={selected === b.id}
                           onSelect={() => setSelected(b.id)}
-                          onDelete={deleteBlock}
+                          // keep onDelete prop for now; hide the "X" inside DraggableBlock (see tweak below)
+                          onDelete={() => deleteBlock(b.id)}
                         />
                       ))}
                       {blocks.length === 0 && (
@@ -660,9 +688,28 @@ export default function FormBuilder() {
                 needed.
               </p>
             </div>
+
             <div className="rounded-2xl border bg-white shadow-sm">
               <PropertyPanel block={selectedBlock} onChange={updateBlock} />
             </div>
+
+            {/* Footer actions for the selected block */}
+            {selectedBlock && (
+              <div className="mt-4 flex items-center justify-between gap-2">
+                <button
+                  onClick={handlePanelSave}
+                  className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleDeleteSelected}
+                  className="px-3 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         </aside>
       </div>
@@ -705,6 +752,22 @@ export default function FormBuilder() {
             Close
           </button>
           <PropertyPanel block={selectedBlock} onChange={updateBlock} />
+          {selectedBlock && (
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <button
+                onClick={handlePanelSave}
+                className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleDeleteSelected}
+                className="px-3 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          )}
         </div>
       )}
     </PageShell>
