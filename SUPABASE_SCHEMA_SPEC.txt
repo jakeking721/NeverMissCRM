@@ -10,7 +10,7 @@ DataKey & Latest Values
 -----------------------
 - Form blocks map answers via `dataKey` strings.
 - Keys prefixed with `f.` correspond to built-in customer fields (e.g., `f.first_name`, `f.phone`).
-- Keys prefixed with `c.` represent custom fields stored per form block.
+- Keys not prefixed with `f.` are treated as custom fields. These are registered in `custom_fields` (per-user registry) and merged into `customers.extra`.
 - Only keys with provided answers create rows in `customer_latest_values`; blank values are ignored.
 
 Tables
@@ -48,8 +48,8 @@ Tables
 - Admin vs user: no admin override.
 
 **custom_fields**
-- Columns: `id uuid` PK, `user_id uuid` FK, `key text`, `label text`, `type text`, `options jsonb` default `[]`, `required boolean` default `false`, `order integer` default `0`, `visibleOn jsonb` default `{"dashboard":false,"customers":false,"campaigns":false}`, `archived boolean` default `false`.
-- Constraints: unique `(user_id, key)`.
+- Columns: `id uuid` PK, `user_id uuid` FK, `field_name text`, `type text`, `options jsonb` nullable, `default_label text`, `is_active boolean` default `true`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
+- Constraints: unique `(user_id, field_name)`.
 - RLS: `custom_fields_owner` (owner only).
 - Admin vs user: no admin override.
 
@@ -79,8 +79,8 @@ Tables
 - RLS: none (inherits from base tables).
 
 **customers**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `consent_text text` nullable, `consent_collected_at timestamptz` nullable, `created_at timestamptz` default `now()`, `extra jsonb` default `{}`, `updated_at timestamptz` default `now()`.
-- Indexes: `customers_user_id_idx` on `user_id`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `consent_text text` nullable, `consent_collected_at timestamptz` nullable, `created_at timestamptz` default `now()`, `extra jsonb` not null default `{}`, `updated_at timestamptz` default `now()`.
+- Indexes: `customers_user_id_idx` on `user_id`; `customers_extra_gin_idx` on `extra` using `gin(jsonb_path_ops)`.
 - Constraints: `uniq_customers_owner_email_norm` on `(user_id, lower(trim(email)))` where email not null; `uniq_customers_owner_phone_e164` on `(user_id, normalize_phone(phone))` where phone not null.
 - Triggers: `set_updated_at` before update using `update_updated_at_column`.
 - RLS: `customers_select`, `customers_insert`, `customers_update`, `customers_delete` require `auth.uid() = user_id` and approved & active profile.
@@ -123,7 +123,7 @@ Functions & Triggers
 --------------------
 - `update_updated_at_column()` → sets `updated_at` on row updates.
 - `handle_new_user()` → trigger on `auth.users` to insert a profile row.
-- `intake_submit(p_user_id uuid, p_campaign_id uuid, p_form_version_id uuid, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, and records consent text/time.
+- `intake_submit(p_user_id uuid, p_campaign_id uuid, p_form_version_id uuid, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, upserts custom field registry entries, merges custom answers into `customers.extra`, and records consent text/time.
 - `normalize_phone(text)` → returns E.164-format string.
 - `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
 - `ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.
