@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import * as yup from "@/utils/yup";
-import { formatPhone } from "@/utils/phone";
+import { formatPhone, normalizePhone } from "@/utils/phone";
 
 import { supabase } from "@/utils/supabaseClient";
 import { submitIntake } from "@/services/intake";
@@ -43,6 +43,24 @@ interface InputBlock extends BaseBlock {
 }
 interface ChoiceBlock extends BaseBlock {
   type: "choice";
+  name: string;
+  label?: string;
+  options: string[];
+  required?: boolean;
+  dataKey?: string;
+  fieldName?: string;
+}
+interface DropdownBlock extends BaseBlock {
+  type: "dropdown";
+  name: string;
+  label?: string;
+  options: string[];
+  required?: boolean;
+  dataKey?: string;
+  fieldName?: string;
+}
+interface SingleChoiceBlock extends BaseBlock {
+  type: "single-choice";
   name: string;
   label?: string;
   options: string[];
@@ -88,6 +106,8 @@ type Block =
   | ImageBlock
   | InputBlock
   | ChoiceBlock
+  | DropdownBlock
+  | SingleChoiceBlock
   | ButtonBlock
   | PdfBlock
   | LinkBlock
@@ -167,7 +187,13 @@ export default function IntakeRenderer() {
         setBlocks(filteredBlocks);
         const initVals: Record<string, any> = {};
         filteredBlocks.forEach((b) => {
-          if (b.type === "input" || b.type === "choice") initVals[b.name] = "";
+          if (
+            b.type === "input" ||
+            b.type === "choice" ||
+            b.type === "dropdown" ||
+            b.type === "single-choice"
+          )
+            initVals[b.name] = "";
           if (b.type === "checkbox") initVals[b.name] = false;
           if (b.type === "multiselect") initVals[b.name] = [];
           if ((b.type === "pdf" || b.type === "link") && b.required)
@@ -205,7 +231,7 @@ export default function IntakeRenderer() {
         if (b.required) validator = validator.required("Required");
         shape[b.name] = validator;
       }
-      if (b.type === "choice") {
+      if (b.type === "choice" || b.type === "dropdown" || b.type === "single-choice") {
         let validator = yup.string();
         if (b.required) validator = validator.required("Required");
         shape[b.name] = validator;
@@ -275,9 +301,12 @@ export default function IntakeRenderer() {
         if ((b as any).mapsToFactory) key = `f.${(b as any).mapsToFactory}`;
         else if ((b as any).fieldName) key = `r.${(b as any).fieldName}`;
         else if ((b as any).dataKey) key = (b as any).dataKey;
-        if (key) {
-          answers[key] = (valid as Record<string, any>)[b.name];
-        }
+        if (!key) return;
+        const value = (valid as Record<string, any>)[b.name];
+        if (value === undefined || value === null) return;
+        if (typeof value === "string" && value.trim() === "") return;
+        if (Array.isArray(value) && value.length === 0) return;
+        answers[key] = value;
       });
       let consentText: string | null = null;
       blocks.forEach((b) => {
@@ -378,6 +407,7 @@ export default function IntakeRenderer() {
                   </div>
                 );
               case "choice":
+              case "dropdown":
                 return (
                   <div key={block.id}>
                     {block.label && (
@@ -398,6 +428,34 @@ export default function IntakeRenderer() {
                         </option>
                       ))}
                     </select>
+                    {fieldErrors[block.name] && (
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors[block.name]}</p>
+                    )}
+                  </div>
+                );
+              case "single-choice":
+                return (
+                  <div key={block.id}>
+                    {block.label && (
+                      <label className="block text-sm font-medium mb-1">
+                        {block.label}
+                        {block.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                    )}
+                    <div className="space-y-1">
+                      {(block.options || []).map((o, i) => (
+                        <label key={i} className="flex items-center text-sm gap-2">
+                          <input
+                            type="radio"
+                            name={block.name}
+                            value={o}
+                            checked={values[block.name] === o}
+                            onChange={() => setValues({ ...values, [block.name]: o })}
+                          />
+                          <span>{o}</span>
+                        </label>
+                      ))}
+                    </div>
                     {fieldErrors[block.name] && (
                       <p className="text-xs text-red-600 mt-1">{fieldErrors[block.name]}</p>
                     )}

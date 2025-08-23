@@ -61,6 +61,7 @@ Tables
 - RLS: `campaign_forms_owner_rw` enforces `auth.uid() = owner_id` for read/write; `campaign_forms_public_select` allows public read.
 - Admin vs user: admins act as regular users; public can read forms via slug.
 - `schema_json.blocks[]` now store block metadata with `block_id`, `control_type`, `mapsToFactory`, `dataKey`, `saveToLatest`, and optional `validationSubtype` alongside existing block settings.
+- Supported block types include `title`, `description`, `input`, `dropdown`, `single-choice`, `checkbox`, `image`, `link`, and `pdf`.
 
 
 **form_versions**

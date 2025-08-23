@@ -219,7 +219,14 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
         insert into customer_latest_values(user_id, customer_id, data_key, value)
           values (p_user_id, v_cust_id, kv.key, kv.value)
           on conflict (customer_id, data_key)
-          do update set value = excluded.value, updated_at = now();
+    do update set value = excluded.value, updated_at = now();
+    
+### Dropdown & Single Choice Fields
+- [TODO] Confirm the `intake_submit` RPC and database triggers correctly handle new `dropdown` and `single-choice` fields.
+  Steps:
+    1. After deploying, create a form with both field types and submit a test entry.
+    2. Inspect `customers` and `customer_latest_values` to ensure values are stored under expected keys.
+    3. Remove any placeholder/demo data before going live.
 
         if kv.key like 'f.%' then
           continue;

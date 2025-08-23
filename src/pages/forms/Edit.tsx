@@ -426,6 +426,11 @@ export default function FormBuilder() {
     for (let i = blocks.length - 1; i >= 0; i--) {
       const b = blocks[i];
 
+      if (["title", "description", "image", "link", "pdf"].includes(b.type)) {
+        filteredBlocks.unshift(b);
+        continue;
+      }
+
       if (b.mapsToFactory) {
         if (seenFactory.has(b.mapsToFactory)) continue;
         seenFactory.add(b.mapsToFactory);
@@ -596,7 +601,14 @@ export default function FormBuilder() {
             {/* Canvas card */}
             <div className="p-4 md:p-5 bg-white rounded-2xl shadow-sm border">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-gray-600">Drag fields here</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-600">Drag fields here</p>
+                  {isPreview && (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                      Preview mode
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 md:hidden">
                   <button
                     onClick={() => setShowPalette(true)}
