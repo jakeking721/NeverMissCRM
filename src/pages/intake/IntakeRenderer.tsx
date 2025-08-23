@@ -285,7 +285,7 @@ export default function IntakeRenderer() {
       await submitIntake({
         campaignId: campaignInfo.id,
         formVersionId: campaignInfo.form_version_id,
-        ownerId: campaignInfo.owner_id,
+        userId: campaignInfo.owner_id,
         answers,
         consentText,
       });

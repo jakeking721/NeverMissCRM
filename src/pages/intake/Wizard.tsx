@@ -72,7 +72,7 @@ export default function Wizard() {
     }
 
     const { data: existing } = await supabase.rpc("intake_find_customer", {
-      owner_id: config.ownerId,
+      owner_id: config.userId,
       gate: config.gateField,
       value: normalized,
     });

@@ -5,7 +5,7 @@ import { normalizeEmail } from "@/utils/email";
 export interface IntakeParams {
   campaignId: string;
   formVersionId: string;
-  ownerId: string;
+  userId: string;
   answers: Record<string, any>;
   consentText?: string | null;
 }
@@ -13,7 +13,7 @@ export interface IntakeParams {
 export async function submitIntake({
   campaignId,
   formVersionId,
-  ownerId,
+  userId,
   answers,
   consentText,
 }: IntakeParams): Promise<string> {
@@ -31,7 +31,7 @@ export async function submitIntake({
   if (filtered["f.zip_code"]) filtered["f.zip_code"] = String(filtered["f.zip_code"]).trim();
 
   const { data, error } = await supabase.rpc("intake_submit", {
-    p_user_id: ownerId,
+    p_user_id: userId,
     p_campaign_id: campaignId,
     p_form_version_id: formVersionId,
     p_answers: filtered,
@@ -48,7 +48,7 @@ export async function submitIntake({
 export interface WizardConfig {
   campaignId: string;
   formVersionId: string;
-  ownerId: string;
+  userId: string;
   gateField: "phone" | "email";
   prefill: boolean;
   successMessage: string | null;
@@ -67,7 +67,7 @@ export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
   return {
     campaignId: data.campaign_id,
     formVersionId: data.form_version_id,
-    ownerId: data.owner_id,
+    userId: data.owner_id,
     gateField: (data.gate_field as "phone" | "email") || "phone",
     prefill: data.prefill_gate ?? false,
     successMessage: data.success_message ?? null,

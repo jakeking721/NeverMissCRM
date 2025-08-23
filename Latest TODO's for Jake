@@ -782,3 +782,10 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
   Steps:
     1. Provide final badge imagery or SVG.
     2. Update builder components to use the new assets.
+
+### Intake Submissions Migration
+- [TODO] Apply migration `20251002093000_update_intake_submissions.sql` to rename columns and enforce constraints.
+  Steps:
+    1. From the project root run `supabase db push` or paste the SQL into Supabase's SQL editor.
+    2. Re-run type generation: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+    3. Remove any placeholder data or columns (e.g., `owner_id`, `payload_json`) left from earlier schema versions.

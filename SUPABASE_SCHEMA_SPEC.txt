@@ -105,9 +105,9 @@ Tables
 - Admin vs user: no admin override; submissions tied to owner via campaign.
 
 **intake_submissions**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `campaign_id uuid`, `form_version_id uuid`, `answers jsonb` not null, `customer_id uuid`, `consent_text text`, `submitted_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` not null FK to `auth.users`, `campaign_id uuid` FK to `intake_campaigns`, `form_version_id uuid` FK, `answers jsonb` not null, `customer_id uuid` FK, `consent_text text`, `submitted_at timestamptz` default `now()`.
 - Indexes: `intake_submissions_user_idx` on `user_id`, `intake_submissions_campaign_idx` on `campaign_id`.
-- RLS: `intake_submissions_owner` requires `auth.uid() = user_id` for all actions.
+- RLS: `intake_submissions_owner` enforces `auth.uid() = user_id` for all actions.
 - Admin vs user: owner access only; inserts occur via `intake_submit` security-definer function.
 
 **customer_latest_values**
