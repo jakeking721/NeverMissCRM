@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import * as yup from "@/utils/yup";
-import { formatPhone, normalizePhone } from "@/utils/phone";
+import { formatPhone } from "@/utils/phone";
 
 import { supabase } from "@/utils/supabaseClient";
 import { submitIntake } from "@/services/intake";
@@ -38,6 +38,7 @@ interface InputBlock extends BaseBlock {
   label?: string;
   inputType: "text" | "email" | "phone";
   required?: boolean;
+  dataKey?: string;
 }
 interface ChoiceBlock extends BaseBlock {
   type: "choice";
@@ -45,6 +46,7 @@ interface ChoiceBlock extends BaseBlock {
   label?: string;
   options: string[];
   required?: boolean;
+  dataKey?: string;
 }
 interface ButtonBlock extends BaseBlock {
   type: "button";
@@ -66,6 +68,7 @@ interface CheckboxBlock extends BaseBlock {
   name: string;
   label?: string;
   required?: boolean;
+  dataKey?: string;
 }
 interface MultiSelectBlock extends BaseBlock {
   type: "multiselect";
@@ -73,6 +76,7 @@ interface MultiSelectBlock extends BaseBlock {
   label?: string;
   options: string[];
   required?: boolean;
+  dataKey?: string;
 }
 
 type Block =
@@ -261,23 +265,30 @@ export default function IntakeRenderer() {
         setFieldErrors(arrayErrors);
         return;
       }
-      const { first_name, last_name, phone, zip_code, ...extra } = valid as Record<string, any>;
+      const answers: Record<string, any> = {};
+      blocks.forEach((b) => {
+        // only include blocks with a dataKey mapping
+        if ((b as any).dataKey) {
+          answers[(b as any).dataKey] = (valid as Record<string, any>)[b.name];
+        }
+      });
+      let consentText: string | null = null;
+      blocks.forEach((b) => {
+        if (
+          (b as any).dataKey === "f.consent_to_contact" &&
+          (valid as Record<string, any>)[b.name]
+        ) {
+          consentText = (b as any).label ?? null;
+        }
+      });
       if (!campaignInfo) throw new Error("Campaign not loaded");
-      const result = await submitIntake({
-        slug,
+      await submitIntake({
         campaignId: campaignInfo.id,
         formVersionId: campaignInfo.form_version_id,
         ownerId: campaignInfo.owner_id,
-        firstName: first_name,
-        lastName: last_name,
-        phone,
-        zipCode: zip_code,
-        extra,
+        answers,
+        consentText,
       });
-      if (result === "already") {
-        setError("Already checked in");
-        return;
-      }
       setSubmitted(true);
     } catch (err: any) {
       if (err.name === "ValidationError") {

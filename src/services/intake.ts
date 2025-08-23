@@ -1,66 +1,48 @@
 import { supabase } from "@/utils/supabaseClient";
 import { normalizePhone } from "@/utils/phone";
+import { normalizeEmail } from "@/utils/email";
 
 export interface IntakeParams {
-  slug: string;
   campaignId: string;
   formVersionId: string;
   ownerId: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  zipCode?: string | null;
-  extra?: Record<string, any> | null;
+  answers: Record<string, any>;
+  consentText?: string | null;
 }
 
 export async function submitIntake({
-  slug,
   campaignId,
   formVersionId,
   ownerId,
-  firstName,
-  lastName,
-  phone,
-  zipCode,
-  extra,
+  answers,
+  consentText,
 }: IntakeParams): Promise<string> {
-  const payload = {
-    firstName,
-    lastName,
-    phone,
-    zipCode: zipCode ?? null,
-    extra: extra ?? null,
-  };
+  const filtered: Record<string, any> = {};
+  for (const [k, v] of Object.entries(answers)) {
+    if (v === null || v === undefined) continue;
+    if (typeof v === "string" && v.trim() === "") continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    if (typeof v === "boolean" && v === false) continue;
+    filtered[k] = v;
+  }
 
-// Check if this phone already exists for this owner (short-circuit if so)
-const { data: existing } = await supabase.rpc("intake_find_customer", {
-  owner_id: ownerId,
-  gate: "phone",
-  value: normalizePhone(phone),
-});
-if (existing) {
-  return "already";
-}
+  if (filtered["f.phone"]) filtered["f.phone"] = normalizePhone(filtered["f.phone"]);
+  if (filtered["f.email"]) filtered["f.email"] = normalizeEmail(filtered["f.email"]);
+  if (filtered["f.zip_code"]) filtered["f.zip_code"] = String(filtered["f.zip_code"]).trim();
 
-// Submit intake + attach customer in one server-side step (RPC)
-const { data: customerId, error } = await supabase.rpc("intake_submit_attach", {
-  p_campaign_id: campaignId,
-  p_form_version_id: formVersionId,
-  p_payload_json: payload,            // { firstName, lastName, phone, zipCode, extra }
-  p_slug: slug,
-  p_first_name: firstName,
-  p_last_name: lastName,
-  p_phone: normalizePhone(phone),
-  p_zip_code: zipCode ?? null,
-  p_extra: extra ?? null,
-  p_user_id: ownerId,
-});
+  const { data, error } = await supabase.rpc("intake_submit", {
+    p_user_id: ownerId,
+    p_campaign_id: campaignId,
+    p_form_version_id: formVersionId,
+    p_answers: filtered,
+    p_consent_text: consentText ?? null,
+  });
 
-if (error || !customerId) {
-  throw error || new Error("Failed to submit intake with customer");
-}
+  if (error || !data) {
+    throw error || new Error("Failed to submit intake");
+  }
 
-return customerId as string;
+  return data as string;
 }
 
 export interface WizardConfig {

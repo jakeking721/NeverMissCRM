@@ -3,6 +3,105 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### Intake Submission Latest Values
+- [TODO] Apply migration `20251001090000_intake_latest_values.sql` to add `customer_latest_values`, consent audit columns, and the `intake_submit` RPC.
+  Steps:
+    1. From the project root run `supabase db push` or paste the SQL below into Supabase's SQL editor.
+    2. Regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+    3. Verify RLS policies for `intake_submissions` and `customer_latest_values` in the Supabase dashboard.
+  SQL snippet:
+    ```sql
+    create table if not exists public.customer_latest_values (
+      user_id uuid references auth.users(id) not null,
+      customer_id uuid references customers(id) on delete cascade,
+      data_key text not null,
+      value jsonb not null,
+      updated_at timestamptz default now(),
+      primary key (customer_id, data_key)
+    );
+
+    alter table public.customers
+      add column if not exists consent_text text,
+      add column if not exists consent_collected_at timestamptz;
+
+    create or replace function public.intake_submit(
+      p_user_id uuid,
+      p_campaign_id uuid,
+      p_form_version_id uuid,
+      p_answers jsonb,
+      p_consent_text text default null
+    ) returns uuid
+    language plpgsql security definer
+    as $$
+    declare
+      v_sub_id uuid;
+      v_cust_id uuid;
+      v_phone text := nullif(p_answers->>'f.phone', '');
+      v_email text := nullif(p_answers->>'f.email', '');
+      v_first text := nullif(p_answers->>'f.first_name', '');
+      v_last text := nullif(p_answers->>'f.last_name', '');
+      v_zip text := nullif(p_answers->>'f.zip_code', '');
+      kv record;
+    begin
+      insert into intake_submissions(user_id, campaign_id, form_version_id, answers, consent_text)
+        values (p_user_id, p_campaign_id, p_form_version_id, p_answers, p_consent_text)
+        returning id into v_sub_id;
+
+      if v_phone is not null then
+        select id into v_cust_id
+        from customers
+        where user_id = p_user_id and normalize_phone(phone) = normalize_phone(v_phone)
+        limit 1;
+      end if;
+
+      if v_cust_id is null and v_email is not null then
+        select id into v_cust_id
+        from customers
+        where user_id = p_user_id and lower(trim(email)) = lower(trim(v_email))
+        limit 1;
+      end if;
+
+      if v_cust_id is null then
+        insert into customers(user_id, first_name, last_name, phone, email, zip_code, consent_text, consent_collected_at)
+          values (p_user_id, coalesce(v_first,''), coalesce(v_last,''), v_phone, v_email, v_zip, p_consent_text,
+                  case when p_consent_text is not null then now() else null end)
+          returning id into v_cust_id;
+      else
+        update customers set
+          first_name = coalesce(v_first, first_name),
+          last_name = coalesce(v_last, last_name),
+          phone = coalesce(v_phone, phone),
+          email = coalesce(v_email, email),
+          zip_code = coalesce(v_zip, zip_code),
+          consent_text = coalesce(p_consent_text, consent_text),
+          consent_collected_at = case when p_consent_text is not null then now() else consent_collected_at end
+        where id = v_cust_id;
+      end if;
+
+      update intake_submissions set customer_id = v_cust_id where id = v_sub_id;
+
+      for kv in select key, value from jsonb_each(p_answers)
+      loop
+        if kv.value is null or kv.value::text in ('null','""','[]','{}') then
+          continue;
+        end if;
+        insert into customer_latest_values(user_id, customer_id, data_key, value)
+          values (p_user_id, v_cust_id, kv.key, kv.value)
+          on conflict (customer_id, data_key)
+          do update set value = excluded.value, updated_at = now();
+      end loop;
+
+      return v_cust_id;
+    end;
+    $$;
+    ```
+
+- [TODO] Provide real SMS provider credentials (`SMS_API_KEY`, `SMS_API_SECRET`) before launch; placeholders remain.
+  Steps:
+    1. Acquire credentials from the chosen SMS provider.
+    2. Add them to the production environment variables.
+    3. Redeploy the app once ready.
+
 ### Forms Navigation Adjustment
 - [INFO] Removed "Forms" link from the header; access forms via the new "Manage Forms" button on the Intake Campaigns page.
 - [TODO] After deployment, navigate to Intake Campaigns and verify the "Manage Forms" button routes to `/forms` and displays correctly on mobile and desktop.

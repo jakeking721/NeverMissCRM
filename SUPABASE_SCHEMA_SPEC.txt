@@ -6,6 +6,13 @@ Canonical Timestamp
 - `created_at` is the canonical creation timestamp.
 - Tables using `created_at`: `campaigns`, `campaign_templates`, `public_slugs`, `campaign_forms`, `credit_ledger`, `profiles`, `intake_campaigns`, `form_submissions`, `form_versions`, `intake_submissions`, `customers`.
 
+DataKey & Latest Values
+-----------------------
+- Form blocks map answers via `dataKey` strings.
+- Keys prefixed with `f.` correspond to built-in customer fields (e.g., `f.first_name`, `f.phone`).
+- Keys prefixed with `c.` represent custom fields stored per form block.
+- Only keys with provided answers create rows in `customer_latest_values`; blank values are ignored.
+
 Tables
 ------
 
@@ -72,7 +79,7 @@ Tables
 - RLS: none (inherits from base tables).
 
 **customers**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `created_at timestamptz` default `now()`, `extra jsonb` default `{}`, `updated_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `consent_text text` nullable, `consent_collected_at timestamptz` nullable, `created_at timestamptz` default `now()`, `extra jsonb` default `{}`, `updated_at timestamptz` default `now()`.
 - Indexes: `customers_user_id_idx` on `user_id`.
 - Constraints: `uniq_customers_owner_email_norm` on `(user_id, lower(trim(email)))` where email not null; `uniq_customers_owner_phone_e164` on `(user_id, normalize_phone(phone))` where phone not null.
 - Triggers: `set_updated_at` before update using `update_updated_at_column`.
@@ -98,9 +105,16 @@ Tables
 - Admin vs user: no admin override; submissions tied to owner via campaign.
 
 **intake_submissions**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `form_version_id uuid`, `payload_json jsonb` not null, `customer_id uuid`, `submitted_at timestamptz` default `now()`.
-- RLS: `intake_submissions_anon_insert` (anon insert when campaign active and within dates), `intake_submissions_anon_update` (anon update `customer_id`), `intake_submissions_owner_select` (owner read).
-- Admin vs user: owner read access; anonymous inserts permitted only for active campaigns within schedule.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `campaign_id uuid`, `form_version_id uuid`, `answers jsonb` not null, `customer_id uuid`, `consent_text text`, `submitted_at timestamptz` default `now()`.
+- Indexes: `intake_submissions_user_idx` on `user_id`, `intake_submissions_campaign_idx` on `campaign_id`.
+- RLS: `intake_submissions_owner` requires `auth.uid() = user_id` for all actions.
+- Admin vs user: owner access only; inserts occur via `intake_submit` security-definer function.
+
+**customer_latest_values**
+- Columns: `user_id uuid` FK, `customer_id uuid` FK, `data_key text`, `value jsonb`, `updated_at timestamptz` default `now()`.
+- Primary key: `(customer_id, data_key)`; index `clv_user_key_idx` on `(user_id, data_key)`.
+- RLS: `customer_latest_values_owner` requires `auth.uid() = user_id` for all actions.
+- Admin vs user: owner access only.
 
 **customer_email_collisions / customer_phone_collisions**
 - Temporary tables capturing duplicate contacts during normalization; not intended for production use.
@@ -109,10 +123,8 @@ Functions & Triggers
 --------------------
 - `update_updated_at_column()` → sets `updated_at` on row updates.
 - `handle_new_user()` → trigger on `auth.users` to insert a profile row.
-- `intake_find_customer(owner_id uuid, gate text, value text)` → returns existing customer id for owner when gate value matches.
-- `intake_add_customer()` → adds a customer if not found; now checks via `intake_find_customer`.
+- `intake_submit(p_user_id uuid, p_campaign_id uuid, p_form_version_id uuid, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, and records consent text/time.
 - `normalize_phone(text)` → returns E.164-format string.
-- `intake_add_customer(p_slug, p_first_name, p_last_name, p_phone, p_zip_code, p_extra, p_user_id)` → inserts customer and custom field values.
 - `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
 - `ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.
 - `upsert_customer_custom_field_value(p_customer_id, p_field_id, p_value)` → helper for custom field values.
