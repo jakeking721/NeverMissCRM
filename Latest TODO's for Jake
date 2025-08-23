@@ -124,6 +124,7 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     1. From the project root run `supabase db push` or paste the SQL below into Supabase's SQL editor.
     2. Regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
     3. Verify `custom_fields` policy and `customers_extra_gin_idx` index in the Supabase dashboard.
+    4. Drop legacy table `customer_custom_field_values` if it still exists: `drop table if exists customer_custom_field_values;`.
   SQL snippet:
     ```sql
     alter table public.customers

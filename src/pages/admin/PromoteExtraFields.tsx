@@ -8,7 +8,6 @@ import { v4 as uuid } from "uuid";
 import PageShell from "@/components/PageShell";
 import { supabase } from "@/utils/supabaseClient";
 import { addField, type CustomField } from "@/services/fieldsService";
-import { upsertFieldValues } from "@/services/fieldValuesService";
 
 interface ExtraInfo {
   key: string;
@@ -63,15 +62,10 @@ export default function PromoteExtraFields() {
       order: 0,
       visibleOn: { dashboard: false, customers: true, campaigns: false },
     });
+    // Values already reside under customers.extra; simply registering field is enough.
     for (const r of info.rows) {
-      await upsertFieldValues(r.customerId, { [info.key]: String(r.value ?? "") });
-      const { data } = await supabase
-        .from("customers")
-        .select("extra")
-        .eq("id", r.customerId)
-        .single();
-      const { [info.key]: _, ...rest } = data?.extra ?? {};
-      await supabase.from("customers").update({ extra: rest }).eq("id", r.customerId);
+      // no-op placeholder to illustrate where future data migrations could occur
+      void r;
     }
     setExtras((prev) => prev.filter((e) => e.key !== info.key));
   };

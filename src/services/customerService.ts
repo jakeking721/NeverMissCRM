@@ -7,8 +7,34 @@
 import { supabase } from "@/utils/supabaseClient";
 import { normalizePhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
-import { getFields, type CustomField } from "./fieldsService";
-import { upsertFieldValues, type FieldValueMap } from "./fieldValuesService";
+import { getFields, type FieldType } from "./fieldsService";
+
+function normalizeCustomValue(type: FieldType, value: any): any {
+  if (value === null || value === undefined || value === "") return null;
+  try {
+    switch (type) {
+      case "number": {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+      }
+      case "boolean":
+        if (typeof value === "boolean") return value;
+        if (value === "true" || value === "1" || value === 1) return true;
+        if (value === "false" || value === "0" || value === 0) return false;
+        return null;
+      case "date": {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d.toISOString();
+      }
+      case "multiselect":
+        return Array.isArray(value) ? value.map(String) : [String(value)];
+      default:
+        return String(value);
+    }
+  } catch {
+    return null;
+  }
+}
 
 export type Customer = {
   id: string;
@@ -49,10 +75,11 @@ export type CustomerQuery = {
   sortBy?: string;
   ascending?: boolean;
   radiusFilter?: { zip: string; miles: number };
+  filters?: Record<string, any>;
 };
 
 export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]> {
-  const { search, sortBy, ascending, radiusFilter } = opts;
+  const { search, sortBy, ascending, radiusFilter, filters } = opts;
   const userId = await requireUserId();
 
   const columnMap: Record<string, string> = {
@@ -69,6 +96,13 @@ export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]
     .select("id,user_id,first_name,last_name,phone,email,zip_code,created_at,extra")
     .eq("user_id", userId);
 
+  if (filters) {
+    for (const [k, v] of Object.entries(filters)) {
+      if (columnMap[k]) query = query.eq(columnMap[k], v);
+      else query = query.eq(`extra->>${k}`, v);
+    }
+  }
+
   if (search) {
     const q = `%${search}%`;
     query = query.or(
@@ -76,41 +110,16 @@ export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]
     );
   }
 
-  if (sortBy && columnMap[sortBy]) {
-    query = query.order(columnMap[sortBy], { ascending: ascending ?? true });
+  if (sortBy) {
+    if (columnMap[sortBy])
+      query = query.order(columnMap[sortBy], { ascending: ascending ?? true });
+    else query = query.order(`extra->>${sortBy}`, { ascending: ascending ?? true });
   } else {
     query = query.order("created_at", { ascending: false });
   }
 
   const { data, error } = await query;
   if (error) throw error;
-
-  const ids = (data ?? []).map((r: any) => r.id);
-  let latest: any[] = [];
-  if (ids.length > 0) {
-    const { data: lv, error: lvErr } = await supabase
-      .from("customer_latest_values")
-      .select("customer_id,data_key,value")
-      .in("customer_id", ids);
-    if (lvErr) throw lvErr;
-    latest = lv as any[];
-  }
-
-  const fields = await getFields();
-  const idToKey = Object.fromEntries(fields.map((f) => [f.id, f.key]));
-
-  const valueMap: Record<string, Record<string, any>> = {};
-  for (const row of latest) {
-    const dk: string = row.data_key;
-    if (!dk.startsWith("c.")) continue;
-    const fieldId = dk.slice(2);
-    const key = idToKey[fieldId];
-    if (!key) continue;
-    if (!valueMap[row.customer_id]) valueMap[row.customer_id] = {};
-    const v = row.value as any;
-    valueMap[row.customer_id][key] =
-      typeof v === "object" && v !== null && "value" in v ? v.value : v;
-  }
 
   let result = (data ?? []).map((row: any) => ({
     id: row.id,
@@ -121,24 +130,8 @@ export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]
     email: row.email ?? undefined,
     zipCode: row.zip_code ?? undefined,
     signupDate: row.created_at,
-    ...(valueMap[row.id] ?? {}),
     ...(row.extra ?? {}),
   }));
-
-  if (sortBy && !columnMap[sortBy]) {
-    const asc = ascending ?? true;
-    result.sort((a, b) => {
-      const av = (a as any)[sortBy];
-      const bv = (b as any)[sortBy];
-      if (av == null || bv == null)
-        return av == null ? (asc ? -1 : 1) : asc ? 1 : -1;
-      if (typeof av === "number" && typeof bv === "number")
-        return asc ? av - bv : bv - av;
-      return asc
-        ? String(av).localeCompare(String(bv))
-        : String(bv).localeCompare(String(av));
-    });
-  }
 
   if (search) {
     const q = search.toLowerCase();
@@ -151,12 +144,11 @@ export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]
         c.zipCode?.toLowerCase().includes(q) ||
         c.signupDate?.toLowerCase().includes(q);
       if (baseHit) return true;
-      return fields.some((f) => {
-        const v = (c as any)[f.key];
-        return (
-          (typeof v === "string" && v.toLowerCase().includes(q)) ||
-          (typeof v === "number" && String(v).includes(q))
-        );
+      return Object.values(c).some((v) => {
+        if (v == null) return false;
+        if (typeof v === "string") return v.toLowerCase().includes(q);
+        if (typeof v === "number") return String(v).includes(q);
+        return false;
       });
     });
   }
@@ -179,26 +171,6 @@ export async function getCustomer(id: string): Promise<Customer | null> {
   if (error) throw error;
   if (!data) return null;
 
-  const { data: latest, error: lvErr } = await supabase
-    .from("customer_latest_values")
-    .select("data_key,value")
-    .eq("customer_id", data.id);
-  if (lvErr) throw lvErr;
-
-  const fields = await getFields();
-  const idToKey = Object.fromEntries(fields.map((f) => [f.id, f.key]));
-  const custom: Record<string, any> = {};
-  for (const row of (latest as any[]) || []) {
-    const dk: string = row.data_key;
-    if (!dk.startsWith("c.")) continue;
-    const key = idToKey[dk.slice(2)];
-    if (key) {
-      const v = row.value as any;
-      custom[key] =
-        typeof v === "object" && v !== null && "value" in v ? v.value : v;
-    }
-  }
-
   return {
     id: data.id,
     user_id: data.user_id,
@@ -208,7 +180,6 @@ export async function getCustomer(id: string): Promise<Customer | null> {
     email: data.email ?? undefined,
     zipCode: data.zip_code ?? undefined,
     signupDate: data.created_at,
-    ...custom,
     ...(data.extra ?? {}),
   };
 }
@@ -218,7 +189,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
 // -----------------------------------------------------------------------------
 function splitCustomerFields(
   c: Partial<Customer>,
-  fieldKeys: Set<string>,
+  fieldMap: Record<string, FieldType>,
 ) {
   const base: any = {
     id: c.id,
@@ -231,14 +202,18 @@ function splitCustomerFields(
   if (c.zipCode !== undefined) base.zip_code = c.zipCode ?? null;
   base.created_at = c.signupDate ?? new Date().toISOString();
 
-  const custom: FieldValueMap = {};
   const extra: Record<string, any> = {};
   const others = stripBaseColumns(c);
   for (const [k, v] of Object.entries(others)) {
-    if (fieldKeys.has(k)) custom[k] = v as any;
-    else extra[k] = v;
+    const type = fieldMap[k];
+    if (type) {
+      const norm = normalizeCustomValue(type, v);
+      if (norm !== null) extra[k] = norm;
+    } else {
+      extra[k] = v;
+    }
   }
-  return { base, custom, extra };
+  return { base, extra };
 }
 
 // -----------------------------------------------------------------------------
@@ -247,15 +222,14 @@ function splitCustomerFields(
 export async function addCustomer(customer: Customer): Promise<void> {
   const userId = await requireUserId();
   const fields = await getFields();
-  const fieldKeys = new Set(fields.map((f) => f.key));
-  const { base, custom, extra } = splitCustomerFields(
+  const fieldMap = Object.fromEntries(fields.map((f) => [f.key, f.type]));
+  const { base, extra } = splitCustomerFields(
     { ...customer, user_id: customer.user_id ?? userId },
-    fieldKeys,
+    fieldMap,
   );
   base.extra = extra;
   const { error } = await supabase.from("customers").insert(base);
   if (error) throw error;
-  await upsertFieldValues(base.id, custom);
 }
 
 export async function updateCustomer(
@@ -264,8 +238,8 @@ export async function updateCustomer(
 ): Promise<void> {
   const userId = await requireUserId();
   const fields = await getFields();
-  const fieldKeys = new Set(fields.map((f) => f.key));
-  const { base, custom, extra } = splitCustomerFields(patch, fieldKeys);
+  const fieldMap = Object.fromEntries(fields.map((f) => [f.key, f.type]));
+  const { base, extra } = splitCustomerFields(patch, fieldMap);
   const payload: any = {};
   if (base.first_name !== undefined) payload.first_name = base.first_name;
   if (base.last_name !== undefined) payload.last_name = base.last_name;
@@ -281,7 +255,20 @@ export async function updateCustomer(
       .eq("user_id", userId)
       .single();
     if (error) throw error;
-    payload.extra = { ...(data?.extra ?? {}), ...extra };
+    const merged = { ...(data?.extra ?? {}) };
+    for (const [k, v] of Object.entries(extra)) {
+      const existing = merged[k];
+      if (
+        existing !== undefined &&
+        existing !== null &&
+        v !== null &&
+        typeof existing !== typeof v
+      ) {
+        continue;
+      }
+      merged[k] = v;
+    }
+    payload.extra = merged;
   }
   const { error: upErr } = await supabase
     .from("customers")
@@ -289,7 +276,6 @@ export async function updateCustomer(
     .eq("id", id)
     .eq("user_id", userId);
   if (upErr) throw upErr;
-  await upsertFieldValues(id, custom);
 }
 
 export async function removeCustomer(id: string): Promise<void> {
@@ -319,7 +305,7 @@ export async function upsertCustomers(
 ): Promise<UpsertSummary> {
   const userId = await requireUserId();
   const fields = await getFields();
-  const fieldKeys = new Set(fields.map((f) => f.key));
+  const fieldMap = Object.fromEntries(fields.map((f) => [f.key, f.type]));
   const summary: UpsertSummary = { created: 0, updated: 0, skipped: 0, failures: [] };
   const total = customers.length;
   let processed = 0;
@@ -328,9 +314,9 @@ export async function upsertCustomers(
   for (let i = 0; i < customers.length; i += chunkSize) {
     const chunk = customers.slice(i, i + chunkSize);
     for (const c of chunk) {
-      const { base, custom, extra } = splitCustomerFields(
+      const { base, extra } = splitCustomerFields(
         { ...c, user_id: c.user_id ?? userId },
-        fieldKeys,
+        fieldMap,
       );
       base.extra = extra;
       const phone = base.phone;
@@ -357,22 +343,36 @@ export async function upsertCustomers(
             .eq("id", existing.id)
             .eq("user_id", userId);
           if (upErr) throw upErr;
-          await upsertFieldValues(existing.id, custom);
           summary.updated += 1;
         } else if (mode === "fill") {
-        const { data: existData } = await supabase
-          .from("customers")
-          .select("first_name,last_name,phone,email,zip_code,extra")
-          .eq("id", existing.id)
-          .single();
-        const patch: any = {};
-        if (!existData.first_name && base.first_name) patch.first_name = base.first_name;
-        if (!existData.last_name && base.last_name) patch.last_name = base.last_name;
-        if (!existData.phone && base.phone) patch.phone = base.phone;
-        if (!existData.email && base.email) patch.email = base.email;
-        if (!existData.zip_code && base.zip_code) patch.zip_code = base.zip_code;
-        if (Object.keys(extra).length)
-          patch.extra = { ...(existData.extra ?? {}), ...extra };
+          const { data: existData } = await supabase
+            .from("customers")
+            .select("first_name,last_name,phone,email,zip_code,extra")
+            .eq("id", existing.id)
+            .single();
+          if (!existData) continue;
+          const patch: any = {};
+          if (!existData.first_name && base.first_name) patch.first_name = base.first_name;
+          if (!existData.last_name && base.last_name) patch.last_name = base.last_name;
+          if (!existData.phone && base.phone) patch.phone = base.phone;
+          if (!existData.email && base.email) patch.email = base.email;
+          if (!existData.zip_code && base.zip_code) patch.zip_code = base.zip_code;
+          if (Object.keys(extra).length) {
+            const merged = { ...(existData.extra ?? {}) };
+            for (const [k, v] of Object.entries(extra)) {
+              const existingVal = merged[k];
+              if (
+                existingVal !== undefined &&
+                existingVal !== null &&
+                v !== null &&
+                typeof existingVal !== typeof v
+              ) {
+                continue;
+              }
+              merged[k] = v;
+            }
+            patch.extra = merged;
+          }
           if (Object.keys(patch).length) {
             const { error: upErr } = await supabase
               .from("customers")
@@ -381,7 +381,6 @@ export async function upsertCustomers(
               .eq("user_id", userId);
             if (upErr) throw upErr;
           }
-          await upsertFieldValues(existing.id, custom);
           summary.updated += 1;
         } else {
           summary.skipped += 1;
@@ -390,7 +389,6 @@ export async function upsertCustomers(
       } else {
         const { error: insErr } = await supabase.from("customers").insert(base);
         if (insErr) throw insErr;
-        await upsertFieldValues(base.id, custom);
         summary.created += 1;
       }
       processed += 1;
@@ -418,30 +416,25 @@ export async function replaceCustomers(customers: Customer[]): Promise<void> {
   if (delErr) throw delErr;
   if (customers.length === 0) return;
   const fields = await getFields();
-  const fieldKeys = new Set(fields.map((f) => f.key));
+  const fieldMap = Object.fromEntries(fields.map((f) => [f.key, f.type]));
   const rows: any[] = [];
-  const customs: { id: string; values: FieldValueMap }[] = [];
   for (const c of customers) {
-    const { base, custom, extra } = splitCustomerFields(
+    const { base, extra } = splitCustomerFields(
       { ...c, user_id: c.user_id ?? userId },
-      fieldKeys,
+      fieldMap,
     );
     base.extra = extra;
     rows.push(base);
-    customs.push({ id: base.id, values: custom });
   }
   const { error: insErr } = await supabase.from("customers").insert(rows);
   if (insErr) throw insErr;
-  for (const c of customs) {
-    await upsertFieldValues(c.id, c.values);
-  }
 }
 
 // -----------------------------------------------------------------------------
 // Utility
 // -----------------------------------------------------------------------------
+/* eslint-disable @typescript-eslint/no-unused-vars */
 function stripBaseColumns(obj: Partial<Customer>): Record<string, any> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {
     id,
     user_id,
@@ -456,3 +449,4 @@ function stripBaseColumns(obj: Partial<Customer>): Record<string, any> {
   } = obj;
   return { ...(extra ?? {}), ...rest };
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */

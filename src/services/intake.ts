@@ -1,6 +1,7 @@
 import { supabase } from "@/utils/supabaseClient";
 import { normalizePhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
+import { getFields } from "./fieldsService";
 
 export interface IntakeParams {
   campaignId: string;
@@ -22,19 +23,29 @@ export async function submitIntake({
     if (v === null || v === undefined) continue;
     if (typeof v === "string" && v.trim() === "") continue;
     if (Array.isArray(v) && v.length === 0) continue;
-    if (typeof v === "boolean" && v === false) continue;
     filtered[k] = v;
   }
 
-  if (filtered["f.phone"]) filtered["f.phone"] = normalizePhone(filtered["f.phone"]);
-  if (filtered["f.email"]) filtered["f.email"] = normalizeEmail(filtered["f.email"]);
-  if (filtered["f.zip_code"]) filtered["f.zip_code"] = String(filtered["f.zip_code"]).trim();
+  const fields = await getFields();
+  const idToName = Object.fromEntries(fields.map((f) => [f.id, f.key]));
+  const transformed: Record<string, any> = {};
+  for (const [k, v] of Object.entries(filtered)) {
+    if (k === "f.phone") transformed[k] = normalizePhone(v);
+    else if (k === "f.email") transformed[k] = normalizeEmail(v);
+    else if (k === "f.zip_code") transformed[k] = String(v).trim();
+    else if (k.startsWith("c.")) {
+      const name = idToName[k.slice(2)];
+      if (name) transformed[name] = v;
+    } else {
+      transformed[k] = v;
+    }
+  }
 
   const { data, error } = await supabase.rpc("intake_submit", {
     p_user_id: userId,
     p_campaign_id: campaignId,
     p_form_version_id: formVersionId,
-    p_answers: filtered,
+    p_answers: transformed,
     p_consent_text: consentText ?? null,
   });
 

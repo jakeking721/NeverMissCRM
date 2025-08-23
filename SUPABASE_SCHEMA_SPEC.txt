@@ -12,6 +12,7 @@ DataKey & Latest Values
 - Keys prefixed with `f.` correspond to built-in customer fields (e.g., `f.first_name`, `f.phone`).
 - Keys not prefixed with `f.` are treated as custom fields. These are registered in `custom_fields` (per-user registry) and merged into `customers.extra`.
 - Only keys with provided answers create rows in `customer_latest_values`; blank values are ignored.
+ - Custom field values live under `customers.extra[field_name]` and can be filtered/sorted via JSONB operators.
 
 Tables
 ------
@@ -86,13 +87,6 @@ Tables
 - RLS: `customers_select`, `customers_insert`, `customers_update`, `customers_delete` require `auth.uid() = user_id` and approved & active profile.
 - Admin vs user: no admin override; only owner with approved, active profile.
 
-**customer_custom_field_values**
-- Columns: `customer_id uuid` FK, `field_id uuid` FK, `value text` default null.
-- Primary key: `(customer_id, field_id)`.
-- Indexes: `ccfv_customer_idx` on `customer_id`.
-- RLS: `customer_custom_field_values_owner` ensures linked customer belongs to current user.
-- Admin vs user: no admin override.
-
 **credit_ledger**
 - Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `delta integer` not null, `reason text`, `related_id uuid`, `created_at timestamptz` default `now()`.
 - Indexes: `credit_ledger_owner_id_idx` on `owner_id`.
@@ -127,14 +121,13 @@ Functions & Triggers
 - `normalize_phone(text)` → returns E.164-format string.
 - `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
 - `ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.
-- `upsert_customer_custom_field_value(p_customer_id, p_field_id, p_value)` → helper for custom field values.
 - `is_admin(uid)` → security-definer function used in profile policies.
 - Triggers: `set_updated_at` on `campaigns` and `customers`; `on_auth_user_created` on `auth.users`.
 
 Admin vs. User Summary
 ----------------------
 - **Profiles**: admins may read/update/delete any profile; users limited to their own.
-- **Public Slugs, Campaigns, Campaign Templates, Custom Fields, Campaign Forms, Intake Campaigns, Customers, Customer Custom Field Values, Credit Ledger**: admins have no implicit elevated access—ownership is required. Forms, slugs, and intake campaigns offer public read access where noted.
+- **Public Slugs, Campaigns, Campaign Templates, Custom Fields, Campaign Forms, Intake Campaigns, Customers, Credit Ledger**: admins have no implicit elevated access—ownership is required. Forms, slugs, and intake campaigns offer public read access where noted.
 
 TODO
 ----
