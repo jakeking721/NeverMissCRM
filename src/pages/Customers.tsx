@@ -283,22 +283,23 @@ useEffect(() => {
   /* ------------------------------ Export JSON ---------------------------- */
 
   const onExportJSON = () => {
-    const formatted = customers.map((c) => {
-      const obj: Record<string, AnyValue> = {};
-      Object.entries(c).forEach(([k, v]) => {
-        obj[k] = formatValue(v);
+    const rows = customers.map((c) => {
+      const obj: Record<string, any> = {};
+      columns.forEach((col) => {
+        obj[col.key] = (c as Record<string, any>)[col.key];
       });
       return obj;
     });
+    const meta = columns.map((c) => ({ key: c.key, label: c.label }));
     const blob = new Blob(
       [
         JSON.stringify(
-          { customers: formatted, exportedAt: new Date().toISOString(), customFields },
+          { customers: rows, columns: meta, exportedAt: new Date().toISOString() },
           null,
-          2
+          2,
         ),
       ],
-      { type: "application/json" }
+      { type: "application/json" },
     );
     const url = URL.createObjectURL(blob);
     const a = Object.assign(document.createElement("a"), {
@@ -1082,5 +1083,6 @@ function formatValue(v: AnyValue): string {
   if (typeof v === "boolean") return v ? "Yes" : "No";
   if (typeof v === "number") return new Intl.NumberFormat().format(v);
   if (typeof v === "string" && /^\+?\d{10,15}$/.test(v)) return formatPhone(v);
+  if (Array.isArray(v)) return v.join("; ");
   return String(v);
 }

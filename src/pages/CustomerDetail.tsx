@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { v4 as uuid } from "uuid";
 
@@ -43,8 +43,9 @@ export default function CustomerDetail() {
     (async () => {
       const [cust, flds] = await Promise.all([getCustomer(id), getFields()]);
       if (cust) {
-        setCustomer(cust);
-        setValues(cust);
+        const { extra, ...rest } = cust;
+        setCustomer({ ...cust, extra });
+        setValues(rest);
       }
       setFields(
         flds
@@ -153,6 +154,12 @@ export default function CustomerDetail() {
     }
   };
 
+  const customFieldKeys = useMemo(() => {
+    const extras = Object.keys(customer?.extra ?? {});
+    const regs = fields.map((f) => f.key);
+    return Array.from(new Set([...extras, ...regs]));
+  }, [customer?.extra, fields]);
+
   const handleAddField = async () => {
     const key = toKeySlug(newField.label);
     await addField({
@@ -230,12 +237,26 @@ export default function CustomerDetail() {
               />
             </div>
 
-            {fields.map((f) => (
-              <div key={f.id}>
-                <label className="block text-sm font-medium mb-1">{f.label}</label>
-                {renderInput(f)}
+            {customFieldKeys.length > 0 && (
+              <div className="space-y-4 pt-2">
+                <h2 className="text-lg font-semibold">Custom Fields</h2>
+                {customFieldKeys.map((key) => {
+                  const field = fields.find((f) => f.key === key);
+                  const meta = {
+                    key,
+                    label: field?.label ?? key,
+                    type: field?.type ?? "text",
+                    options: field?.options,
+                  };
+                  return (
+                    <div key={key}>
+                      <label className="block text-sm font-medium mb-1">{meta.label}</label>
+                      {renderInput(meta)}
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
 
             <div className="flex flex-col sm:flex-row gap-2 pt-4">
               <button

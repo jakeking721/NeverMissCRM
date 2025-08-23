@@ -121,17 +121,21 @@ export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]
   const { data, error } = await query;
   if (error) throw error;
 
-  let result = (data ?? []).map((row: any) => ({
-    id: row.id,
-    user_id: row.user_id,
-    firstName: row.first_name,
-    lastName: row.last_name,
-    phone: row.phone ?? undefined,
-    email: row.email ?? undefined,
-    zipCode: row.zip_code ?? undefined,
-    signupDate: row.created_at,
-    ...(row.extra ?? {}),
-  }));
+  let result = (data ?? []).map((row: any) => {
+    const extra = row.extra ?? {};
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      phone: row.phone ?? undefined,
+      email: row.email ?? undefined,
+      zipCode: row.zip_code ?? undefined,
+      signupDate: row.created_at,
+      extra,
+      ...extra,
+    };
+  });
 
   if (search) {
     const q = search.toLowerCase();
@@ -171,6 +175,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
   if (error) throw error;
   if (!data) return null;
 
+  const extra = data.extra ?? {};
   return {
     id: data.id,
     user_id: data.user_id,
@@ -180,7 +185,8 @@ export async function getCustomer(id: string): Promise<Customer | null> {
     email: data.email ?? undefined,
     zipCode: data.zip_code ?? undefined,
     signupDate: data.created_at,
-    ...(data.extra ?? {}),
+    extra,
+    ...extra,
   };
 }
 

@@ -932,3 +932,10 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     1. From the project root run `supabase db push` or paste the SQL into Supabase's SQL editor.
     2. Re-run type generation: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
     3. Remove any placeholder data or columns (e.g., `owner_id`, `payload_json`) left from earlier schema versions.
+
+### Custom Field Export Review
+- [TODO] Manually verify custom field columns in CSV/JSON exports after deployment.
+  Steps:
+    1. Ensure customers in Supabase include `extra` fields and matching entries in `custom_fields`.
+    2. In the Customers page, enable those fields as columns and export CSV and JSON.
+    3. Confirm CSV headers show registry labels and JSON objects use `field_name` keys.

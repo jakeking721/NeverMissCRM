@@ -5,7 +5,7 @@ import { formatPhone } from "@/utils/phone";
 
 interface CustomerTableProps {
   customers: Customer[];
-  columns?: Array<{ key: keyof Customer; label: string }>;
+  columns?: Array<{ key: string; label: string }>;
   onDelete?: (id: string) => void;
   onEdit?: (id: string) => void;
   pageSize?: number;
@@ -26,71 +26,188 @@ export default function CustomerTable({
   onEdit,
   pageSize = 25,
 }: CustomerTableProps) {
-  const [page, setPage] = React.useState(1);
-  const totalPages = Math.ceil(customers.length / pageSize);
+  const [search, setSearch] = React.useState("");
+  const [sortKey, setSortKey] = React.useState<string | null>(null);
+  const [ascending, setAscending] = React.useState(true);
 
-  // Paginate customers
-  const paginated = customers.slice((page - 1) * pageSize, page * pageSize);
+  const filtered = React.useMemo(() => {
+    if (!search) return customers;
+    const q = search.toLowerCase();
+    return customers.filter((c) =>
+      columns.some((col) => {
+        const v = (c as any)[col.key];
+        if (v == null) return false;
+        return String(v).toLowerCase().includes(q);
+      }),
+    );
+  }, [search, customers, columns]);
+
+  const sorted = React.useMemo(() => {
+    const arr = [...filtered];
+    if (!sortKey) return arr;
+    arr.sort((a: any, b: any) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return -1;
+      if (bv == null) return 1;
+      if (av > bv) return 1;
+      if (av < bv) return -1;
+      return 0;
+    });
+    return ascending ? arr : arr.reverse();
+  }, [filtered, sortKey, ascending]);
+
+  const [page, setPage] = React.useState(1);
+  const totalPages = Math.ceil(sorted.length / pageSize);
+  React.useEffect(() => setPage(1), [sorted.length, pageSize]);
+
+  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
+
+  const onExportJSON = () => {
+    const rows = sorted.map((c) => {
+      const obj: Record<string, any> = {};
+      columns.forEach((col) => {
+        obj[col.key] = (c as any)[col.key];
+      });
+      return obj;
+    });
+    const meta = columns.map((c) => ({ key: c.key, label: c.label }));
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          { customers: rows, columns: meta, exportedAt: new Date().toISOString() },
+          null,
+          2,
+        ),
+      ],
+      { type: "application/json" },
+    );
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), {
+      href: url,
+      download: "customers_export.json",
+    });
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onExportCSV = () => {
+    const headers = columns.map((c) => c.label);
+    const rows = sorted.map((c) =>
+      columns
+        .map((col) => {
+          const raw = formatValue((c as any)[col.key]);
+          const escaped = raw.replace(/"/g, '""');
+          return `"${escaped}"`;
+        })
+        .join(","),
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), {
+      href: url,
+      download: "customers_export.csv",
+    });
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="border rounded-xl overflow-x-auto bg-white shadow">
-      <table className="w-full text-left min-w-[600px]">
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th key={col.key as string} className="py-2 px-3 font-semibold bg-blue-50">
-                {col.label}
-              </th>
-            ))}
-            {(onEdit || onDelete) && <th className="py-2 px-3"></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.length === 0 ? (
+    <div className="border rounded-xl bg-white shadow">
+      <div className="p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search…"
+          className="border rounded px-2 py-1 text-sm flex-1"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={onExportJSON}
+            className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
+          >
+            Export JSON
+          </button>
+          <button
+            onClick={onExportCSV}
+            className="px-3 py-1 text-xs border rounded hover:bg-gray-50"
+          >
+            Export CSV
+          </button>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[600px]">
+          <thead>
             <tr>
-              <td colSpan={columns.length + 1} className="text-center py-6 text-gray-400">
-                No customers found.
-              </td>
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  className="py-2 px-3 font-semibold bg-blue-50 cursor-pointer select-none"
+                  onClick={() => {
+                    if (sortKey === col.key) setAscending((v) => !v);
+                    else {
+                      setSortKey(col.key);
+                      setAscending(true);
+                    }
+                  }}
+                >
+                  {col.label}
+                  {sortKey === col.key && (ascending ? " ▲" : " ▼")}
+                </th>
+              ))}
+              {(onEdit || onDelete) && <th className="py-2 px-3"></th>}
             </tr>
-          ) : (
-            paginated.map((c) => (
-              <tr
-                key={c.id}
-                className={c.isDemo ? "bg-blue-50 text-gray-400 italic" : "hover:bg-blue-50"}
-              >
-                {columns.map((col) => (
-                  <td key={col.key as string} className="py-2 px-3">
-                    {col.key === "phone"
-                      ? formatPhone(c.phone)
-                      : String(c[col.key] ?? "")}
-                  </td>
-                ))}
-                {(onEdit || onDelete) && (
-                  <td className="py-2 px-3 flex gap-2">
-                    {onEdit && (
-                      <button
-                        className="text-xs text-blue-600 hover:underline"
-                        onClick={() => onEdit(c.id)}
-                      >
-                        Edit
-                      </button>
-                    )}
-                    {onDelete && !c.isDemo && (
-                      <button
-                        className="text-xs text-red-500 hover:underline"
-                        onClick={() => onDelete(c.id)}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </td>
-                )}
+          </thead>
+          <tbody>
+            {paginated.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length + 1} className="text-center py-6 text-gray-400">
+                  No customers found.
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-      {/* Pagination */}
+            ) : (
+              paginated.map((c) => (
+                <tr
+                  key={c.id}
+                  className={c.isDemo ? "bg-blue-50 text-gray-400 italic" : "hover:bg-blue-50"}
+                >
+                  {columns.map((col) => (
+                    <td key={col.key} className="py-2 px-3">
+                      {col.key === "phone"
+                        ? formatPhone(c.phone)
+                        : formatValue((c as any)[col.key])}
+                    </td>
+                  ))}
+                  {(onEdit || onDelete) && (
+                    <td className="py-2 px-3 flex gap-2">
+                      {onEdit && (
+                        <button
+                          className="text-xs text-blue-600 hover:underline"
+                          onClick={() => onEdit(c.id)}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {onDelete && !c.isDemo && (
+                        <button
+                          className="text-xs text-red-500 hover:underline"
+                          onClick={() => onDelete(c.id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 py-3">
           <button
@@ -114,4 +231,13 @@ export default function CustomerTable({
       )}
     </div>
   );
+}
+
+function formatValue(v: any): string {
+  if (v == null) return "—";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "number") return new Intl.NumberFormat().format(v);
+  if (typeof v === "string" && /^\+?\d{10,15}$/.test(v)) return formatPhone(v);
+  if (Array.isArray(v)) return v.join("; ");
+  return String(v);
 }
