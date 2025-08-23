@@ -646,3 +646,18 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
 
 - [NEW] Review and maintain `SUPABASE_SCHEMA_SPEC.txt` after applying Supabase migrations.
   Steps:
+    1. After each schema change, update the spec file and commit.
+
+### Form Builder Metadata
+- [TODO] Verify factory field mappings persist and deduplicate in saved form schema.
+  Steps:
+    1. Build a form with multiple factory fields including duplicates.
+    2. Save the form and inspect `schema_json` to confirm only the last block per factory field remains.
+- [TODO] Implement server-side handling to skip empty answers and honor `saveToLatest` during submissions.
+  Steps:
+    1. Update Supabase RPCs or API routes to ignore empty values and dedupe using `dataKey`.
+    2. Ensure backend respects the `saveToLatest` flag when persisting customer data.
+- [TODO] Replace placeholder factory badges/icons with finalized design assets.
+  Steps:
+    1. Provide final badge imagery or SVG.
+    2. Update builder components to use the new assets.

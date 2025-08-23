@@ -18,11 +18,14 @@ export default function PropertyPanel({ block, onChange }: Props) {
   if (!block) {
     return <div className="p-4 text-sm text-gray-500">Select a block</div>;
   }
+
+  let specific: React.ReactNode = null;
+
   switch (block.type) {
     case "title":
     case "description":
-      return (
-        <div className="p-4 space-y-2">
+      specific = (
+        <div className="space-y-2">
           <label className="block text-sm font-medium">Text</label>
           <input
             className="w-full border rounded p-1"
@@ -31,9 +34,10 @@ export default function PropertyPanel({ block, onChange }: Props) {
           />
         </div>
       );
+      break;
     case "input":
-      return (
-        <div className="p-4 space-y-2">
+      specific = (
+        <div className="space-y-2">
           <label className="block text-sm font-medium">Label</label>
           <input
             className="w-full border rounded p-1"
@@ -52,16 +56,6 @@ export default function PropertyPanel({ block, onChange }: Props) {
             value={block.placeholder || ""}
             onChange={(e) => onChange({ placeholder: e.target.value })}
           />
-          {block.fieldType && block.fieldType !== "textarea" && (
-            <div>
-              <label className="block text-sm font-medium">Field Type</label>
-              <input
-                className="w-full border rounded p-1 bg-gray-100"
-                value={block.fieldType}
-                readOnly
-              />
-            </div>
-          )}
           <label className="inline-flex items-center space-x-2 text-sm">
             <input
               type="checkbox"
@@ -72,9 +66,10 @@ export default function PropertyPanel({ block, onChange }: Props) {
           </label>
         </div>
       );
+      break;
     case "dropdown":
-      return (
-        <div className="p-4 space-y-2">
+      specific = (
+        <div className="space-y-2">
           <label className="block text-sm font-medium">Label</label>
           <input
             className="w-full border rounded p-1"
@@ -92,7 +87,9 @@ export default function PropertyPanel({ block, onChange }: Props) {
             className="w-full border rounded p-1"
             rows={3}
             value={(block.options || []).join("\n")}
-            onChange={(e) => onChange({ options: e.target.value.split("\n").filter(Boolean) })}
+            onChange={(e) =>
+              onChange({ options: e.target.value.split("\n").filter(Boolean) })
+            }
           />
           <label className="inline-flex items-center space-x-2 text-sm">
             <input
@@ -104,9 +101,10 @@ export default function PropertyPanel({ block, onChange }: Props) {
           </label>
         </div>
       );
+      break;
     case "checkbox":
-      return (
-        <div className="p-4 space-y-2">
+      specific = (
+        <div className="space-y-2">
           <label className="block text-sm font-medium">Label</label>
           <input
             className="w-full border rounded p-1"
@@ -129,9 +127,10 @@ export default function PropertyPanel({ block, onChange }: Props) {
           </label>
         </div>
       );
+      break;
     case "image":
-      return (
-        <div className="p-4 space-y-2">
+      specific = (
+        <div className="space-y-2">
           <label className="block text-sm font-medium">Upload Image</label>
           <input
             type="file"
@@ -153,10 +152,11 @@ export default function PropertyPanel({ block, onChange }: Props) {
           />
         </div>
       );
+      break;
     case "link":
       const valid = !block.url || isValidUrl(block.url);
-      return (
-        <div className="p-4 space-y-2">
+      specific = (
+        <div className="space-y-2">
           <label className="block text-sm font-medium">Text</label>
           <input
             className="w-full border rounded p-1"
@@ -180,9 +180,10 @@ export default function PropertyPanel({ block, onChange }: Props) {
           </label>
         </div>
       );
+      break;
     case "pdf":
-      return (
-        <div className="p-4 space-y-2">
+      specific = (
+        <div className="space-y-2">
           <label className="block text-sm font-medium">Upload PDF</label>
           <input
             type="file"
@@ -223,7 +224,86 @@ export default function PropertyPanel({ block, onChange }: Props) {
           </label>
         </div>
       );
+      break;
     default:
-      return <div className="p-4 text-sm text-gray-500">No editable properties</div>;
+      specific = <div className="text-sm text-gray-500">No editable properties</div>;
   }
+
+  const factoryOptions = (
+    <div className="space-y-2">
+      <div>
+        <label className="block text-sm font-medium">Field Type</label>
+        <input
+          className="w-full border rounded p-1 bg-gray-100"
+          value={block.control_type}
+          readOnly
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium">Maps to Factory Field</label>
+        <select
+          className="w-full border rounded p-1"
+          value={block.mapsToFactory || ""}
+          onChange={(e) => {
+            const value = e.target.value || null;
+            onChange({
+              mapsToFactory: value,
+              dataKey: value ? `f.${value}` : `c.${block.block_id}`,
+            });
+          }}
+        >
+          <option value="">None</option>
+          <option value="first_name">First Name</option>
+          <option value="last_name">Last Name</option>
+          <option value="phone">Phone</option>
+          <option value="email">Email</option>
+          <option value="zip_code">Zip Code</option>
+          <option value="consent_to_contact">Consent to Contact</option>
+        </select>
+      </div>
+      <label className="inline-flex items-center space-x-2 text-sm">
+        <input
+          type="checkbox"
+          checked={block.saveToLatest !== false}
+          onChange={(e) => onChange({ saveToLatest: e.target.checked })}
+        />
+        <span>Save to Latest Values</span>
+      </label>
+      {block.control_type === "phone" && (
+        <div>
+          <label className="block text-sm font-medium">Validation</label>
+          <select
+            className="w-full border rounded p-1"
+            value={block.validationSubtype || "default"}
+            onChange={(e) => onChange({ validationSubtype: e.target.value })}
+          >
+            <option value="default">Default</option>
+            <option value="us">US Phone</option>
+            <option value="intl">International</option>
+          </select>
+        </div>
+      )}
+      {block.control_type === "email" && (
+        <div>
+          <label className="block text-sm font-medium">Validation</label>
+          <select
+            className="w-full border rounded p-1"
+            value={block.validationSubtype || "default"}
+            onChange={(e) => onChange({ validationSubtype: e.target.value })}
+          >
+            <option value="default">Default</option>
+            <option value="strict">Strict</option>
+            <option value="loose">Loose</option>
+          </select>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="p-4 space-y-4">
+      {specific}
+      {factoryOptions}
+    </div>
+  );
 }

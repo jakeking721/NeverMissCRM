@@ -14,15 +14,21 @@ import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-ki
 import { v4 as uuidv4 } from "uuid";
 
 import PageShell from "@/components/PageShell";
-import BlockPalette from "@/components/builder/BlockPalette";
+import BlockPalette, { PaletteBlock } from "@/components/builder/BlockPalette";
 import DraggableBlock from "@/components/builder/DraggableBlock";
 import PropertyPanel from "@/components/builder/PropertyPanel";
 import { fetchForm, saveForm } from "@/services/forms";
 import { toast } from "react-toastify";
 
 interface Block {
-  id: string;
+  id: string; // used for DnD
+  block_id: string; // persisted identifier
   type: string;
+  control_type: string;
+  mapsToFactory: string | null;
+  dataKey: string;
+  saveToLatest: boolean;
+  validationSubtype?: string;
   [key: string]: any;
 }
 
@@ -53,86 +59,115 @@ export default function FormBuilder() {
     }
   }, [formId]);
 
-  const createBlock = (paletteType: string): Block => {
-    const id = uuidv4();
-    let block: Block = { id, type: paletteType };
-    switch (paletteType) {
+  const createBlock = (paletteBlock: PaletteBlock): Block => {
+    const block_id = uuidv4();
+    const base: Partial<Block> = {
+      id: block_id,
+      block_id,
+      mapsToFactory: paletteBlock.factoryKey ?? null,
+      control_type: paletteBlock.type,
+      saveToLatest: true,
+    };
+    const dataKey = paletteBlock.factoryKey
+      ? `f.${paletteBlock.factoryKey}`
+      : `c.${block_id}`;
+    let block: Block = { ...(base as Block), dataKey, type: paletteBlock.type };
+
+    switch (paletteBlock.type) {
       case "title":
-        block = { id, type: "title", text: "Form Title" };
+        block = { ...block, type: "title", control_type: "title", text: "Form Title" };
         break;
       case "description":
-        block = { id, type: "description", text: "Form description" };
+        block = {
+          ...block,
+          type: "description",
+          control_type: "description",
+          text: "Form description",
+        };
         break;
       case "text":
         block = {
-          id,
+          ...block,
           type: "input",
+          control_type: "text",
           fieldType: "text",
           label: "Text",
-          name: `field_${id}`,
+          name: `field_${block_id}`,
           placeholder: "",
           required: false,
         };
         break;
       case "email":
         block = {
-          id,
+          ...block,
           type: "input",
+          control_type: "email",
           fieldType: "email",
           label: "Email",
-          name: `email_${id}`,
+          name: `email_${block_id}`,
           placeholder: "",
           required: false,
         };
         break;
       case "phone":
         block = {
-          id,
+          ...block,
           type: "input",
+          control_type: "phone",
           fieldType: "phone",
           label: "Phone",
-          name: `phone_${id}`,
+          name: `phone_${block_id}`,
           placeholder: "",
           required: false,
         };
         break;
       case "dropdown":
         block = {
-          id,
+          ...block,
           type: "dropdown",
+          control_type: "dropdown",
           label: "Dropdown",
-          name: `dropdown_${id}`,
+          name: `dropdown_${block_id}`,
           options: ["Option 1"],
           required: false,
         };
         break;
       case "textarea":
         block = {
-          id,
+          ...block,
           type: "input",
+          control_type: "textarea",
           fieldType: "textarea",
           label: "Textarea",
-          name: `textarea_${id}`,
+          name: `textarea_${block_id}`,
           placeholder: "",
           required: false,
         };
         break;
       case "checkbox":
         block = {
-          id,
+          ...block,
           type: "checkbox",
+          control_type: "checkbox",
           label: "Checkbox",
-          name: `checkbox_${id}`,
+          name: `checkbox_${block_id}`,
           required: false,
         };
         break;
       case "image":
-        block = { id, type: "image", url: "", alt: "" };
+        block = {
+          ...block,
+          type: "image",
+          control_type: "image",
+          url: "",
+          alt: "",
+        };
         break;
       case "link":
         block = {
-          id,
+          ...block,
           type: "link",
+          control_type: "link",
           text: "Website",
           url: "https://",
           required: false,
@@ -140,22 +175,88 @@ export default function FormBuilder() {
         break;
       case "pdf":
         block = {
-          id,
+          ...block,
           type: "pdf",
+          control_type: "pdf",
           url: "",
           displayStyle: "scroll",
           requireAccept: false,
           promptDownload: false,
         };
         break;
+      case "factory-first-name":
+        block = {
+          ...block,
+          type: "input",
+          control_type: "text",
+          fieldType: "text",
+          label: "First Name",
+          name: `first_name_${block_id}`,
+          required: false,
+        };
+        break;
+      case "factory-last-name":
+        block = {
+          ...block,
+          type: "input",
+          control_type: "text",
+          fieldType: "text",
+          label: "Last Name",
+          name: `last_name_${block_id}`,
+          required: false,
+        };
+        break;
+      case "factory-phone":
+        block = {
+          ...block,
+          type: "input",
+          control_type: "phone",
+          fieldType: "phone",
+          label: "Phone",
+          name: `phone_${block_id}`,
+          required: false,
+        };
+        break;
+      case "factory-email":
+        block = {
+          ...block,
+          type: "input",
+          control_type: "email",
+          fieldType: "email",
+          label: "Email",
+          name: `email_${block_id}`,
+          required: false,
+        };
+        break;
+      case "factory-zip":
+        block = {
+          ...block,
+          type: "input",
+          control_type: "text",
+          fieldType: "text",
+          label: "Zip Code",
+          name: `zip_${block_id}`,
+          required: false,
+        };
+        break;
+      case "factory-consent":
+        block = {
+          ...block,
+          type: "checkbox",
+          control_type: "checkbox",
+          label: "Consent to Contact",
+          name: `consent_${block_id}`,
+          required: false,
+        };
+        break;
       default:
-        block = { id, type: paletteType };
+        block = { ...(base as Block), dataKey, type: paletteBlock.type };
     }
     return block;
   };
 
-  const addBlock = (paletteType: string) => {
-    const block = createBlock(paletteType);
+  const addBlock = (paletteBlock: PaletteBlock) => {
+    const block = createBlock(paletteBlock);
     setBlocks([...blocks, block]);
     setSelected(block.id);
   };
@@ -165,7 +266,7 @@ export default function FormBuilder() {
     if (!over) return;
     const activeData: any = active.data.current;
     if (activeData?.from === "palette") {
-      const block = createBlock(activeData.type);
+      const block = createBlock(activeData.block);
       let index = blocks.length;
       if (over.id !== "canvas") {
         index = blocks.findIndex((b) => b.id === over.id);
@@ -207,7 +308,21 @@ export default function FormBuilder() {
       toast.error("Background color is required.");
       return;
     }
-    const payload: any = { title, description, schema_json: { blocks, style } };
+    const seenFactory = new Set<string>();
+    const filteredBlocks: Block[] = [];
+    for (let i = blocks.length - 1; i >= 0; i--) {
+      const b = blocks[i];
+      if (b.mapsToFactory) {
+        if (seenFactory.has(b.mapsToFactory)) continue;
+        seenFactory.add(b.mapsToFactory);
+      }
+      if ("value" in b && (b.value === undefined || b.value === "")) {
+        continue;
+      }
+      filteredBlocks.unshift(b);
+    }
+
+    const payload: any = { title, description, schema_json: { blocks: filteredBlocks, style } };
     if (formId && formId !== "new") payload.id = formId;
     try {
       const saved = await saveForm(payload);
@@ -247,8 +362,8 @@ export default function FormBuilder() {
               Close
             </button>
             <BlockPalette
-              onAdd={(type) => {
-                addBlock(type);
+              onAdd={(b) => {
+                addBlock(b);
                 setShowPalette(false);
               }}
               background={style.backgroundColor || "#ffffff"}

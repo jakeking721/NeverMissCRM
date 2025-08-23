@@ -1,7 +1,28 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 
-const BLOCKS = [
+interface PaletteBlock {
+  type: string;
+  label: string;
+  factoryKey?: string; // when present, indicates a factory field
+}
+
+// Factory-provided fields map directly to known customer properties
+const FACTORY_BLOCKS: PaletteBlock[] = [
+  { type: "factory-first-name", label: "First Name", factoryKey: "first_name" },
+  { type: "factory-last-name", label: "Last Name", factoryKey: "last_name" },
+  { type: "factory-phone", label: "Phone", factoryKey: "phone" },
+  { type: "factory-email", label: "Email", factoryKey: "email" },
+  { type: "factory-zip", label: "Zip Code", factoryKey: "zip_code" },
+  {
+    type: "factory-consent",
+    label: "Consent to Contact",
+    factoryKey: "consent_to_contact",
+  },
+];
+
+// Custom fields are user-defined and do not map to factory keys by default
+const CUSTOM_BLOCKS: PaletteBlock[] = [
   { type: "title", label: "Form Title" },
   { type: "description", label: "Form Description" },
   { type: "text", label: "Text Input" },
@@ -16,15 +37,14 @@ const BLOCKS = [
 ];
 
 interface PaletteItemProps {
-  type: string;
-  label: string;
-  onAdd(type: string): void;
+  block: PaletteBlock;
+  onAdd(block: PaletteBlock): void;
 }
 
-function PaletteItem({ type, label, onAdd }: PaletteItemProps) {
+function PaletteItem({ block, onAdd }: PaletteItemProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({
-    id: `palette-${type}`,
-    data: { from: "palette", type },
+    id: `palette-${block.type}`,
+    data: { from: "palette", block },
   });
   return (
     <button
@@ -32,16 +52,19 @@ function PaletteItem({ type, label, onAdd }: PaletteItemProps) {
       type="button"
       {...attributes}
       {...listeners}
-      onClick={() => onAdd(type)}
-      className="w-full border rounded p-2 text-left bg-white hover:bg-gray-50"
+      onClick={() => onAdd(block)}
+      className="w-full border rounded p-2 text-left bg-white hover:bg-gray-50 flex items-center justify-between"
     >
-      {label}
+      <span>{block.label}</span>
+      {block.factoryKey && (
+        <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">Factory</span>
+      )}
     </button>
   );
 }
 
 interface Props {
-  onAdd(type: string): void;
+  onAdd(block: PaletteBlock): void;
   background: string;
   onBackgroundChange(value: string): void;
 }
@@ -59,14 +82,29 @@ export default function BlockPalette({ onAdd, background, onBackgroundChange }: 
           onChange={(e) => onBackgroundChange(e.target.value)}
         />
       </div>
-      <div>
-        <h3 className="text-sm font-semibold mb-2">Add Fields</h3>
-        <div className="space-y-2">
-          {BLOCKS.map((b) => (
-            <PaletteItem key={b.type} type={b.type} label={b.label} onAdd={onAdd} />
-          ))}
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold mb-2">Factory Fields</h3>
+          <div className="space-y-2">
+            {FACTORY_BLOCKS.map((b) => (
+              <PaletteItem key={b.type} block={b} onAdd={onAdd} />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold mb-2">Custom Fields</h3>
+          <div className="space-y-2">
+            {CUSTOM_BLOCKS.map((b) => (
+              <PaletteItem key={b.type} block={b} onAdd={onAdd} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+export type { PaletteBlock };
+

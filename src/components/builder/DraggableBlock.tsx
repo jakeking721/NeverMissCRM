@@ -24,10 +24,15 @@ export default function DraggableBlock({ id, block, selected, onSelect, onDelete
       {...attributes}
       {...listeners}
       onClick={onSelect}
-      className={`border rounded p-2 mb-2 bg-white select-none touch-none cursor-grab active:cursor-grabbing ${
+      className={`relative border rounded p-2 mb-2 bg-white select-none touch-none cursor-grab active:cursor-grabbing ${
         selected ? "ring-2 ring-blue-500" : ""
       }`}
     >
+      {block.mapsToFactory && (
+        <span className="absolute -top-2 left-2 text-[10px] bg-blue-500 text-white px-1 rounded">
+          Factory
+        </span>
+      )}
       <button
         type="button"
         aria-label="Delete block"
