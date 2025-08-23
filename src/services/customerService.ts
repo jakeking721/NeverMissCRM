@@ -1,19 +1,14 @@
 // src/services/customerService.ts
 // -----------------------------------------------------------------------------
-// Supabase-backed customer service with support for custom field values stored
-// in `customer_custom_field_values` table. Extra unmapped columns are kept in
-// `customers.extra`.
+// Supabase-backed customer service that also reads from `customer_latest_values`
+// for custom field columns. Extra unmapped columns are kept in `customers.extra`.
 // -----------------------------------------------------------------------------
 
 import { supabase } from "@/utils/supabaseClient";
 import { normalizePhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
 import { getFields, type CustomField } from "./fieldsService";
-import {
-  upsertFieldValues,
-  getFieldValuesForCustomers,
-  type FieldValueMap,
-} from "./fieldValuesService";
+import { upsertFieldValues, type FieldValueMap } from "./fieldValuesService";
 
 export type Customer = {
   id: string;
@@ -49,17 +44,75 @@ async function requireUserId(): Promise<string> {
 // -----------------------------------------------------------------------------
 // READ
 // -----------------------------------------------------------------------------
-export async function getCustomers(): Promise<Customer[]> {
+export type CustomerQuery = {
+  search?: string;
+  sortBy?: string;
+  ascending?: boolean;
+  radiusFilter?: { zip: string; miles: number };
+};
+
+export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]> {
+  const { search, sortBy, ascending, radiusFilter } = opts;
   const userId = await requireUserId();
-  const { data, error } = await supabase
+
+  const columnMap: Record<string, string> = {
+    firstName: "first_name",
+    lastName: "last_name",
+    phone: "phone",
+    email: "email",
+    zipCode: "zip_code",
+    signupDate: "created_at",
+  };
+
+  let query = supabase
     .from("customers")
     .select("id,user_id,first_name,last_name,phone,email,zip_code,created_at,extra")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .eq("user_id", userId);
+
+  if (search) {
+    const q = `%${search}%`;
+    query = query.or(
+      `first_name.ilike.${q},last_name.ilike.${q},phone.ilike.${q},email.ilike.${q},zip_code.ilike.${q}`,
+    );
+  }
+
+  if (sortBy && columnMap[sortBy]) {
+    query = query.order(columnMap[sortBy], { ascending: ascending ?? true });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
+
   const ids = (data ?? []).map((r: any) => r.id);
-  const fieldValues = await getFieldValuesForCustomers(ids);
-  return (data ?? []).map((row: any) => ({
+  let latest: any[] = [];
+  if (ids.length > 0) {
+    const { data: lv, error: lvErr } = await supabase
+      .from("customer_latest_values")
+      .select("customer_id,data_key,value")
+      .in("customer_id", ids);
+    if (lvErr) throw lvErr;
+    latest = lv as any[];
+  }
+
+  const fields = await getFields();
+  const idToKey = Object.fromEntries(fields.map((f) => [f.id, f.key]));
+
+  const valueMap: Record<string, Record<string, any>> = {};
+  for (const row of latest) {
+    const dk: string = row.data_key;
+    if (!dk.startsWith("c.")) continue;
+    const fieldId = dk.slice(2);
+    const key = idToKey[fieldId];
+    if (!key) continue;
+    if (!valueMap[row.customer_id]) valueMap[row.customer_id] = {};
+    const v = row.value as any;
+    valueMap[row.customer_id][key] =
+      typeof v === "object" && v !== null && "value" in v ? v.value : v;
+  }
+
+  let result = (data ?? []).map((row: any) => ({
     id: row.id,
     user_id: row.user_id,
     firstName: row.first_name,
@@ -68,9 +121,51 @@ export async function getCustomers(): Promise<Customer[]> {
     email: row.email ?? undefined,
     zipCode: row.zip_code ?? undefined,
     signupDate: row.created_at,
-    ...(fieldValues[row.id] ?? {}),
+    ...(valueMap[row.id] ?? {}),
     ...(row.extra ?? {}),
   }));
+
+  if (sortBy && !columnMap[sortBy]) {
+    const asc = ascending ?? true;
+    result.sort((a, b) => {
+      const av = (a as any)[sortBy];
+      const bv = (b as any)[sortBy];
+      if (av == null || bv == null)
+        return av == null ? (asc ? -1 : 1) : asc ? 1 : -1;
+      if (typeof av === "number" && typeof bv === "number")
+        return asc ? av - bv : bv - av;
+      return asc
+        ? String(av).localeCompare(String(bv))
+        : String(bv).localeCompare(String(av));
+    });
+  }
+
+  if (search) {
+    const q = search.toLowerCase();
+    result = result.filter((c) => {
+      const baseHit =
+        c.firstName?.toLowerCase().includes(q) ||
+        c.lastName?.toLowerCase().includes(q) ||
+        c.phone?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q) ||
+        c.zipCode?.toLowerCase().includes(q) ||
+        c.signupDate?.toLowerCase().includes(q);
+      if (baseHit) return true;
+      return fields.some((f) => {
+        const v = (c as any)[f.key];
+        return (
+          (typeof v === "string" && v.toLowerCase().includes(q)) ||
+          (typeof v === "number" && String(v).includes(q))
+        );
+      });
+    });
+  }
+
+  if (radiusFilter) {
+    console.warn("Zip radius filter not implemented", radiusFilter);
+  }
+
+  return result;
 }
 
 export async function getCustomer(id: string): Promise<Customer | null> {
@@ -83,7 +178,27 @@ export async function getCustomer(id: string): Promise<Customer | null> {
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const fieldValues = await getFieldValuesForCustomers([data.id]);
+
+  const { data: latest, error: lvErr } = await supabase
+    .from("customer_latest_values")
+    .select("data_key,value")
+    .eq("customer_id", data.id);
+  if (lvErr) throw lvErr;
+
+  const fields = await getFields();
+  const idToKey = Object.fromEntries(fields.map((f) => [f.id, f.key]));
+  const custom: Record<string, any> = {};
+  for (const row of (latest as any[]) || []) {
+    const dk: string = row.data_key;
+    if (!dk.startsWith("c.")) continue;
+    const key = idToKey[dk.slice(2)];
+    if (key) {
+      const v = row.value as any;
+      custom[key] =
+        typeof v === "object" && v !== null && "value" in v ? v.value : v;
+    }
+  }
+
   return {
     id: data.id,
     user_id: data.user_id,
@@ -93,7 +208,7 @@ export async function getCustomer(id: string): Promise<Customer | null> {
     email: data.email ?? undefined,
     zipCode: data.zip_code ?? undefined,
     signupDate: data.created_at,
-    ...(fieldValues[data.id] ?? {}),
+    ...custom,
     ...(data.extra ?? {}),
   };
 }

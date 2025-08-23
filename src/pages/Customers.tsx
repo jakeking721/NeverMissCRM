@@ -23,6 +23,10 @@ import {
   type DedupeOptions,
   type OverwritePolicy,
 } from "@/services/customerService";
+import {
+  getCustomerColumnPrefs,
+  saveCustomerColumnPrefs,
+} from "@/services/userService";
 import { normalizePhone, formatPhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
 import { getFields, type CustomField } from "@/services/fieldsService";
@@ -99,6 +103,10 @@ export default function Customers(): JSX.Element {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("signupDate");
   const [ascending, setAscending] = useState(false);
+  const [zipRadius, _setZipRadius] = useState<{
+    zip: string;
+    miles: number;
+  } | null>(null); // TODO: expose setter via UI for radius filtering
 
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -107,6 +115,22 @@ export default function Customers(): JSX.Element {
   const [busy, setBusy] = useState(false);
   const [showColumns, setShowColumns] = useState(false);
   const dragIndexRef = useRef<number | null>(null);
+
+  const factoryToData: Record<string, string> = useMemo(
+    () => ({
+      firstName: "f.first_name",
+      lastName: "f.last_name",
+      phone: "f.phone",
+      zipCode: "f.zip_code",
+      email: "f.email",
+      signupDate: "f.signup_date",
+    }),
+    [],
+  );
+  const dataToFactory = useMemo(
+    () => Object.fromEntries(Object.entries(factoryToData).map(([k, v]) => [v, k])),
+    [factoryToData],
+  );
 
   /* ---------------------------- Meta (fetch) ----------------------------- */
 
@@ -141,11 +165,18 @@ useEffect(() => {
     }
     setLoading(true);
     try {
-      setCustomers(await getCustomers());
+      setCustomers(
+        await getCustomers({
+          search,
+          sortBy,
+          ascending,
+          radiusFilter: zipRadius ?? undefined,
+        }),
+      );
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, search, sortBy, ascending, zipRadius]);
 
   useEffect(() => {
     loadCustomers();
@@ -171,14 +202,35 @@ useEffect(() => {
     [factoryColumns, customFields]
   );
 
-  const [visibleCols, setVisibleCols] = useState<string[]>(() => {
-    const stored = localStorage.getItem(`customer-cols-${user?.id ?? "anon"}`);
-    return stored ? JSON.parse(stored) : factoryColumns.map((c) => c.key);
-  });
+  const [visibleCols, setVisibleCols] = useState<string[]>(
+    factoryColumns.map((c) => c.key),
+  );
 
+  // load persisted column prefs
   useEffect(() => {
-    localStorage.setItem(`customer-cols-${user?.id ?? "anon"}`, JSON.stringify(visibleCols));
-  }, [visibleCols, user?.id]);
+    if (!user?.id) return;
+    (async () => {
+      const prefs = await getCustomerColumnPrefs();
+      if (!prefs || prefs.length === 0) return;
+      const idMap = Object.fromEntries(
+        customFields.map((f) => [`c.${f.id}`, f.key]),
+      );
+      const map = { ...dataToFactory, ...idMap } as Record<string, string>;
+      const cols = prefs.map((dk) => map[dk]).filter(Boolean);
+      if (cols.length) setVisibleCols(cols);
+    })();
+  }, [user?.id, customFields, dataToFactory]);
+
+  // persist column prefs
+  useEffect(() => {
+    if (!user?.id) return;
+    const keyMap: Record<string, string> = {
+      ...factoryToData,
+      ...Object.fromEntries(customFields.map((f) => [f.key, `c.${f.id}`])),
+    };
+    const dataKeys = visibleCols.map((k) => keyMap[k]).filter(Boolean);
+    saveCustomerColumnPrefs(dataKeys);
+  }, [visibleCols, customFields, factoryToData, user?.id]);
 
   const columns = useMemo(() => {
     const map = new Map(allColumns.map((c) => [c.key, c]));
@@ -212,47 +264,6 @@ useEffect(() => {
 
   /* ----------------------------- Filter + sort --------------------------- */
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-
-    const matches = (c: Customer): boolean => {
-      if (!q) return true;
-      const baseHit =
-        c.firstName?.toLowerCase().includes(q) ||
-        c.lastName?.toLowerCase().includes(q) ||
-        c.phone?.toLowerCase().includes(q) ||
-        c.zipCode?.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q) ||
-        c.signupDate?.toLowerCase().includes(q);
-
-      if (baseHit) return true;
-
-      return customFields.some((f) => {
-        const v = (c as Record<string, AnyValue>)[f.key];
-        return (
-          (typeof v === "string" && v.toLowerCase().includes(q)) ||
-          (typeof v === "number" && String(v).includes(q))
-        );
-      });
-    };
-
-    const list = customers.filter(matches);
-
-    return list.sort((a, b) => {
-      const av = (a as Record<string, AnyValue>)[sortBy];
-      const bv = (b as Record<string, AnyValue>)[sortBy];
-
-      if (av == null || bv == null)
-        return av == null ? (ascending ? -1 : 1) : ascending ? 1 : -1;
-      if (typeof av === "number" && typeof bv === "number")
-        return ascending ? av - bv : bv - av;
-
-      return ascending
-        ? String(av).localeCompare(String(bv))
-        : String(bv).localeCompare(String(av));
-    });
-  }, [customers, search, sortBy, ascending, customFields]);
-
   const [pageSize, setPageSize] = useState<number>(() => {
     const stored = localStorage.getItem(`customer-page-size-${user?.id ?? "anon"}`);
     return stored ? Number(stored) : 10;
@@ -261,12 +272,12 @@ useEffect(() => {
   useEffect(() => {
     localStorage.setItem(`customer-page-size-${user?.id ?? "anon"}`, String(pageSize));
   }, [pageSize, user?.id]);
-  useEffect(() => setPage(1), [filtered.length, pageSize]);
+  useEffect(() => setPage(1), [customers.length, pageSize]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(customers.length / pageSize));
   const paged = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page, pageSize],
+    () => customers.slice((page - 1) * pageSize, page * pageSize),
+    [customers, page, pageSize],
   );
 
   /* ------------------------------ Export JSON ---------------------------- */

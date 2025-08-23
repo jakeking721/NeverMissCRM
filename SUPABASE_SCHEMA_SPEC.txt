@@ -22,7 +22,7 @@ Tables
 - Admin vs user: internal mapping of users to admin privileges.
 
 **profiles**
-- Columns: `id uuid` PK, `email text`, `username text`, `role text` default `user`, `credits int`, `avatar text`, `is_approved boolean` default `false`, `is_active boolean` default `true`, `deactivated_at timestamptz`, `created_at timestamptz` default `now()`, `updated_at timestamptz`.
+- Columns: `id uuid` PK, `email text`, `username text`, `role text` default `user`, `credits int`, `avatar text`, `is_approved boolean` default `false`, `is_active boolean` default `true`, `deactivated_at timestamptz`, `created_at timestamptz` default `now()`, `updated_at timestamptz`, `settings jsonb` default `{}`.
 - Indexes: primary key on `id`.
 - Triggers: `handle_new_user` on `auth.users` inserts profile on user signup.
 - RLS: `profiles_rw` (owner or admin may select), `profiles_update` (owner or admin), `profiles_delete` (admin only).

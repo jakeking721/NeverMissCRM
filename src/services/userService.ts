@@ -111,3 +111,67 @@ export async function getUserCreditsFor(userId: string): Promise<number> {
     return 0;
   }
 }
+
+// ------------------------------------------------------------------------------------
+// User settings / preferences
+// ------------------------------------------------------------------------------------
+
+export type UserSettings = {
+  customerColumns?: string[]; // ordered dataKey list (e.g. f.first_name, c.<uuid>)
+  [key: string]: any;
+};
+
+async function requireUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error("Not authenticated");
+  return data.user.id;
+}
+
+export async function getUserSettings(): Promise<UserSettings> {
+  try {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("settings")
+      .eq("id", userId)
+      .single();
+    if (error) throw error;
+    return (data?.settings as UserSettings) ?? {};
+  } catch (e) {
+    console.error(e);
+    return {};
+  }
+}
+
+export async function saveUserSettings(
+  patch: UserSettings,
+): Promise<ServiceResult<UserSettings>> {
+  try {
+    const userId = await requireUserId();
+    const current = await getUserSettings();
+    const next = { ...current, ...patch };
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ settings: next })
+      .eq("id", userId)
+      .select("settings")
+      .single();
+    if (error) throw error;
+    return { ok: true, data: (data?.settings as UserSettings) ?? {} };
+  } catch (e: any) {
+    console.error(e);
+    return { ok: false, message: e.message ?? "Failed to save settings." };
+  }
+}
+
+export async function getCustomerColumnPrefs(): Promise<string[]> {
+  const settings = await getUserSettings();
+  return settings.customerColumns ?? [];
+}
+
+export async function saveCustomerColumnPrefs(
+  columns: string[],
+): Promise<ServiceResult> {
+  const res = await saveUserSettings({ customerColumns: columns });
+  return { ok: res.ok, message: res.message };
+}

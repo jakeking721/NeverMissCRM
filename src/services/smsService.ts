@@ -18,6 +18,8 @@ export type SmsSendResult = {
   scheduledFor?: string;
 };
 
+export type SmsPlaceholders = Record<string, string>;
+
 export interface SmsService {
   /**
    * Estimate credits needed for the message.
@@ -25,14 +27,33 @@ export interface SmsService {
    */
   estimateCredits: (message: string, recipients: number) => number;
 
+  /** List placeholder tokens from a message template. */
+  parsePlaceholders: (message: string) => string[];
+
+  /** Replace tokens like {{first_name}} with provided values. */
+  applyPlaceholders: (message: string, map: SmsPlaceholders) => string;
+
   /** Immediate bulk send (fake/local). */
-  sendBulk: (phones: string[], message: string) => Promise<SmsSendResult>;
+  sendBulk: (
+    phones: string[],
+    message: string,
+    placeholders?: SmsPlaceholders,
+  ) => Promise<SmsSendResult>;
 
   /** Schedule a future bulk send (fake/local). */
-  scheduleBulk: (phones: string[], message: string, whenISO: string) => Promise<SmsSendResult>;
+  scheduleBulk: (
+    phones: string[],
+    message: string,
+    whenISO: string,
+    placeholders?: SmsPlaceholders,
+  ) => Promise<SmsSendResult>;
 
   /** One-off test send to a single recipient (fake/local). */
-  sendTest: (to: string, message: string) => Promise<SmsSendResult>;
+  sendTest: (
+    to: string,
+    message: string,
+    placeholders?: SmsPlaceholders,
+  ) => Promise<SmsSendResult>;
 }
 
 const COST_PER_SEGMENT = DEFAULT_SMS_COST_PER_SEGMENT;
@@ -78,44 +99,63 @@ function countSegments(message: string): number {
 }
 
 export function getSmsService(userKey: string | null | undefined): SmsService {
+  const parsePlaceholders = (message: string): string[] => {
+    const matches = message.match(/{{(.*?)}}/g) || [];
+    return Array.from(new Set(matches.map((m) => m.slice(2, -2).trim())));
+  };
+
+  const applyPlaceholders = (
+    message: string,
+    map: SmsPlaceholders,
+  ): string =>
+    message.replace(/{{(.*?)}}/g, (_, k) => map[k.trim()] ?? "");
+
   return {
     estimateCredits(message: string, recipients: number) {
       const segments = countSegments(message);
       return segments * Math.max(0, recipients) * COST_PER_SEGMENT;
     },
 
-    async sendBulk(phones: string[], message: string) {
+    parsePlaceholders,
+    applyPlaceholders,
+
+    async sendBulk(phones: string[], message: string, placeholders?: SmsPlaceholders) {
+      const finalMsg = placeholders ? applyPlaceholders(message, placeholders) : message;
       const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-      const segments = countSegments(message);
+      const segments = countSegments(finalMsg);
       const creditsEstimated = segments * phones.length * COST_PER_SEGMENT;
 
-      // Log locally (fake)
       logSend(userKey, {
         id,
         type: "bulk",
         phones,
-        message,
+        message: finalMsg,
         createdAt: new Date().toISOString(),
         segments,
         creditsEstimated,
       });
 
-      // Simulate network
       await sleep(200);
       alert("No SMS sent - Feature coming soon");
       return { success: true, id };
     },
 
-    async scheduleBulk(phones: string[], message: string, whenISO: string) {
+    async scheduleBulk(
+      phones: string[],
+      message: string,
+      whenISO: string,
+      placeholders?: SmsPlaceholders,
+    ) {
+      const finalMsg = placeholders ? applyPlaceholders(message, placeholders) : message;
       const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-      const segments = countSegments(message);
+      const segments = countSegments(finalMsg);
       const creditsEstimated = segments * phones.length * COST_PER_SEGMENT;
 
       logSend(userKey, {
         id,
         type: "schedule",
         phones,
-        message,
+        message: finalMsg,
         createdAt: new Date().toISOString(),
         scheduledFor: whenISO,
         segments,
@@ -127,16 +167,17 @@ export function getSmsService(userKey: string | null | undefined): SmsService {
       return { success: true, id, scheduledFor: whenISO };
     },
 
-    async sendTest(to: string, message: string) {
+    async sendTest(to: string, message: string, placeholders?: SmsPlaceholders) {
+      const finalMsg = placeholders ? applyPlaceholders(message, placeholders) : message;
       const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-      const segments = countSegments(message);
+      const segments = countSegments(finalMsg);
       const creditsEstimated = segments * 1 * COST_PER_SEGMENT;
 
       logSend(userKey, {
         id,
         type: "test",
         phones: [to],
-        message,
+        message: finalMsg,
         createdAt: new Date().toISOString(),
         segments,
         creditsEstimated,

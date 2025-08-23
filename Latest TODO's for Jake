@@ -3,6 +3,28 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### User Settings Column
+- [TODO] Add `settings` JSONB column to `profiles` for storing per-user preferences.
+  Steps:
+    1. In Supabase SQL editor run:
+       ```sql
+       alter table public.profiles add column if not exists settings jsonb default '{}'::jsonb;
+       ```
+    2. Regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+    3. Verify profile RLS policies allow users to update their own `settings` field.
+
+### Zip Radius Filter
+- [TODO] Implement server-side zip-code radius filtering for customer queries.
+  Steps:
+    1. Add or connect to a service that maps zip codes to latitude/longitude.
+    2. Extend `customerService.getCustomers` to filter by distance using those coordinates.
+
+### SMS Placeholder Backend
+- [TODO] Replace stubbed placeholder expansion in `smsService` with real template parsing once an SMS provider is integrated.
+  Steps:
+    1. Perform placeholder substitution on the server before dispatching messages.
+    2. Validate tokens against allowed field keys to avoid accidental data leaks.
+
 ### Intake Submission Latest Values
 - [TODO] Apply migration `20251001090000_intake_latest_values.sql` to add `customer_latest_values`, consent audit columns, and the `intake_submit` RPC.
   Steps:

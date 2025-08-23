@@ -139,8 +139,10 @@ export default function SmsList() {
 
         {/* Footer Info */}
         <p className="text-xs text-gray-500 text-center">
-           SMS campaigns are stored in Supabase (or locally if stubbed). Future versions will
-          support drafts, analytics, and Twilio scheduling.
+          SMS campaigns are stored in Supabase (or locally if stubbed). Messages may
+          include tokens like {"{{first_name}}"} which are resolved at send time.
+          Future versions will support drafts, analytics, and full provider
+          scheduling.
         </p>
       </div>
     </PageShell>
