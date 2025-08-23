@@ -18,6 +18,7 @@ import BlockPalette, { PaletteBlock } from "@/components/builder/BlockPalette";
 import DraggableBlock from "@/components/builder/DraggableBlock";
 import PropertyPanel from "@/components/builder/PropertyPanel";
 import { fetchForm, saveForm } from "@/services/forms";
+import { getFields, addField, CustomField, FieldType } from "@/services/fieldsService";
 import { toast } from "react-toastify";
 
 interface Block {
@@ -29,6 +30,7 @@ interface Block {
   dataKey: string;
   saveToLatest: boolean;
   validationSubtype?: string;
+  fieldName?: string;
   [key: string]: any;
 }
 
@@ -43,6 +45,7 @@ export default function FormBuilder() {
   const [description, setDescription] = useState("");
   const [showPalette, setShowPalette] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
+  const [registryFields, setRegistryFields] = useState<CustomField[]>([]);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
   const { setNodeRef: setCanvasRef } = useDroppable({ id: "canvas" });
 
@@ -58,6 +61,10 @@ export default function FormBuilder() {
         .catch(console.error);
     }
   }, [formId]);
+
+  useEffect(() => {
+    getFields().then(setRegistryFields).catch(console.error);
+  }, []);
 
   const createBlock = (paletteBlock: PaletteBlock): Block => {
     const block_id = uuidv4();
@@ -95,6 +102,7 @@ export default function FormBuilder() {
           name: `field_${block_id}`,
           placeholder: "",
           required: false,
+          fieldName: "",
         };
         break;
       case "email":
@@ -107,6 +115,7 @@ export default function FormBuilder() {
           name: `email_${block_id}`,
           placeholder: "",
           required: false,
+          fieldName: "",
         };
         break;
       case "phone":
@@ -119,6 +128,7 @@ export default function FormBuilder() {
           name: `phone_${block_id}`,
           placeholder: "",
           required: false,
+          fieldName: "",
         };
         break;
       case "dropdown":
@@ -130,6 +140,7 @@ export default function FormBuilder() {
           name: `dropdown_${block_id}`,
           options: ["Option 1"],
           required: false,
+          fieldName: "",
         };
         break;
       case "textarea":
@@ -142,6 +153,7 @@ export default function FormBuilder() {
           name: `textarea_${block_id}`,
           placeholder: "",
           required: false,
+          fieldName: "",
         };
         break;
       case "checkbox":
@@ -152,6 +164,7 @@ export default function FormBuilder() {
           label: "Checkbox",
           name: `checkbox_${block_id}`,
           required: false,
+          fieldName: "",
         };
         break;
       case "image":
@@ -310,17 +323,59 @@ export default function FormBuilder() {
     }
     const seenFactory = new Set<string>();
     const filteredBlocks: Block[] = [];
+    const existing = new Set(registryFields.map((f) => f.key));
+    const newFields: CustomField[] = [];
     for (let i = blocks.length - 1; i >= 0; i--) {
       const b = blocks[i];
       if (b.mapsToFactory) {
         if (seenFactory.has(b.mapsToFactory)) continue;
         seenFactory.add(b.mapsToFactory);
       }
+      if (!b.mapsToFactory) {
+        if (!b.fieldName) {
+          toast.error("Field name is required for custom fields.");
+          return;
+        }
+        if (!existing.has(b.fieldName)) {
+          const fType: FieldType =
+            b.control_type === "phone"
+              ? "phone"
+              : b.control_type === "email"
+              ? "email"
+              : b.control_type === "checkbox"
+              ? "boolean"
+              : b.type === "dropdown"
+              ? "select"
+              : "text";
+          const nf: CustomField = {
+            id: uuidv4(),
+            key: b.fieldName,
+            label: b.label || b.fieldName,
+            type: fType,
+            options: b.options || [],
+            required: false,
+            order: registryFields.length + newFields.length,
+            visibleOn: { dashboard: true, customers: true, campaigns: true },
+          };
+          newFields.push(nf);
+          existing.add(b.fieldName);
+        }
+        b.dataKey = `r.${b.fieldName}`;
+      }
       if ("value" in b && (b.value === undefined || b.value === "")) {
         continue;
       }
       filteredBlocks.unshift(b);
     }
+
+    for (const nf of newFields) {
+      try {
+        await addField(nf);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    if (newFields.length) setRegistryFields([...registryFields, ...newFields]);
 
     const payload: any = { title, description, schema_json: { blocks: filteredBlocks, style } };
     if (formId && formId !== "new") payload.id = formId;

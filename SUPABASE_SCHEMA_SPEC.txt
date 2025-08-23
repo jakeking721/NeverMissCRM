@@ -10,7 +10,8 @@ DataKey & Latest Values
 -----------------------
 - Form blocks map answers via `dataKey` strings.
 - Keys prefixed with `f.` correspond to built-in customer fields (e.g., `f.first_name`, `f.phone`).
-- Keys not prefixed with `f.` are treated as custom fields. These are registered in `custom_fields` (per-user registry) and merged into `customers.extra`.
+- Keys prefixed with `r.` map to custom registry fields using their `field_name`.
+- Keys not following these prefixes are treated as raw custom keys.
 - Only keys with provided answers create rows in `customer_latest_values`; blank values are ignored.
  - Custom field values live under `customers.extra[field_name]` and can be filtered/sorted via JSONB operators.
 

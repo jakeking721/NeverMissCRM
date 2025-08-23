@@ -1,7 +1,6 @@
 import { supabase } from "@/utils/supabaseClient";
 import { normalizePhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
-import { getFields } from "./fieldsService";
 
 export interface IntakeParams {
   campaignId: string;
@@ -26,16 +25,13 @@ export async function submitIntake({
     filtered[k] = v;
   }
 
-  const fields = await getFields();
-  const idToName = Object.fromEntries(fields.map((f) => [f.id, f.key]));
   const transformed: Record<string, any> = {};
   for (const [k, v] of Object.entries(filtered)) {
     if (k === "f.phone") transformed[k] = normalizePhone(v);
     else if (k === "f.email") transformed[k] = normalizeEmail(v);
     else if (k === "f.zip_code") transformed[k] = String(v).trim();
-    else if (k.startsWith("c.")) {
-      const name = idToName[k.slice(2)];
-      if (name) transformed[name] = v;
+    else if (k.startsWith("r.")) {
+      transformed[k.slice(2)] = v;
     } else {
       transformed[k] = v;
     }

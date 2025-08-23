@@ -39,6 +39,7 @@ interface InputBlock extends BaseBlock {
   inputType: "text" | "email" | "phone";
   required?: boolean;
   dataKey?: string;
+  fieldName?: string;
 }
 interface ChoiceBlock extends BaseBlock {
   type: "choice";
@@ -47,6 +48,7 @@ interface ChoiceBlock extends BaseBlock {
   options: string[];
   required?: boolean;
   dataKey?: string;
+  fieldName?: string;
 }
 interface ButtonBlock extends BaseBlock {
   type: "button";
@@ -69,6 +71,7 @@ interface CheckboxBlock extends BaseBlock {
   label?: string;
   required?: boolean;
   dataKey?: string;
+  fieldName?: string;
 }
 interface MultiSelectBlock extends BaseBlock {
   type: "multiselect";
@@ -77,6 +80,7 @@ interface MultiSelectBlock extends BaseBlock {
   options: string[];
   required?: boolean;
   dataKey?: string;
+  fieldName?: string;
 }
 
 type Block =
@@ -267,15 +271,18 @@ export default function IntakeRenderer() {
       }
       const answers: Record<string, any> = {};
       blocks.forEach((b) => {
-        // only include blocks with a dataKey mapping
-        if ((b as any).dataKey) {
-          answers[(b as any).dataKey] = (valid as Record<string, any>)[b.name];
+        let key: string | null = null;
+        if ((b as any).mapsToFactory) key = `f.${(b as any).mapsToFactory}`;
+        else if ((b as any).fieldName) key = `r.${(b as any).fieldName}`;
+        else if ((b as any).dataKey) key = (b as any).dataKey;
+        if (key) {
+          answers[key] = (valid as Record<string, any>)[b.name];
         }
       });
       let consentText: string | null = null;
       blocks.forEach((b) => {
         if (
-          (b as any).dataKey === "f.consent_to_contact" &&
+          (b as any).mapsToFactory === "consent_to_contact" &&
           (valid as Record<string, any>)[b.name]
         ) {
           consentText = (b as any).label ?? null;

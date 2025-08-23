@@ -95,12 +95,12 @@ export default function Fields() {
 
   const validateDraft = (d: DraftField): string[] => {
     const errs: string[] = [];
-    if (!d.label.trim()) errs.push("Label is required");
-    if (!d.key.trim()) errs.push("Key is required");
+    if (!d.label.trim()) errs.push("Default label is required");
+    if (!d.key.trim()) errs.push("Field name is required");
     const collision = fields.find(
       (f) => f.key.toLowerCase() === d.key.toLowerCase() && f.id !== editingId
     );
-    if (collision) errs.push(`Key '${d.key}' already exists`);
+    if (collision) errs.push(`Field name '${d.key}' already exists`);
     if (
       (d.type === "select" || d.type === "multiselect") &&
       (!d.options || d.options.length === 0)
@@ -291,9 +291,9 @@ export default function Fields() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Label */}
+            {/* Default Label */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Label *</label>
+              <label className="text-sm font-medium mb-1">Default Label *</label>
               <input
                 type="text"
                 value={draft.label}
@@ -309,9 +309,9 @@ export default function Fields() {
               />
             </div>
 
-            {/* Key */}
+            {/* Field Name */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Key *</label>
+              <label className="text-sm font-medium mb-1">Field Name *</label>
               <input
                 type="text"
                 value={draft.key}
@@ -453,8 +453,8 @@ export default function Fields() {
                 <thead>
                   <tr className="border-b text-left">
                     <th className="py-2 w-8"></th>
-                    <th className="py-2">Label</th>
-                    <th className="py-2">Key</th>
+                    <th className="py-2">Default Label</th>
+                    <th className="py-2">Field Name</th>
                     <th className="py-2">Type</th>
                     <th className="py-2 text-center">Req</th>
                     <th className="py-2 text-center">Dash</th>
@@ -547,8 +547,8 @@ export default function Fields() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left">
-                    <th className="py-2">Label</th>
-                    <th className="py-2">Key</th>
+                    <th className="py-2">Default Label</th>
+                    <th className="py-2">Field Name</th>
                     <th className="py-2">Type</th>
                     <th className="py-2 text-right">Actions</th>
                   </tr>

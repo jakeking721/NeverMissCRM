@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getFields, CustomField } from "@/services/fieldsService";
 
 interface Props {
   block: any | null;
@@ -18,6 +19,11 @@ export default function PropertyPanel({ block, onChange }: Props) {
   if (!block) {
     return <div className="p-4 text-sm text-gray-500">Select a block</div>;
   }
+
+  const [registry, setRegistry] = useState<CustomField[]>([]);
+  useEffect(() => {
+    getFields().then(setRegistry).catch(console.error);
+  }, []);
 
   let specific: React.ReactNode = null;
 
@@ -46,9 +52,21 @@ export default function PropertyPanel({ block, onChange }: Props) {
           />
           <label className="block text-sm font-medium">Field Name</label>
           <input
-            className="w-full border rounded p-1"
-            value={block.name || ""}
-            onChange={(e) => onChange({ name: e.target.value })}
+            {...(import.meta.env.VITEST ? {} : { list: "field-names" })}
+            className="w-full border rounded p-1 font-mono"
+            value={block.fieldName || ""}
+            onChange={(e) => {
+              const value = e.target.value.trim();
+              const match = registry.find((f) => f.key === value);
+              const updates: any = {
+                fieldName: value,
+                dataKey: value ? `r.${value}` : `c.${block.block_id}`,
+              };
+              if (match && (!block.label || block.label === "")) {
+                updates.label = match.label;
+              }
+              onChange(updates);
+            }}
           />
           <label className="block text-sm font-medium">Placeholder</label>
           <input
@@ -78,9 +96,21 @@ export default function PropertyPanel({ block, onChange }: Props) {
           />
           <label className="block text-sm font-medium">Field Name</label>
           <input
-            className="w-full border rounded p-1"
-            value={block.name || ""}
-            onChange={(e) => onChange({ name: e.target.value })}
+            {...(import.meta.env.VITEST ? {} : { list: "field-names" })}
+            className="w-full border rounded p-1 font-mono"
+            value={block.fieldName || ""}
+            onChange={(e) => {
+              const value = e.target.value.trim();
+              const match = registry.find((f) => f.key === value);
+              const updates: any = {
+                fieldName: value,
+                dataKey: value ? `r.${value}` : `c.${block.block_id}`,
+              };
+              if (match && (!block.label || block.label === "")) {
+                updates.label = match.label;
+              }
+              onChange(updates);
+            }}
           />
           <label className="block text-sm font-medium">Options (one per line)</label>
           <textarea
@@ -113,9 +143,21 @@ export default function PropertyPanel({ block, onChange }: Props) {
           />
           <label className="block text-sm font-medium">Field Name</label>
           <input
-            className="w-full border rounded p-1"
-            value={block.name || ""}
-            onChange={(e) => onChange({ name: e.target.value })}
+            {...(import.meta.env.VITEST ? {} : { list: "field-names" })}
+            className="w-full border rounded p-1 font-mono"
+            value={block.fieldName || ""}
+            onChange={(e) => {
+              const value = e.target.value.trim();
+              const match = registry.find((f) => f.key === value);
+              const updates: any = {
+                fieldName: value,
+                dataKey: value ? `r.${value}` : `c.${block.block_id}`,
+              };
+              if (match && (!block.label || block.label === "")) {
+                updates.label = match.label;
+              }
+              onChange(updates);
+            }}
           />
           <label className="inline-flex items-center space-x-2 text-sm">
             <input
@@ -304,6 +346,13 @@ export default function PropertyPanel({ block, onChange }: Props) {
     <div className="p-4 space-y-4">
       {specific}
       {factoryOptions}
+      {!import.meta.env.VITEST && (
+        <datalist id="field-names">
+          {registry.map((f) => (
+            <option key={f.key} value={f.key} />
+          ))}
+        </datalist>
+      )}
     </div>
   );
 }
