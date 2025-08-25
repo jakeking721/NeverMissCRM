@@ -7,6 +7,16 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
 - [TODO] After applying any schema changes, regenerate Supabase types:
   `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
 
+### Intake Function Verification
+- [TODO] Confirm `intake_add_customer` and `intake_find_customer` RPCs exist and are executable by `anon`.
+  Steps:
+    1. In the Supabase SQL editor run:
+       ```sql
+       select proname from pg_proc where proname in ('intake_add_customer','intake_find_customer');
+       ```
+    2. If any are missing, apply migrations `20250806040000_add_intake_function_and_bucket.sql` and `20250808000000_intake_flow.sql`.
+    3. Regenerate types after applying migrations.
+
 ### Form and Campaign References
 - [TODO] Apply migration `20251002110000_add_form_and_campaign_columns.sql` to link customers and intake submissions to forms and campaigns.
   Steps:
@@ -996,5 +1006,9 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
        ```sql
        drop table if exists public.customer_custom_field_values cascade;
        ```
-    2. Regenerate types:
+    2. Drop legacy helper function if present:
+       ```sql
+       drop function if exists public.upsert_customer_custom_field_value(uuid, uuid, text);
+       ```
+    3. Regenerate types:
        supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts

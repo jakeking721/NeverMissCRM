@@ -120,10 +120,13 @@ Functions & Triggers
 - `update_updated_at_column()` → sets `updated_at` on row updates.
 - `handle_new_user()` → trigger on `auth.users` to insert a profile row.
 - `intake_submit(p_user_id uuid, p_form_id uuid, p_campaign_id uuid default null, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, upserts custom field registry entries, merges custom answers into `customers.extra`, and records consent text/time.
+- `intake_find_customer(owner_id uuid, gate text, value text)` → looks up an existing customer by normalized phone or email for intake flows.
+- `intake_add_customer(p_slug text, p_first_name text, p_last_name text, p_phone text, p_zip_code text default null, p_extra jsonb default '{}'::jsonb, p_user_id uuid)` → security-definer RPC used by public intake flows to create a customer when none is found.
 - `normalize_phone(text)` → returns E.164-format string.
 - `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
 - `ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.
 - `is_admin(uid)` → security-definer function used in profile policies.
+- `upsert_customer_custom_field_value(p_customer_id uuid, p_field_id uuid, p_value text)` → legacy helper for the deprecated `customer_custom_field_values` table.
 - Triggers: `set_updated_at` on `campaigns` and `customers`; `on_auth_user_created` on `auth.users`.
 
 Admin vs. User Summary
@@ -134,4 +137,5 @@ Admin vs. User Summary
 TODO
 ----
 - Drop `customer_email_collisions` and `customer_phone_collisions` tables once duplicate data is resolved.
+- Remove legacy `customer_custom_field_values` table and its `upsert_customer_custom_field_value` function when no longer needed.
 - No schema changes required for IntakeRenderer footer submit button.
