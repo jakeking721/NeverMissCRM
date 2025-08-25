@@ -11,7 +11,7 @@ import {
 } from "@/services/customerService";
 import {
   getFields,
-  addField,
+  createField,
   type CustomField,
   type FieldType,
 } from "@/services/fieldsService";
@@ -49,8 +49,8 @@ export default function CustomerDetail() {
       }
       setFields(
         flds
-          .filter((f) => !f.archived && f.visibleOn.customers)
-          .sort((a, b) => a.order - b.order)
+          .filter((f) => !f.archived && f.visibleOn?.customers)
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       );
     })();
   }, [id]);
@@ -162,8 +162,9 @@ export default function CustomerDetail() {
 
   const handleAddField = async () => {
     const key = toKeySlug(newField.label);
-    await addField({
+    await createField({
       id: uuid(),
+      user_id: user!.id,
       key,
       label: newField.label,
       type: newField.type,
@@ -182,8 +183,8 @@ export default function CustomerDetail() {
     const flds = await getFields();
     setFields(
       flds
-        .filter((f) => !f.archived && f.visibleOn.customers)
-        .sort((a, b) => a.order - b.order)
+        .filter((f) => !f.archived && f.visibleOn?.customers)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     );
     setValues((v) => ({ ...v, [key]: "" }));
     setNewField({ label: "", type: "text", options: "" });
@@ -246,7 +247,7 @@ export default function CustomerDetail() {
                     key,
                     label: field?.label ?? key,
                     type: field?.type ?? "text",
-                    options: field?.options,
+                    options: field?.options ?? undefined,
                   };
                   return (
                     <div key={key}>

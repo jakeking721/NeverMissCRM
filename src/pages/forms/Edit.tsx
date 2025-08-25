@@ -23,13 +23,9 @@ import BlockPalette, { PaletteBlock } from "@/components/builder/BlockPalette";
 import DraggableBlock from "@/components/builder/DraggableBlock";
 import PropertyPanel from "@/components/builder/PropertyPanel";
 import { fetchForm, saveForm } from "@/services/forms";
-import {
-  getFields,
-  addField,
-  CustomField,
-  FieldType,
-} from "@/services/fieldsService";
+import { getFields, createField, CustomField, FieldType } from "@/services/fieldsService";
 import { toast } from "react-toastify";
+import { useAuth } from "@/context/AuthContext";
 
 interface Block {
   id: string; // used for DnD
@@ -47,6 +43,7 @@ interface Block {
 export default function FormBuilder() {
   const { formId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [search] = useSearchParams();
 
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -454,6 +451,7 @@ export default function FormBuilder() {
 
           const nf: CustomField = {
             id: uuidv4(),
+            user_id: user!.id,
             key,
             label: b.label || key,
             type: fType,
@@ -473,7 +471,7 @@ export default function FormBuilder() {
 
     for (const nf of newFields) {
       try {
-        await addField(nf);
+        await createField(nf);
       } catch (e) {
         console.error(e);
       }

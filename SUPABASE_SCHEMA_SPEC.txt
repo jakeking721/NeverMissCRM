@@ -50,15 +50,15 @@ Tables
 - Admin vs user: no admin override.
 
 **custom_fields**
-- Columns: `id uuid` PK, `user_id uuid` FK, `field_name text`, `type text`, `options jsonb` nullable, `default_label text`, `is_active boolean` default `true`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
-- Constraints: unique `(user_id, field_name)`.
+- Columns: `id uuid` PK, `user_id uuid` FK, `key text`, `label text`, `type text`, `options jsonb` default `[]`, `required boolean` default `false`, `"order" integer` default `0`, `visible_on jsonb` default `{}`, `archived boolean` default `false`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
+- Constraints: unique `(user_id, key)`.
 - RLS: `custom_fields_owner` (owner only).
 - Admin vs user: no admin override.
 
 **campaign_forms**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `template_id uuid`, `owner_id uuid` default `auth.uid()` not null, `slug text` nullable, `title text` not null, `description text` nullable, `schema_json jsonb` default `{}`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
-- Constraints: unique `(owner_id, slug)`.
-- RLS: `campaign_forms_owner_rw` enforces `auth.uid() = owner_id` for read/write; `campaign_forms_public_select` allows public read.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `template_id uuid`, `user_id uuid`, `slug text`, `title text`, `description text` nullable, `schema_json jsonb` default `{}`, `version int` default `1`, `is_active boolean` default `true`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
+- Constraints: unique `(user_id, slug)`.
+- RLS: `campaign_forms_owner_rw` enforces `auth.uid() = user_id` for read/write; `campaign_forms_public_select` allows public read.
 - Admin vs user: admins act as regular users; public can read forms via slug.
 - `schema_json.blocks[]` now store block metadata with `block_id`, `control_type`, `mapsToFactory`, `dataKey`, `saveToLatest`, and optional `validationSubtype` alongside existing block settings.
 - Supported block types include `title`, `description`, `input`, `dropdown`, `single-choice`, `checkbox`, `image`, `link`, and `pdf`.

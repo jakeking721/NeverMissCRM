@@ -29,9 +29,8 @@ import {
 } from "@/services/userService";
 import { normalizePhone, formatPhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
-import { getFields, type CustomField } from "@/services/fieldsService";
+import { getFields, type CustomField, createField } from "@/services/fieldsService";
 import { supabase } from "@/utils/supabaseClient";
-import type { TablesInsert } from "@/types/supabase";
 import { toKeySlug } from "@/utils/slug";
 import { JSX } from "react/jsx-runtime";
 import type { AnyValue, CsvPreview, JsonPreview } from "@/types/importPreview";
@@ -147,8 +146,8 @@ useEffect(() => {
 
       setCustomFields(
         list
-          .filter((f) => !f.archived && f.visibleOn.customers)
-          .sort((a, b) => a.order - b.order)
+          .filter((f) => !f.archived && f.visibleOn?.customers)
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       );
     })();
     return () => {
@@ -449,7 +448,7 @@ useEffect(() => {
         if (col.addNew) {
           const key = toKeySlug(h);
           mapping[h] = key;
-          const field: TablesInsert<'custom_fields'> = {
+          const field: CustomField = {
             id: uuid(),
             user_id: userId,
             key,
@@ -461,7 +460,7 @@ useEffect(() => {
             visibleOn: { dashboard: true, customers: true, campaigns: true },
             archived: false,
           };
-          await supabase.from('custom_fields').insert(field);
+          await createField(field);
         }
       }
 
@@ -493,8 +492,8 @@ useEffect(() => {
       const list = await getFields();
       setCustomFields(
         list
-          .filter((f) => !f.archived && f.visibleOn.customers)
-          .sort((a, b) => a.order - b.order),
+          .filter((f) => !f.archived && f.visibleOn?.customers)
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
       );
       await loadCustomers();
 
@@ -609,7 +608,7 @@ useEffect(() => {
         if (opts.addFlags[k]) {
           const key = toKeySlug(k);
           mapping[k] = key;
-          const field: TablesInsert<'custom_fields'> = {
+          const field: CustomField = {
             id: uuid(),
             user_id: userId,
             key,
@@ -621,7 +620,7 @@ useEffect(() => {
             visibleOn: { dashboard: true, customers: true, campaigns: true },
             archived: false,
           };
-          await supabase.from('custom_fields').insert(field);
+          await createField(field);
         }
       }
 
@@ -658,8 +657,8 @@ useEffect(() => {
       const list = await getFields();
       setCustomFields(
         list
-          .filter((f) => !f.archived && f.visibleOn.customers)
-          .sort((a, b) => a.order - b.order),
+          .filter((f) => !f.archived && f.visibleOn?.customers)
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
       );
       await loadCustomers();
 
@@ -1031,7 +1030,11 @@ useEffect(() => {
       )}
 
       {/* bulk SMS modal */}
-      <SmsBulkModal isOpen={bulkOpen} onClose={() => setBulkOpen(false)} customers={selectedCustomers} />
+      <SmsBulkModal
+        isOpen={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        customers={selectedCustomers as any}
+      />
 
       {/* bulk edit modal */}
       <CustomerEditModal

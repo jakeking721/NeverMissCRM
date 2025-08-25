@@ -79,7 +79,7 @@ export default function Dashboard() {
         if (!active || !all) return;
         const filtered = (all as CustomField[])
           .filter((f) => !f.archived && (f as any).visibleOn?.dashboard)
-          .sort((a, b) => a.order - b.order);
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         setCustomFields(filtered);
       } catch (e) {
         console.error("getFields failed:", e);
@@ -518,7 +518,9 @@ export default function Dashboard() {
           )}
         </section>
       </div>
-      {showSmsModal && smsTarget && <SmsModal customer={smsTarget} onClose={onCloseSms} />}
+      {showSmsModal && smsTarget && (
+        <SmsModal customer={smsTarget as any} onClose={onCloseSms} />
+      )}
     </PageShell>
   );
 }

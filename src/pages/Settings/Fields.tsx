@@ -9,16 +9,25 @@ import React, { useEffect, useMemo, useState } from "react";
 import PageShell from "../../components/PageShell";
 import { useAuth } from "../../context/AuthContext";
 import { v4 as uuid } from "uuid";
-import { getFields, saveFields, CustomField, FieldType } from "../../services/fieldsService";
+import {
+  getFields,
+  upsertField,
+  deleteField,
+  CustomField,
+  FieldType,
+} from "../../services/fieldsService";
 import { FiPlus, FiTrash2, FiEdit2, FiSave, FiX, FiMove, FiInfo } from "react-icons/fi";
 import { toKeySlug } from "../../utils/slug";
 
-type DraftField = Omit<CustomField, "id" | "order"> & { id?: string; order?: number };
+type DraftField = Omit<
+  CustomField,
+  "id" | "order" | "user_id" | "visibleOn"
+> & { id?: string; order?: number; visibleOn: NonNullable<CustomField["visibleOn"]> };
 
 function normalizeOrders(fields: CustomField[]): CustomField[] {
   return fields
     .slice()
-    .sort((a, b) => a.order - b.order)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((f, i) => ({ ...f, order: i }));
 }
 
@@ -34,6 +43,7 @@ const emptyDraft: DraftField = {
 export default function Fields() {
   const { user } = useAuth();
   const [fields, setFields] = useState<CustomField[]>([]);
+  const [initialIds, setInitialIds] = useState<string[]>([]);
   const [draft, setDraft] = useState<DraftField>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -52,6 +62,7 @@ export default function Fields() {
         const loaded = await getFields();
         if (!alive) return;
         setFields(normalizeOrders(loaded));
+        setInitialIds(loaded.map((f) => f.id));
       } catch (e: any) {
         console.error(e);
         setLoadError(e?.message ?? "Failed to load fields");
@@ -90,6 +101,7 @@ export default function Fields() {
     setDraft({
       ...f,
       options: f.options ?? [],
+      visibleOn: f.visibleOn ?? { dashboard: true, customers: true, campaigns: true },
     });
   };
 
@@ -153,14 +165,18 @@ export default function Fields() {
     setIsDirty(true);
   };
 
-  const onToggleVisible = (id: string, key: keyof CustomField["visibleOn"], value: boolean) => {
+  const onToggleVisible = (
+    id: string,
+    key: keyof DraftField["visibleOn"],
+    value: boolean,
+  ) => {
     setFields((prev) =>
       prev.map((f) =>
         f.id === id
           ? {
               ...f,
               visibleOn: {
-                ...f.visibleOn,
+                ...(f.visibleOn ?? {}),
                 [key]: value,
               },
             }
@@ -202,7 +218,11 @@ export default function Fields() {
   const onSaveAll = async () => {
     setSaving(true);
     try {
-      await saveFields(fields);
+      await Promise.all(fields.map((f) => upsertField(f)));
+      const currentIds = new Set(fields.map((f) => f.id));
+      const toRemove = initialIds.filter((id) => !currentIds.has(id));
+      await Promise.all(toRemove.map((id) => deleteField(id)));
+      setInitialIds(fields.map((f) => f.id));
       setIsDirty(false);
     } catch (e: any) {
       console.error(e);
@@ -493,21 +513,21 @@ export default function Fields() {
                       <td className="py-2 align-middle text-center">
                         <input
                           type="checkbox"
-                          checked={f.visibleOn.dashboard}
+                          checked={f.visibleOn?.dashboard ?? false}
                           onChange={(e) => onToggleVisible(f.id, "dashboard", e.target.checked)}
                         />
                       </td>
                       <td className="py-2 align-middle text-center">
                         <input
                           type="checkbox"
-                          checked={f.visibleOn.customers}
+                          checked={f.visibleOn?.customers ?? false}
                           onChange={(e) => onToggleVisible(f.id, "customers", e.target.checked)}
                         />
                       </td>
                       <td className="py-2 align-middle text-center">
                         <input
                           type="checkbox"
-                          checked={f.visibleOn.campaigns}
+                          checked={f.visibleOn?.campaigns ?? false}
                           onChange={(e) => onToggleVisible(f.id, "campaigns", e.target.checked)}
                         />
                       </td>

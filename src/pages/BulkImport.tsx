@@ -14,7 +14,7 @@ import {
   type DedupeOptions,
   type OverwritePolicy,
 } from "@/services/customerService";
-import { getFields, type CustomField, addField } from "@/services/fieldsService";
+import { getFields, type CustomField, createField } from "@/services/fieldsService";
 
 interface Mapping {
   header: string;
@@ -64,8 +64,9 @@ export default function BulkImport() {
     // Create new fields first
     for (const m of mappings.filter((m) => m.createNew)) {
       const id = uuid();
-      await addField({
+      await createField({
         id,
+        user_id: userId,
         key: sanitizeKey(m.header),
         label: m.header,
         type: m.type,

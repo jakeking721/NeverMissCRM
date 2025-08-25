@@ -1,12 +1,3 @@
-// src/services/fieldsService.ts
-// ------------------------------------------------------------------------------------
-// Custom fields service (Supabase-backed).
-// Each row is stored in table `custom_fields` with columns:
-//   id (uuid, PK), user_id (uuid), field_name, default_label, type,
-//   options (jsonb), required (bool), order (int), "visibleOn" (jsonb),
-//   is_active (bool), created_at, updated_at
-// ------------------------------------------------------------------------------------
-
 import { supabase } from "@/utils/supabaseClient";
 
 export type FieldType =
@@ -19,155 +10,96 @@ export type FieldType =
   | "select"
   | "multiselect";
 
-export type CustomField = {
+export interface CustomField {
   id: string;
+  user_id: string;
   key: string;
   label: string;
   type: FieldType;
-  options?: string[];
+  options?: string[] | null;
   required?: boolean;
-  order: number;
-  visibleOn: {
-    dashboard: boolean;
-    customers: boolean;
-    campaigns: boolean;
-  };
+  order?: number;
   archived?: boolean;
-};
-
-async function getCurrentUserId(): Promise<string | null> {
-  if (import.meta.env.VITEST) return null;
-  try {
-    const { data } = await supabase.auth.getUser();
-    return data?.user?.id ?? null;
-  } catch {
-    return null;
-  }
+  visibleOn?: {
+    dashboard?: boolean;
+    customers?: boolean;
+    campaigns?: boolean;
+    [k: string]: any;
+  } | null;
+  created_at?: string;
 }
 
-// ------------------------------------------------------------------------------------
-// READ
-// ------------------------------------------------------------------------------------
+export function fromDb(row: any): CustomField {
+  const { visible_on, ...rest } = row;
+  return { ...rest, visibleOn: visible_on ?? null } as CustomField;
+}
+
+export function toDb(obj: Partial<CustomField>): any {
+  const { visibleOn, ...rest } = obj;
+  return visibleOn === undefined ? rest : { ...rest, visible_on: visibleOn };
+}
+
 export async function getFields(): Promise<CustomField[]> {
-  const userId = await getCurrentUserId();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
   if (!userId) return [];
+  return getFieldsForUser(userId);
+}
+
+export async function getFieldsForUser(userId: string): Promise<CustomField[]> {
   const { data, error } = await supabase
     .from("custom_fields")
-    .select('id,field_name,default_label,type,options,required,order,"visibleOn",is_active')
+    .select(
+      "id,user_id,key,label,type,options,required,\"order\",archived,visible_on,created_at"
+    )
     .eq("user_id", userId)
     .order("order", { ascending: true });
-
-  if (error) {
-    console.error("getFields error:", error);
-    return [];
-  }
-  return (data ?? []).map((row: any) => ({
-    id: row.id,
-    key: row.field_name,
-    label: row.default_label,
-    type: row.type,
-    options: row.options ?? [],
-    required: row.required ?? false,
-    order: row.order ?? 0,
-    visibleOn: row.visibleOn ?? { dashboard: false, customers: false, campaigns: false },
-    archived: row.is_active === false,
-  })) as CustomField[];
-}
-
-// ------------------------------------------------------------------------------------
-// SAVE (replace all fields)
-// ------------------------------------------------------------------------------------
-export async function saveFields(fields: CustomField[]): Promise<void> {
-  const userId = await getCurrentUserId();
-  if (!userId) throw new Error("Not logged in.");
-
-  // Overwrite: delete existing and upsert new rows (prevent duplicates by key)
-  const { error: delErr } = await supabase.from("custom_fields").delete().eq("user_id", userId);
-  if (delErr) throw delErr;
-
-  if (fields.length > 0) {
-    const rows = fields.map((f) => ({
-      id: f.id,
-      user_id: userId,
-      field_name: f.key,
-      default_label: f.label,
-      type: f.type,
-      options: f.options ?? [],
-      required: f.required ?? false,
-      order: f.order,
-      ["visibleOn"]: f.visibleOn ?? { dashboard: false, customers: false, campaigns: false },
-      is_active: f.archived === true ? false : true,
-    }));
-    const { error: upsertErr } = await supabase
-      .from("custom_fields")
-      .upsert(rows, { onConflict: "user_id,field_name" });
-    if (upsertErr) throw upsertErr;
-  }
-}
-
-// ------------------------------------------------------------------------------------
-// ADD
-// ------------------------------------------------------------------------------------
-export async function addField(f: CustomField): Promise<void> {
-  const userId = await getCurrentUserId();
-  if (!userId) throw new Error("Not logged in.");
-  const { error } = await supabase
-    .from("custom_fields")
-    .upsert(
-      {
-        id: f.id,
-        user_id: userId,
-        field_name: f.key,
-        default_label: f.label,
-        type: f.type,
-        options: f.options ?? [],
-        required: f.required ?? false,
-        order: f.order,
-        ["visibleOn"]: f.visibleOn ?? {
-          dashboard: false,
-          customers: false,
-          campaigns: false,
-        },
-        is_active: f.archived === true ? false : true,
-      },
-      { onConflict: "user_id,field_name" }
-    );
   if (error) throw error;
+  return (data ?? []).map(fromDb);
 }
 
-// ------------------------------------------------------------------------------------
-// UPDATE
-// ------------------------------------------------------------------------------------
-export async function updateField(updated: CustomField): Promise<void> {
-  const userId = await getCurrentUserId();
-  if (!userId) throw new Error("Not logged in.");
-  const { error } = await supabase
+export async function createField(payload: CustomField): Promise<CustomField | null> {
+  const { data, error } = await supabase
     .from("custom_fields")
-    .update({
-      field_name: updated.key,
-      default_label: updated.label,
-      type: updated.type,
-      options: updated.options ?? [],
-      required: updated.required ?? false,
-      order: updated.order,
-      ["visibleOn"]: updated.visibleOn,
-      is_active: updated.archived === true ? false : true,
-    })
-    .eq("id", updated.id)
-    .eq("user_id", userId);
+    .insert(toDb(payload))
+    .select(
+      "id,user_id,key,label,type,options,required,\"order\",archived,visible_on,created_at"
+    )
+    .single();
   if (error) throw error;
+  return data ? fromDb(data) : null;
 }
 
-// ------------------------------------------------------------------------------------
-// REMOVE
-// ------------------------------------------------------------------------------------
-export async function removeField(id: string): Promise<void> {
-  const userId = await getCurrentUserId();
-  if (!userId) throw new Error("Not logged in.");
-  const { error } = await supabase
+export async function updateField(
+  id: string,
+  patch: Partial<CustomField>
+): Promise<CustomField | null> {
+  const { data, error } = await supabase
     .from("custom_fields")
-    .delete()
+    .update(toDb(patch))
     .eq("id", id)
-    .eq("user_id", userId);
+    .select(
+      "id,user_id,key,label,type,options,required,\"order\",archived,visible_on,created_at"
+    )
+    .single();
+  if (error) throw error;
+  return data ? fromDb(data) : null;
+}
+
+export async function upsertField(payload: CustomField): Promise<CustomField | null> {
+  const { data, error } = await supabase
+    .from("custom_fields")
+    .upsert(toDb(payload))
+    .select(
+      "id,user_id,key,label,type,options,required,\"order\",archived,visible_on,created_at"
+    )
+    .single();
+  if (error) throw error;
+  return data ? fromDb(data) : null;
+}
+
+export async function deleteField(id: string): Promise<void> {
+  const { error } = await supabase.from("custom_fields").delete().eq("id", id);
   if (error) throw error;
 }
+

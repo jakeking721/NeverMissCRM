@@ -151,7 +151,7 @@ export default function CustomerEditModal({
                 />
                 {f.label}
               </label>
-              {renderInput(f)}
+              {renderInput({ ...(f as any), options: (f as any).options ?? undefined })}
             </div>
           ))}
         </div>

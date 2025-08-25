@@ -7,7 +7,8 @@ import React, { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
 import PageShell from "@/components/PageShell";
 import { supabase } from "@/utils/supabaseClient";
-import { addField, type CustomField } from "@/services/fieldsService";
+import { createField, type CustomField } from "@/services/fieldsService";
+import { useAuth } from "@/context/AuthContext";
 
 interface ExtraInfo {
   key: string;
@@ -29,6 +30,7 @@ const FIELD_TYPES: CustomField["type"][] = [
 
 export default function PromoteExtraFields() {
   const [extras, setExtras] = useState<ExtraInfo[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     (async () => {
@@ -53,8 +55,9 @@ export default function PromoteExtraFields() {
 
   const promote = async (info: ExtraInfo) => {
     const fieldId = uuid();
-    await addField({
+    await createField({
       id: fieldId,
+      user_id: user!.id,
       key: info.key,
       label: info.key,
       type: info.type,

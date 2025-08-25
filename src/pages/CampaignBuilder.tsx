@@ -86,12 +86,12 @@ export default function CampaignBuilder() {
         setAllCampaigns(maybeUpdated);
 
         const list = await getCustomers();
-        setCustomers(list);
+        setCustomers(list as any);
 
         const fieldsResult = await Promise.resolve(getFields());
         const allFields = fieldsResult
-          .filter((f: CustomField) => !f.archived && f.visibleOn.campaigns)
-          .sort((a: CustomField, b: CustomField) => a.order - b.order);
+          .filter((f: CustomField) => !f.archived && f.visibleOn?.campaigns)
+          .sort((a: CustomField, b: CustomField) => (a.order ?? 0) - (b.order ?? 0));
         setFields(allFields);
 
         const formsList = await fetchForms();
@@ -126,7 +126,7 @@ export default function CampaignBuilder() {
       filteredBySegment
         .filter((c) => selectedIds.includes(c.id))
         .map((c) => normalizePhone(c.phone))
-        .filter(Boolean),
+        .filter(Boolean) as string[],
     [filteredBySegment, selectedIds]
   );
 
@@ -461,7 +461,7 @@ export default function CampaignBuilder() {
                     <tr key={c.id} className="border-b hover:bg-gray-50">
                       <td className="py-2">{c.name}</td>
                       <td className="py-2 capitalize">{c.status}</td>
-                      <td className="py-2">{c.recipients.length}</td>
+                      <td className="py-2">{c.recipients?.length ?? 0}</td>
                       <td className="py-2">
                         {c.startAt ? new Date(c.startAt).toLocaleString() : "—"}
                       </td>

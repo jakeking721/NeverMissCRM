@@ -785,11 +785,11 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     2. Example metadata: `{ "username": "jake", "credits": 100, "role": "admin" }`.
     3. Ask users to sign out and back in so metadata changes propagate to sessions.
 
-- [UPDATED] Apply Supabase migration `20240807120000_rename_visible_on_to_visibleOn.sql` to rename the `custom_fields.visible_on` column to `"visibleOn"`.
+- [TODO] Apply migration `20251108000000_add_missing_custom_fields_columns.sql` to ensure `custom_fields` and `campaign_forms` tables include expected columns like `required`, `order`, `archived`, `visible_on`, and `user_id`.
   Steps:
-    1. From the project root, run `supabase db push` (requires Supabase CLI) or execute the SQL file in Supabase's SQL editor.
+    1. From the project root, run `supabase db push` or paste the SQL file into Supabase's SQL editor.
     2. Regenerate Supabase types:
-        `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`
+        `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
 
 - [NEW] Expand bulk customer edit capabilities introduced in `CustomerEditModal`.
   Steps:
