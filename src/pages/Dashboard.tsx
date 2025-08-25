@@ -1,11 +1,10 @@
 // src/pages/Dashboard.tsx
 // ------------------------------------------------------------------------------------
 // Dashboard (Supabase-backed customers)
-// - Shows KPI blocks
+// - KPI row (Check-ins, Total Customers, Active Campaigns)
 // - Add Contact form
-// - General Intake QR with form selector (new!)
-// - Async customer CRUD via services/customerService.ts (Supabase)
-// - Admin credit top-up implemented with creditsService
+// - Intake QR card with form selector (NEW)
+// - Recent Customers with Form/Campaign columns (NEW)
 // ------------------------------------------------------------------------------------
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -28,7 +27,6 @@ import {
 import { getFields, CustomField, FieldType } from "@/services/fieldsService";
 import { formatPhone, normalizePhone } from "@/utils/phone";
 
-// Allow multiselect to pass string[]
 type AnyValue = string | number | boolean | null | undefined | string[];
 type Customer = SbcCustomer;
 
@@ -66,7 +64,7 @@ export default function Dashboard() {
   const credits = user?.credits ?? 0;
   const isAdmin = (user?.role ?? "user") === "admin";
 
-  // 1) Fetch custom fields
+  // Fetch fields
   useEffect(() => {
     let active = true;
     (async () => {
@@ -88,7 +86,7 @@ export default function Dashboard() {
     };
   }, [user?.id]);
 
-  // 2) Fetch / ensure slug
+  // Ensure slug
   useEffect(() => {
     let active = true;
     (async () => {
@@ -112,7 +110,7 @@ export default function Dashboard() {
     };
   }, [user?.id]);
 
-  // 3) Load customers
+  // Load customers
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -136,12 +134,10 @@ export default function Dashboard() {
     };
   }, [user?.id]);
 
-  // 4) Load forms (NEW)
+  // Load forms (NEW)
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      // NOTE: Wire this to your forms/campaign_forms service
-      // Should return array: { id, title, version }
       const { data, error } = await supabase.from("campaign_forms").select("*").eq("user_id", user.id);
       if (!error && data) {
         setForms(data);
@@ -154,22 +150,18 @@ export default function Dashboard() {
     const s = search.trim().toLowerCase();
     const list = customers.filter((c) => {
       if (!s) return true;
-
       const baseHit =
         (c.firstName?.toLowerCase?.().includes(s) ?? false) ||
         (c.lastName?.toLowerCase?.().includes(s) ?? false) ||
         (c.phone?.toLowerCase?.().includes(s) ?? false) ||
         (c.zipCode?.toLowerCase?.().includes(s) ?? false) ||
         (c.signupDate?.toLowerCase?.().includes(s) ?? false);
-
       if (baseHit) return true;
-
       for (const f of customFields) {
         const v = (c as any)[f.key];
         if (typeof v === "string" && v.toLowerCase().includes(s)) return true;
         if (typeof v === "number" && String(v).includes(s)) return true;
       }
-
       return false;
     });
 
@@ -179,7 +171,6 @@ export default function Dashboard() {
         const bt = new Date(b.signupDate).getTime();
         return ascending ? at - bt : bt - at;
       }
-
       const av = (a as any)[sortBy];
       const bv = (b as any)[sortBy];
       return ascending
@@ -227,7 +218,6 @@ export default function Dashboard() {
         return;
       }
     }
-
     const newCustomer: Customer = {
       id: uuidv4(),
       user_id: user!.id,
@@ -244,7 +234,6 @@ export default function Dashboard() {
         {} as Record<string, AnyValue>
       ),
     };
-
     try {
       await addCustomer(newCustomer);
       await reloadCustomers();
@@ -253,13 +242,10 @@ export default function Dashboard() {
         lastName: "",
         phone: "",
         zipCode: "",
-        ...customFields.reduce(
-          (acc, f) => {
-            acc[f.key] = "";
-            return acc;
-          },
-          {} as Record<string, AnyValue>,
-        ),
+        ...customFields.reduce((acc, f) => {
+          acc[f.key] = "";
+          return acc;
+        }, {} as Record<string, AnyValue>),
       });
     } catch (e: any) {
       console.error(e);
@@ -299,7 +285,6 @@ export default function Dashboard() {
     }
   };
 
-  // QR value includes form_id when selected
   const qrValue =
     slug && selectedForm
       ? `${getQrBaseUrl()}/intake/${slug}?form_id=${selectedForm.id}`
@@ -340,48 +325,77 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* KPI blocks would remain here (Check-ins Today, etc.) */}
+        {/* KPI row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 bg-white rounded-md shadow border">Check-ins Today<br/>—</div>
+          <div className="p-4 bg-white rounded-md shadow border">Total Customers<br/>{customers.length}</div>
+          <div className="p-4 bg-white rounded-md shadow border">Active Campaigns<br/>—</div>
+        </div>
 
-        {/* QR Code block */}
-        <section className="p-4 bg-white rounded-md shadow border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium">Your Intake QR Code</h2>
-            <button
-              onClick={() => setShowQr((v) => !v)}
-              className="text-sm px-3 py-1 rounded border hover:bg-gray-50"
-            >
-              {showQr ? "Hide" : "Show"}
-            </button>
-          </div>
-
-          {/* NEW: form selector */}
-          <div className="mb-4">
-            <label className="text-sm text-gray-700 mr-2">Select intake form:</label>
-            <select
-              value={selectedForm?.id ?? ""}
-              onChange={(e) =>
-                setSelectedForm(forms.find((f) => f.id === e.target.value) ?? null)
-              }
-              className="border rounded px-2 py-1 text-sm"
-            >
-              {forms.slice(0, 10).map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.title || `Form ${f.id}`} (v{f.version})
-                </option>
+        {/* Add + QR row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Add Contact */}
+          <section className="p-4 bg-white rounded-md shadow border">
+            <h2 className="text-lg font-medium mb-4">Add Contact</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {allFormFields.map((f) => (
+                <FieldInput
+                  key={f.key}
+                  field={f}
+                  value={formState[f.key] ?? ""}
+                  onChange={(v) => onFormChange(f.key, v)}
+                />
               ))}
-            </select>
-            {forms.length > 10 && (
-              <button className="ml-2 text-blue-600 text-sm underline">View All</button>
-            )}
-          </div>
+              <div className="md:col-span-2">
+                <button
+                  onClick={onAddCustomer}
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </section>
 
-          {slugLoading ? (
-            <p className="text-sm text-gray-500">Generating your link…</p>
-          ) : !slug || !selectedForm ? (
-            <p className="text-sm text-red-600">Select a form to generate your intake QR.</p>
-          ) : (
-            showQr && (
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* QR card */}
+          <section className="p-4 bg-white rounded-md shadow border">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Your Intake QR Code</h2>
+              <button
+                onClick={() => setShowQr((v) => !v)}
+                className="text-sm px-3 py-1 rounded border hover:bg-gray-50"
+              >
+                {showQr ? "Hide" : "Show"}
+              </button>
+            </div>
+
+            {/* form selector */}
+            <div className="mb-4">
+              <label className="text-sm text-gray-700 mr-2">Select intake form:</label>
+              <select
+                value={selectedForm?.id ?? ""}
+                onChange={(e) =>
+                  setSelectedForm(forms.find((f) => f.id === e.target.value) ?? null)
+                }
+                className="border rounded px-2 py-1 text-sm"
+              >
+                {forms.slice(0, 10).map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.title || `Form ${f.id}`} (v{f.version})
+                  </option>
+                ))}
+              </select>
+              {forms.length > 10 && (
+                <button className="ml-2 text-blue-600 text-sm underline">View All</button>
+              )}
+            </div>
+
+            {slugLoading ? (
+              <p className="text-sm text-gray-500">Generating your link…</p>
+            ) : !slug || !selectedForm ? (
+              <p className="text-sm text-red-600">Select a form to generate your intake QR.</p>
+            ) : (
+              showQr && (
                 <div className="flex flex-col items-center gap-2">
                   <QRCodeCanvas value={qrValue} size={192} />
                   <div className="text-xs text-gray-500 break-all max-w-[18rem] text-center">
@@ -402,41 +416,42 @@ export default function Dashboard() {
                     </button>
                   </div>
                 </div>
-              </div>
-            )
-          )}
-        </section>
-
-        {/* Add Contact */}
-        <section className="p-4 bg-white rounded-md shadow border">
-          <h2 className="text-lg font-medium mb-4">Add Contact</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {allFormFields.map((f) => (
-              <FieldInput
-                key={f.key}
-                field={f}
-                value={formState[f.key] ?? ""}
-                onChange={(v) => onFormChange(f.key, v)}
-              />
-            ))}
-            <div className="md:col-span-3">
-              <button
-                onClick={onAddCustomer}
-                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 text-sm"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </section>
+              )
+            )}
+          </section>
+        </div>
 
         {/* Recent Customers */}
         <section className="p-4 bg-white rounded-md shadow border">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <h2 className="text-lg font-medium">Recent Customers</h2>
-            {/* search/sort unchanged */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                className="border rounded px-3 py-2 text-sm"
+                placeholder="Search…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <label className="text-sm">Sort by:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="signupDate">Signup Date</option>
+                <option value="firstName">First Name</option>
+                <option value="lastName">Last Name</option>
+                <option value="zipCode">Zip Code</option>
+              </select>
+              <button
+                onClick={() => setAscending((v) => !v)}
+                className="px-2 py-1 text-xs border rounded hover:bg-gray-50"
+              >
+                {ascending ? "▲" : "▼"}
+              </button>
+            </div>
           </div>
-
           {loadingCustomers ? (
             <p className="text-sm text-gray-500">Loading customers…</p>
           ) : (
@@ -492,22 +507,13 @@ export default function Dashboard() {
           )}
         </section>
       </div>
-
       {showSmsModal && smsTarget && <SmsModal customer={smsTarget} onClose={onCloseSms} />}
     </PageShell>
   );
 }
 
-// ------------------------------------------------------------------
-
 type FieldInputProps = {
-  field: {
-    key: string;
-    label: string;
-    type: FieldType;
-    required?: boolean;
-    options?: string[];
-  };
+  field: { key: string; label: string; type: FieldType; required?: boolean; options?: string[] };
   value: AnyValue;
   onChange: (v: AnyValue) => void;
 };
