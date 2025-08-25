@@ -45,6 +45,8 @@ export type Customer = {
   email?: string | null;
   zipCode?: string | null;
   signupDate: string; // ISO
+  form_name?: string | null;
+  campaign_name?: string | null;
   extra?: Record<string, any>;
   [key: string]: any;
 };
@@ -82,37 +84,57 @@ export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]
   const { search, sortBy, ascending, radiusFilter, filters } = opts;
   const userId = await requireUserId();
 
-  const columnMap: Record<string, string> = {
-    firstName: "first_name",
-    lastName: "last_name",
-    phone: "phone",
-    email: "email",
-    zipCode: "zip_code",
-    signupDate: "created_at",
+  type ColMap = { column: string; table?: string };
+  const columnMap: Record<string, ColMap> = {
+    firstName: { column: "first_name" },
+    lastName: { column: "last_name" },
+    phone: { column: "phone" },
+    email: { column: "email" },
+    zipCode: { column: "zip_code" },
+    signupDate: { column: "created_at" },
+    form_name: { column: "title", table: "campaign_forms" },
+    campaign_name: { column: "title", table: "intake_campaigns" },
   };
 
   let query = supabase
     .from("customers")
-    .select("id,user_id,first_name,last_name,phone,email,zip_code,created_at,extra")
+    .select(
+      "id,user_id,first_name,last_name,phone,email,zip_code,created_at,extra,campaign_forms(title),intake_campaigns(title)"
+    )
     .eq("user_id", userId);
 
   if (filters) {
     for (const [k, v] of Object.entries(filters)) {
-      if (columnMap[k]) query = query.eq(columnMap[k], v);
-      else query = query.eq(`extra->>${k}`, v);
+      const col = columnMap[k];
+      if (col) {
+        if (col.table) query = query.eq(`${col.table}.${col.column}`, v);
+        else query = query.eq(col.column, v);
+      } else query = query.eq(`extra->>${k}`, v);
     }
   }
 
   if (search) {
     const q = `%${search}%`;
     query = query.or(
-      `first_name.ilike.${q},last_name.ilike.${q},phone.ilike.${q},email.ilike.${q},zip_code.ilike.${q}`,
+      [
+        `first_name.ilike.${q}`,
+        `last_name.ilike.${q}`,
+        `phone.ilike.${q}`,
+        `email.ilike.${q}`,
+        `zip_code.ilike.${q}`,
+        `campaign_forms.title.ilike.${q}`,
+        `intake_campaigns.title.ilike.${q}`,
+      ].join(","),
     );
   }
 
   if (sortBy) {
-    if (columnMap[sortBy])
-      query = query.order(columnMap[sortBy], { ascending: ascending ?? true });
+    const col = columnMap[sortBy];
+    if (col)
+      query = query.order(col.column, {
+        ascending: ascending ?? true,
+        ...(col.table ? { foreignTable: col.table } : {}),
+      });
     else query = query.order(`extra->>${sortBy}`, { ascending: ascending ?? true });
   } else {
     query = query.order("created_at", { ascending: false });
@@ -132,6 +154,8 @@ export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]
       email: row.email ?? undefined,
       zipCode: row.zip_code ?? undefined,
       signupDate: row.created_at,
+      form_name: row.campaign_forms?.title ?? null,
+      campaign_name: row.intake_campaigns?.title ?? null,
       extra,
       ...extra,
     };
@@ -146,7 +170,9 @@ export async function getCustomers(opts: CustomerQuery = {}): Promise<Customer[]
         c.phone?.toLowerCase().includes(q) ||
         c.email?.toLowerCase().includes(q) ||
         c.zipCode?.toLowerCase().includes(q) ||
-        c.signupDate?.toLowerCase().includes(q);
+        c.signupDate?.toLowerCase().includes(q) ||
+        (c as any).form_name?.toLowerCase?.().includes(q) ||
+        (c as any).campaign_name?.toLowerCase?.().includes(q);
       if (baseHit) return true;
       return Object.values(c).some((v) => {
         if (v == null) return false;

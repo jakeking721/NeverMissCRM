@@ -37,9 +37,14 @@ export default function Dashboard() {
   const [loadingCustomers, setLoadingCustomers] = useState(true);
 
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"firstName" | "lastName" | "zipCode" | "signupDate">(
-    "signupDate",
-  );
+  const [sortBy, setSortBy] = useState<
+    | "firstName"
+    | "lastName"
+    | "zipCode"
+    | "signupDate"
+    | "form_name"
+    | "campaign_name"
+  >("signupDate");
   const [ascending, setAscending] = useState(false);
 
   const [showSmsModal, setShowSmsModal] = useState(false);
@@ -155,7 +160,9 @@ export default function Dashboard() {
         (c.lastName?.toLowerCase?.().includes(s) ?? false) ||
         (c.phone?.toLowerCase?.().includes(s) ?? false) ||
         (c.zipCode?.toLowerCase?.().includes(s) ?? false) ||
-        (c.signupDate?.toLowerCase?.().includes(s) ?? false);
+        (c.signupDate?.toLowerCase?.().includes(s) ?? false) ||
+        ((c as any).form_name?.toLowerCase?.().includes(s) ?? false) ||
+        ((c as any).campaign_name?.toLowerCase?.().includes(s) ?? false);
       if (baseHit) return true;
       for (const f of customFields) {
         const v = (c as any)[f.key];
@@ -445,6 +452,8 @@ export default function Dashboard() {
                 <option value="firstName">First Name</option>
                 <option value="lastName">Last Name</option>
                 <option value="zipCode">Zip Code</option>
+                <option value="form_name">Form</option>
+                <option value="campaign_name">Campaign</option>
               </select>
               <button
                 onClick={() => setAscending((v) => !v)}

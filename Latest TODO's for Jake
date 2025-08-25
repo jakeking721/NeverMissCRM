@@ -3,6 +3,10 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### Supabase Type Generation
+- [TODO] After applying any schema changes, regenerate Supabase types:
+  `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+
 ### Form and Campaign References
 - [TODO] Apply migration `20251002110000_add_form_and_campaign_columns.sql` to link customers and intake submissions to forms and campaigns.
   Steps:
