@@ -41,6 +41,8 @@ export async function submitIntake({
     p_user_id: userId,
     p_form_id: formId,
     p_campaign_id: campaignId ?? null,
+    p_form_id: formId,
+    p_campaign_id: campaignId ?? null,
     p_answers: transformed,
     p_consent_text: consentText ?? null,
   });
@@ -54,7 +56,7 @@ export async function submitIntake({
 
 export interface WizardConfig {
   campaignId: string;
-  formVersionId: string;
+  formId: string;
   userId: string;
   gateField: "phone" | "email";
   prefill: boolean;
@@ -66,14 +68,14 @@ export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
   const { data, error } = await supabase
     .from("intake_resolver")
     .select(
-      "campaign_id, owner_id, form_version_id, gate_field, prefill_gate, success_message, require_consent"
+      "campaign_id, owner_id, form_id, gate_field, prefill_gate, success_message, require_consent"
     )
     .eq("slug", slug)
     .single();
   if (error || !data) throw error || new Error("Campaign not found");
   return {
     campaignId: data.campaign_id,
-    formVersionId: data.form_version_id,
+    formId: data.form_id,
     userId: data.owner_id,
     gateField: (data.gate_field as "phone" | "email") || "phone",
     prefill: data.prefill_gate ?? false,

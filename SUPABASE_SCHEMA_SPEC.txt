@@ -77,12 +77,12 @@ Tables
 - Admin vs user: no special admin override; anonymous access occurs via the `intake_resolver` view.
 
 **intake_resolver** (view)
-- Columns: `slug text`, `campaign_id uuid`, `form_version_id uuid`, `form_json jsonb`, `status text`, `start_date timestamptz`, `end_date timestamptz`, `owner_id uuid`, `gate_field text`, `prefill_gate boolean`, `success_message text`, `require_consent boolean`.
+- Columns: `slug text`, `campaign_id uuid`, `form_version_id uuid`, `form_id uuid`, `form_json jsonb`, `status text`, `start_date timestamptz`, `end_date timestamptz`, `owner_id uuid`, `gate_field text`, `prefill_gate boolean`, `success_message text`, `require_consent boolean`.
 - Grants: `anon` SELECT.
 - RLS: none (inherits from base tables).
 
 **customers**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `consent_text text` nullable, `consent_collected_at timestamptz` nullable, `created_at timestamptz` default `now()`, `extra jsonb` not null default `{}`, `updated_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `first_name text` default `''`, `last_name text` default `''`, `phone text` nullable, `email text` nullable, `zip_code text` nullable, `consent_text text` nullable, `consent_collected_at timestamptz` nullable, `form_id uuid` FK to `campaign_forms`, `campaign_id uuid` FK to `intake_campaigns`, `created_at timestamptz` default `now()`, `extra jsonb` not null default `{}`, `updated_at timestamptz` default `now()`.
 - Indexes: `customers_user_id_idx` on `user_id`; `customers_extra_gin_idx` on `extra` using `gin(jsonb_path_ops)`.
 - Constraints: `uniq_customers_owner_email_norm` on `(user_id, lower(trim(email)))` where email not null; `uniq_customers_owner_phone_e164` on `(user_id, normalize_phone(phone))` where phone not null.
 - Triggers: `set_updated_at` before update using `update_updated_at_column`.
@@ -101,7 +101,7 @@ Tables
 - Admin vs user: no admin override; submissions tied to owner via campaign.
 
 **intake_submissions**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` not null FK to `auth.users`, `campaign_id uuid` FK to `intake_campaigns`, `form_version_id uuid` FK, `answers jsonb` not null, `customer_id uuid` FK, `consent_text text`, `submitted_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` not null FK to `auth.users`, `form_id uuid` FK to `campaign_forms`, `campaign_id uuid` FK to `intake_campaigns`, `form_version_id uuid` FK, `answers jsonb` not null, `customer_id uuid` FK, `consent_text text`, `submitted_at timestamptz` default `now()`.
 - Indexes: `intake_submissions_user_idx` on `user_id`, `intake_submissions_campaign_idx` on `campaign_id`.
 - RLS: `intake_submissions_owner` enforces `auth.uid() = user_id` for all actions.
 - Admin vs user: owner access only; inserts occur via `intake_submit` security-definer function.
