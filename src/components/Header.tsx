@@ -24,7 +24,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src="/NeverMissCRM_Logo.png" alt="Logo" className="h-10 w-10" />
+          <img src="/NeverMissCRM_Logo.png" alt="Logo" className="h-9 w-9" />
           <span className="text-xl font-extrabold tracking-tight text-blue-700">NeverMiss</span>
           <span className="text-sm font-semibold text-gray-500">CRM</span>
         </Link>
