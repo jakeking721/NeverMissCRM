@@ -3,16 +3,16 @@ import { normalizePhone } from "@/utils/phone";
 import { normalizeEmail } from "@/utils/email";
 
 export interface IntakeParams {
-  campaignId: string;
-  formVersionId: string;
+  formId: string;
+  campaignId?: string;
   userId: string;
   answers: Record<string, any>;
   consentText?: string | null;
 }
 
 export async function submitIntake({
+  formId,
   campaignId,
-  formVersionId,
   userId,
   answers,
   consentText,
@@ -39,8 +39,8 @@ export async function submitIntake({
 
   const { data, error } = await supabase.rpc("intake_submit", {
     p_user_id: userId,
-    p_campaign_id: campaignId,
-    p_form_version_id: formVersionId,
+    p_form_id: formId,
+    p_campaign_id: campaignId ?? null,
     p_answers: transformed,
     p_consent_text: consentText ?? null,
   });

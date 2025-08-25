@@ -287,7 +287,9 @@ export default function Dashboard() {
 
   const qrValue =
     slug && selectedForm
-      ? `${getQrBaseUrl()}/intake/${slug}?form_id=${selectedForm.id}`
+      ? `${getQrBaseUrl()}/intake/${encodeURIComponent(
+          slug,
+        )}?form_id=${encodeURIComponent(selectedForm.id)}`
       : "";
 
   const copyQrLink = async () => {

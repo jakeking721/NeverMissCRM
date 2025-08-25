@@ -3,6 +3,23 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### Default Intake Form
+- [TODO] Assign a default form for each user slug so `/intake/:slug` resolves without a `form_id` query.
+  Steps:
+    1. In Supabase SQL editor run:
+       ```sql
+       alter table public.public_slugs add column if not exists default_form_id uuid references campaign_forms(id);
+       alter table public.profiles add column if not exists default_form_id uuid references campaign_forms(id);
+       ```
+    2. For each user, set the default form:
+       ```sql
+       update public.public_slugs set default_form_id = '<FORM_UUID>' where slug = '<USER_SLUG>';
+       update public.profiles set default_form_id = '<FORM_UUID>' where id = '<USER_UUID>';
+       ```
+    3. Regenerate types:
+       `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+    4. Test by visiting `/intake/<USER_SLUG>` and confirming the default form loads.
+
 ### Registry Field Submission
 - [TODO] Ensure Supabase RPC `intake_submit` accepts `r.<field_name>` keys and stores them under `customers.extra`.
   Steps:
@@ -55,8 +72,8 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
 
     create or replace function public.intake_submit(
       p_user_id uuid,
+      p_form_id uuid,
       p_campaign_id uuid,
-      p_form_version_id uuid,
       p_answers jsonb,
       p_consent_text text default null
     ) returns uuid
@@ -72,8 +89,8 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
       v_zip text := nullif(p_answers->>'f.zip_code', '');
       kv record;
     begin
-      insert into intake_submissions(user_id, campaign_id, form_version_id, answers, consent_text)
-        values (p_user_id, p_campaign_id, p_form_version_id, p_answers, p_consent_text)
+      insert into intake_submissions(user_id, campaign_id, form_id, answers, consent_text)
+        values (p_user_id, p_campaign_id, p_form_id, p_answers, p_consent_text)
         returning id into v_sub_id;
 
       if v_phone is not null then
@@ -155,8 +172,8 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
 
     create or replace function public.intake_submit(
       p_user_id uuid,
+      p_form_id uuid,
       p_campaign_id uuid,
-      p_form_version_id uuid,
       p_answers jsonb,
       p_consent_text text default null
     ) returns uuid
@@ -173,8 +190,8 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
       v_custom jsonb := '{}'::jsonb;
       v_field_name text;
     begin
-      insert into intake_submissions(user_id, campaign_id, form_version_id, answers, consent_text)
-        values (p_user_id, p_campaign_id, p_form_version_id, p_answers, p_consent_text)
+      insert into intake_submissions(user_id, campaign_id, form_id, answers, consent_text)
+        values (p_user_id, p_campaign_id, p_form_id, p_answers, p_consent_text)
         returning id into v_sub_id;
 
       if v_phone is not null then

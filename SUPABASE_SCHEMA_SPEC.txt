@@ -24,14 +24,14 @@ Tables
 - Admin vs user: internal mapping of users to admin privileges.
 
 **profiles**
-- Columns: `id uuid` PK, `email text`, `username text`, `role text` default `user`, `credits int`, `avatar text`, `is_approved boolean` default `false`, `is_active boolean` default `true`, `deactivated_at timestamptz`, `created_at timestamptz` default `now()`, `updated_at timestamptz`, `settings jsonb` default `{}`.
+- Columns: `id uuid` PK, `email text`, `username text`, `role text` default `user`, `credits int`, `avatar text`, `is_approved boolean` default `false`, `is_active boolean` default `true`, `deactivated_at timestamptz`, `default_form_id uuid` FK to `campaign_forms`, `created_at timestamptz` default `now()`, `updated_at timestamptz`, `settings jsonb` default `{}`.
 - Indexes: primary key on `id`.
 - Triggers: `handle_new_user` on `auth.users` inserts profile on user signup.
 - RLS: `profiles_rw` (owner or admin may select), `profiles_update` (owner or admin), `profiles_delete` (admin only).
 - Admin vs user: admins can read, update, and delete any profile; regular users only their own.
 
 **public_slugs**
-- Columns: `slug text` PK, `user_id uuid` FK to `auth.users`, `created_at timestamptz` default `now()`.
+- Columns: `slug text` PK, `user_id uuid` FK to `auth.users`, `default_form_id uuid` FK to `campaign_forms`, `created_at timestamptz` default `now()`.
 - Indexes: `public_slugs_user_id_idx` on `user_id`.
 - RLS: `public_slugs_owner_rw` (owner read/write), `public_slugs_public_select` (public read).
 - Admin vs user: same as regular users; admin-specific actions via `ensure_user_slug` function.
@@ -119,7 +119,7 @@ Functions & Triggers
 --------------------
 - `update_updated_at_column()` → sets `updated_at` on row updates.
 - `handle_new_user()` → trigger on `auth.users` to insert a profile row.
-- `intake_submit(p_user_id uuid, p_campaign_id uuid, p_form_version_id uuid, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, upserts custom field registry entries, merges custom answers into `customers.extra`, and records consent text/time.
+- `intake_submit(p_user_id uuid, p_form_id uuid, p_campaign_id uuid, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, upserts custom field registry entries, merges custom answers into `customers.extra`, and records consent text/time.
 - `normalize_phone(text)` → returns E.164-format string.
 - `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
 - `ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.

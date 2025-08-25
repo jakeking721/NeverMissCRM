@@ -128,53 +128,111 @@ export default function IntakeRenderer() {
   const [canSubmit, setCanSubmit] = useState(false);
   const [campaignInfo, setCampaignInfo] = useState<
     {
-      id: string;
+      campaign_id: string | null;
       owner_id: string;
-      form_version_id: string;
+      form_id: string;
       success_message: string | null;
     }
   | null>(null);
+
+  const formIdParam = searchParams.get("form_id");
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const { data: camp, error: campErr } = await supabase
+        let formId = formIdParam || undefined;
+        let ownerId: string | null = null;
+        let campaignId: string | null = null;
+        let successMessage: string | null = null;
+
+        // Attempt to resolve as campaign slug
+        const { data: camp } = await supabase
           .from("intake_resolver")
           .select(
-            "campaign_id, owner_id, form_version_id, form_json, status, start_date, end_date, success_message"
+            "campaign_id, owner_id, status, start_date, end_date, success_message"
           )
           .eq("slug", slug)
+          .maybeSingle();
+
+        if (camp) {
+          const now = new Date();
+          if (
+            camp.status !== "active" ||
+            (camp.start_date && new Date(camp.start_date) > now) ||
+            (camp.end_date && new Date(camp.end_date) < now)
+          ) {
+            setError("This intake is not currently available.");
+            setLoading(false);
+            return;
+          }
+          ownerId = camp.owner_id;
+          campaignId = camp.campaign_id;
+          successMessage = camp.success_message ?? null;
+        } else {
+          // Fallback to public slug
+          const { data: slugRow, error: slugErr } = await supabase
+            .from("public_slugs")
+            .select("user_id, default_form_id")
+            .eq("slug", slug)
+            .maybeSingle();
+          if (slugErr || !slugRow) {
+            if (import.meta.env.DEV) {
+              console.debug("[IntakeRenderer] slug not found", { slug, slugErr });
+            }
+            setError("Form not found");
+            setLoading(false);
+            return;
+          }
+          ownerId = slugRow.user_id;
+          if (!formId) formId = slugRow.default_form_id || undefined;
+        }
+
+        if (!formId) {
+          // Try profile default
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("default_form_id")
+            .eq("id", ownerId!)
+            .maybeSingle();
+          formId = prof?.default_form_id || undefined;
+        }
+
+        if (!formId) {
+          setError("Form not found");
+          setLoading(false);
+          return;
+        }
+
+        const { data: fv, error: fvErr } = await supabase
+          .from("form_versions")
+          .select("id, owner_id, schema_json")
+          .eq("form_id", formId)
+          .order("version_number", { ascending: false })
+          .limit(1)
           .single();
-        if (!mounted) return;
-        if (campErr || !camp) {
+        if (fvErr || !fv) {
           if (import.meta.env.DEV) {
-            console.debug("[IntakeRenderer] slug not found", { slug, campErr });
+            console.debug("[IntakeRenderer] form version not found", {
+              formId,
+              fvErr,
+            });
           }
           setError("Form not found");
           setLoading(false);
           return;
         }
 
-        const now = new Date();
-        if (
-          camp.status !== "active" ||
-          (camp.start_date && new Date(camp.start_date) > now) ||
-          (camp.end_date && new Date(camp.end_date) < now)
-        ) {
-          setError("This intake is not currently available.");
-          setLoading(false);
-          return;
-        }
+        ownerId = fv.owner_id;
 
         setCampaignInfo({
-          id: camp.campaign_id,
-          owner_id: camp.owner_id,
-          form_version_id: camp.form_version_id,
-          success_message: camp.success_message ?? null,
+          campaign_id: campaignId,
+          owner_id: ownerId!,
+          form_id: formId,
+          success_message: successMessage,
         });
 
-        const schemaBlocks: Block[] = camp.form_json?.blocks ?? [];
+        const schemaBlocks: Block[] = fv.schema_json?.blocks ?? [];
         let btnText = "Submit";
         const filteredBlocks = schemaBlocks.filter((b) => {
           if (b.type === "button" && btnText === "Submit") {
@@ -219,7 +277,7 @@ export default function IntakeRenderer() {
     return () => {
       mounted = false;
     };
-  }, [slug, searchParams]);
+  }, [slug, formIdParam, searchParams]);
 
   const buildValidation = () => {
     const shape: Record<string, any> = {};
@@ -302,7 +360,7 @@ export default function IntakeRenderer() {
         else if ((b as any).fieldName) key = `r.${(b as any).fieldName}`;
         else if ((b as any).dataKey) key = (b as any).dataKey;
         if (!key) return;
-        const value = (valid as Record<string, any>)[b.name];
+        const value = (valid as Record<string, any>)[(b as any).name];
         if (value === undefined || value === null) return;
         if (typeof value === "string" && value.trim() === "") return;
         if (Array.isArray(value) && value.length === 0) return;
@@ -312,15 +370,15 @@ export default function IntakeRenderer() {
       blocks.forEach((b) => {
         if (
           (b as any).mapsToFactory === "consent_to_contact" &&
-          (valid as Record<string, any>)[b.name]
+            (valid as Record<string, any>)[(b as any).name]
         ) {
           consentText = (b as any).label ?? null;
         }
       });
-      if (!campaignInfo) throw new Error("Campaign not loaded");
+      if (!campaignInfo) throw new Error("Form not loaded");
       await submitIntake({
-        campaignId: campaignInfo.id,
-        formVersionId: campaignInfo.form_version_id,
+        formId: campaignInfo.form_id,
+        campaignId: campaignInfo.campaign_id || undefined,
         userId: campaignInfo.owner_id,
         answers,
         consentText,
