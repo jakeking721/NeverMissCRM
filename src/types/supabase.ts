@@ -257,6 +257,8 @@ export type Database = {
           consent_collected_at: string | null
           consent_text: string | null
           created_at: string | null
+          campaign_id: string | null
+          form_id: string | null
           email: string | null
           extra: Json | null
           first_name: string | null
@@ -271,6 +273,8 @@ export type Database = {
           consent_collected_at?: string | null
           consent_text?: string | null
           created_at?: string | null
+          campaign_id?: string | null
+          form_id?: string | null
           email?: string | null
           extra?: Json | null
           first_name?: string | null
@@ -285,6 +289,8 @@ export type Database = {
           consent_collected_at?: string | null
           consent_text?: string | null
           created_at?: string | null
+          campaign_id?: string | null
+          form_id?: string | null
           email?: string | null
           extra?: Json | null
           first_name?: string | null
@@ -295,7 +301,22 @@ export type Database = {
           user_id?: string
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "intake_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_forms"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       form_submissions: {
         Row: {
@@ -444,6 +465,7 @@ export type Database = {
           campaign_id: string | null
           consent_text: string | null
           customer_id: string | null
+          form_id: string | null
           form_version_id: string | null
           id: string
           submitted_at: string | null
@@ -454,6 +476,7 @@ export type Database = {
           campaign_id?: string | null
           consent_text?: string | null
           customer_id?: string | null
+          form_id?: string | null
           form_version_id?: string | null
           id?: string
           submitted_at?: string | null
@@ -464,6 +487,7 @@ export type Database = {
           campaign_id?: string | null
           consent_text?: string | null
           customer_id?: string | null
+          form_id?: string | null
           form_version_id?: string | null
           id?: string
           submitted_at?: string | null
@@ -489,6 +513,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_forms"
             referencedColumns: ["id"]
           },
           {
@@ -681,7 +712,7 @@ export type Database = {
               p_consent_text?: string
               p_user_id: string
             }
-        Returns: Json
+        Returns: string
       }
       intake_submit_attach: {
         Args:

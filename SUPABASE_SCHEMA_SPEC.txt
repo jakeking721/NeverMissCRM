@@ -119,7 +119,7 @@ Functions & Triggers
 --------------------
 - `update_updated_at_column()` → sets `updated_at` on row updates.
 - `handle_new_user()` → trigger on `auth.users` to insert a profile row.
-- `intake_submit(p_user_id uuid, p_form_id uuid, p_campaign_id uuid, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, upserts custom field registry entries, merges custom answers into `customers.extra`, and records consent text/time.
+- `intake_submit(p_user_id uuid, p_form_id uuid, p_campaign_id uuid default null, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, upserts custom field registry entries, merges custom answers into `customers.extra`, and records consent text/time.
 - `normalize_phone(text)` → returns E.164-format string.
 - `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
 - `ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.

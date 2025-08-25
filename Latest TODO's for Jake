@@ -3,6 +3,21 @@
 Keep this file updated after every code change with any manual steps, placeholder values, or pending integrations.
 Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem and document the required actions here.
 
+### Form and Campaign References
+- [TODO] Apply migration `20251002110000_add_form_and_campaign_columns.sql` to link customers and intake submissions to forms and campaigns.
+  Steps:
+    1. In Supabase SQL editor run:
+       ```sql
+       alter table public.customers
+         add column if not exists form_id uuid references campaign_forms(id),
+         add column if not exists campaign_id uuid references intake_campaigns(id);
+
+       alter table public.intake_submissions
+         add column if not exists form_id uuid references campaign_forms(id),
+         add column if not exists campaign_id uuid references intake_campaigns(id);
+       ```
+    2. Regenerate types: `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+
 ### Default Intake Form
 - [TODO] Assign a default form for each user slug so `/intake/:slug` resolves without a `form_id` query.
   Steps:

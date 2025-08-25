@@ -131,7 +131,6 @@ export default function IntakeRenderer() {
       campaign_id: string | null;
       owner_id: string;
       form_id: string;
-      form_id: string;
       success_message: string | null;
     }
   | null>(null);

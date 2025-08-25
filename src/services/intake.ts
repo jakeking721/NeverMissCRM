@@ -41,8 +41,6 @@ export async function submitIntake({
     p_user_id: userId,
     p_form_id: formId,
     p_campaign_id: campaignId ?? null,
-    p_form_id: formId,
-    p_campaign_id: campaignId ?? null,
     p_answers: transformed,
     p_consent_text: consentText ?? null,
   });
