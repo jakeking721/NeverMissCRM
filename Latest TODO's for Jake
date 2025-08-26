@@ -7,6 +7,16 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
 - [TODO] After applying any schema changes, regenerate Supabase types:
   `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
 
+### RLS Smoke Tests
+- [TODO] Seed test users and campaign for `npm test` RLS checks.
+  Steps:
+    1. Create an owner account and another user in Supabase auth.
+    2. Create a public intake campaign and note its slug.
+    3. Export env vars `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `TEST_OWNER_EMAIL`, `TEST_OWNER_PASSWORD`, `TEST_OTHER_EMAIL`, `TEST_OTHER_PASSWORD`, `TEST_CAMPAIGN_SLUG`.
+    4. Run `npm test` and confirm tests pass.
+    5. Remove any test customers, intake submissions, and latest value rows created by the run.
+
+
 ### Intake Function Verification
 - [TODO] Confirm `intake_add_customer` and `intake_find_customer` RPCs exist and are executable by `anon`.
   Steps:

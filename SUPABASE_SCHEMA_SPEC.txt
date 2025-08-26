@@ -15,6 +15,11 @@ DataKey & Latest Values
 -Only keys with provided answers create rows in `customer_latest_values`; blank values are ignored.
  - Registry answers using `r.<field_name>` keys populate `customer_latest_values`; `customers.extra` now only stores unregistered keys.
 
+Anonymous Access
+-----------------
+- Anonymous role may only read `intake_resolver`, `campaign_forms` via slug, and `public_slugs`.
+- All other tables reject anonymous selects and writes.
+
 Tables
 ------
 
@@ -57,6 +62,7 @@ Constraints: unique `(user_id, key)`.
 
 **campaign_forms**
 - Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `template_id uuid`, `user_id uuid`, `slug text` not null, `title text`, `description text` nullable, `schema_json jsonb` default `{}`, `version int` default `1`, `is_active boolean` default `true`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
+- Note: legacy `owner_id` column has been removed; `user_id` owns the row.
 - Constraints: unique `(user_id, slug)`.
 - RLS: `campaign_forms_owner_rw` enforces `auth.uid() = user_id` for read/write; `campaign_forms_public_select` allows public read.
 - Admin vs user: admins act as regular users; public can read forms via slug.
@@ -102,6 +108,7 @@ Grants: `anon` SELECT.
 
 **intake_submissions**
 - Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` not null FK to `auth.users`, `form_id uuid` FK to `campaign_forms`, `campaign_id uuid` FK to `intake_campaigns`, `form_version_id uuid` FK, `answers jsonb` not null, `customer_id uuid` FK, `consent_text text`, `submitted_at timestamptz` default `now()`.
+- Direct inserts are rejected; use the `intake_submit` RPC.
 - Indexes: `intake_submissions_user_idx` on `user_id`, `intake_submissions_campaign_idx` on `campaign_id`.
 - RLS: `intake_submissions_owner` enforces `auth.uid() = user_id` for all actions.
 - Admin vs user: owner access only; inserts occur via `intake_submit` security-definer function.
