@@ -70,7 +70,7 @@ export default function NewIntakeCampaign() {
       if (campaignId) {
         await updateIntakeCampaign(campaignId, {
           title,
-          slug,
+          slug: slug || null,
           form_version_id: formVersionId,
           start_date: start || null,
           end_date: end || null,
@@ -83,7 +83,7 @@ export default function NewIntakeCampaign() {
       } else {
         await createIntakeCampaign({
           title,
-          slug,
+          slug: slug || null,
           form_version_id: formVersionId,
           start_date: start || null,
           end_date: end || null,
@@ -102,7 +102,10 @@ export default function NewIntakeCampaign() {
   };
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) {
+      setSlugTaken(false);
+      return;
+    }
     void (async () => {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -135,14 +138,13 @@ export default function NewIntakeCampaign() {
         </div>
 
         <div className="space-y-1">
-          <label className="font-medium">Slug</label>
+          <label className="font-medium">Slug (optional)</label>
           <input
             className="border rounded w-full p-2"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            required
           />
-          {slugTaken && (
+          {slug && slugTaken && (
             <p className="text-sm text-red-600">Slug already in use</p>
           )}
         </div>

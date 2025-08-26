@@ -129,7 +129,7 @@ export default function IntakeRenderer() {
   const [campaignInfo, setCampaignInfo] = useState<
     {
       campaign_id: string | null;
-      owner_id: string;
+      user_id: string;
       form_id: string;
       success_message: string | null;
     }
@@ -142,35 +142,36 @@ export default function IntakeRenderer() {
     (async () => {
       try {
         let formId = formIdParam || undefined;
-        let ownerId: string | null = null;
+        let userId: string | null = null;
         let campaignId: string | null = null;
         let successMessage: string | null = null;
+        let schemaBlocks: Block[] = [];
 
-        // Attempt to resolve as campaign slug
-        const { data: camp } = await supabase
+        const { data: resolved } = await supabase
           .from("intake_resolver")
           .select(
-            "campaign_id, owner_id, status, start_date, end_date, success_message"
+            "campaign_id, user_id, form_id, form_json, status, start_date, end_date, success_message"
           )
           .eq("slug", slug)
           .maybeSingle();
 
-        if (camp) {
+        if (resolved) {
           const now = new Date();
           if (
-            camp.status !== "active" ||
-            (camp.start_date && new Date(camp.start_date) > now) ||
-            (camp.end_date && new Date(camp.end_date) < now)
+            resolved.status !== "active" ||
+            (resolved.start_date && new Date(resolved.start_date) > now) ||
+            (resolved.end_date && new Date(resolved.end_date) < now)
           ) {
             setError("This intake is not currently available.");
             setLoading(false);
             return;
           }
-          ownerId = camp.owner_id;
-          campaignId = camp.campaign_id;
-          successMessage = camp.success_message ?? null;
+          userId = resolved.user_id;
+          campaignId = resolved.campaign_id;
+          formId = resolved.form_id;
+          successMessage = resolved.success_message ?? null;
+          schemaBlocks = resolved.form_json?.blocks ?? [];
         } else {
-          // Fallback to public slug
           const { data: slugRow, error: slugErr } = await supabase
             .from("public_slugs")
             .select("user_id, default_form_id")
@@ -184,55 +185,33 @@ export default function IntakeRenderer() {
             setLoading(false);
             return;
           }
-          ownerId = slugRow.user_id;
+          userId = slugRow.user_id;
           if (!formId) formId = slugRow.default_form_id || undefined;
-        }
-
-        if (!formId) {
-          // Try profile default
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("default_form_id")
-            .eq("id", ownerId!)
-            .maybeSingle();
-          formId = prof?.default_form_id || undefined;
-        }
-
-        if (!formId) {
-          setError("Form not found");
-          setLoading(false);
-          return;
-        }
-
-        const { data: fv, error: fvErr } = await supabase
-          .from("form_versions")
-          .select("id, owner_id, schema_json")
-          .eq("form_id", formId)
-          .order("version_number", { ascending: false })
-          .limit(1)
-          .single();
-        if (fvErr || !fv) {
-          if (import.meta.env.DEV) {
-            console.debug("[IntakeRenderer] form version not found", {
-              formId,
-              fvErr,
-            });
+          if (!formId) {
+            setError("Form not found");
+            setLoading(false);
+            return;
           }
-          setError("Form not found");
-          setLoading(false);
-          return;
+          const { data: formRow, error: formErr } = await supabase
+            .from("intake_resolver")
+            .select("form_json")
+            .eq("form_id", formId)
+            .maybeSingle();
+          if (formErr || !formRow) {
+            setError("Form not found");
+            setLoading(false);
+            return;
+          }
+          schemaBlocks = (formRow as any).form_json?.blocks ?? [];
         }
-
-        ownerId = fv.owner_id;
 
         setCampaignInfo({
           campaign_id: campaignId,
-          owner_id: ownerId!,
+          user_id: userId!,
           form_id: formId,
           success_message: successMessage,
         });
 
-        const schemaBlocks: Block[] = fv.schema_json?.blocks ?? [];
         let btnText = "Submit";
         const filteredBlocks = schemaBlocks.filter((b) => {
           if (b.type === "button" && btnText === "Submit") {
@@ -379,7 +358,7 @@ export default function IntakeRenderer() {
       await submitIntake({
         formId: campaignInfo.form_id,
         campaignId: campaignInfo.campaign_id || undefined,
-        userId: campaignInfo.owner_id,
+        userId: campaignInfo.user_id,
         answers,
         consentText,
       });

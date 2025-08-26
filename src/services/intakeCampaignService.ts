@@ -3,7 +3,7 @@ import { supabase } from "@/utils/supabaseClient";
 export interface IntakeCampaign {
   id: string;
   title: string;
-  slug: string;
+  slug: string | null;
   form_version_id: string;
   form_snapshot_json: any | null;
   start_date: string | null;
@@ -50,7 +50,7 @@ export async function getIntakeCampaign(id: string): Promise<IntakeCampaign | nu
 
 export async function createIntakeCampaign(payload: {
   title: string;
-  slug: string;
+  slug: string | null;
   form_version_id: string;
   form_snapshot_json?: any | null;
   start_date?: string | null;
@@ -71,6 +71,7 @@ export async function createIntakeCampaign(payload: {
     owner_id: userId,
     status: payload.status ?? "draft",
     ...payload,
+    slug: payload.slug ?? null,
     form_snapshot_json: version?.schema_json ?? null,
   };
   const { data, error } = await supabase
@@ -86,7 +87,7 @@ export async function updateIntakeCampaign(
   id: string,
   payload: {
     title: string;
-    slug: string;
+    slug: string | null;
     form_version_id: string;
     form_snapshot_json?: any | null;
     start_date?: string | null;
@@ -106,6 +107,7 @@ export async function updateIntakeCampaign(
     .single();
   const updatePayload = {
     ...payload,
+    slug: payload.slug ?? null,
     form_snapshot_json: version?.schema_json ?? null,
   };
   const { data, error } = await supabase

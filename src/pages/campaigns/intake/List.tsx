@@ -24,7 +24,8 @@ export default function IntakeCampaignList() {
       .finally(() => setLoading(false));
   }, []);
 
-  const copyLink = (slug: string) => {
+  const copyLink = (slug: string | null) => {
+    if (!slug) return;
     const url = `${getQrBaseUrl()}/intake/${slug}`;
     navigator.clipboard.writeText(url);
   };
@@ -94,8 +95,12 @@ export default function IntakeCampaignList() {
                       <td className="py-2 text-right">
                         <ActionsDropdown
                           items={[
-                            { label: "QR Code", onClick: () => setQrSlug(c.slug) },
-                            { label: "Copy Link", onClick: () => copyLink(c.slug) },
+                            ...(c.slug
+                              ? [
+                                  { label: "QR Code", onClick: () => setQrSlug(c.slug) },
+                                  { label: "Copy Link", onClick: () => copyLink(c.slug) },
+                                ]
+                              : []),
                             {
                               label: "Submissions",
                               onClick: () => navigate(`/campaigns/intake/${c.id}/submissions`),

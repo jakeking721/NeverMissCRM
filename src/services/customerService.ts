@@ -279,29 +279,27 @@ export async function updateCustomer(
   if (base.email !== undefined) payload.email = base.email;
   if (base.zip_code !== undefined) payload.zip_code = base.zip_code;
   if (patch.signupDate !== undefined) payload.created_at = base.created_at;
-  if (Object.keys(extra).length > 0) {
-    const { data, error } = await supabase
-      .from("customers")
-      .select("extra")
-      .eq("id", id)
-      .eq("user_id", userId)
-      .single();
-    if (error) throw error;
-    const merged = { ...(data?.extra ?? {}) };
-    for (const [k, v] of Object.entries(extra)) {
-      const existing = merged[k];
-      if (
-        existing !== undefined &&
-        existing !== null &&
-        v !== null &&
-        typeof existing !== typeof v
-      ) {
-        continue;
-      }
-      merged[k] = v;
+  const { data, error } = await supabase
+    .from("customers")
+    .select("extra")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+  if (error) throw error;
+  const merged = { ...(data?.extra ?? {} as Record<string, any>) };
+  for (const [k, v] of Object.entries(extra)) {
+    const existing = merged[k];
+    if (
+      existing !== undefined &&
+      existing !== null &&
+      v !== null &&
+      typeof existing !== typeof v
+    ) {
+      continue;
     }
-    payload.extra = merged;
+    merged[k] = v;
   }
+  payload.extra = merged;
   const { error: upErr } = await supabase
     .from("customers")
     .update(payload)

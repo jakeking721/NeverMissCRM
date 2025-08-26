@@ -12,9 +12,9 @@ export async function fetchForms() {
   const { data, error } = await supabase
     .from("campaign_forms")
     .select(
-      "id, title, description, created_at, form_versions(id, version_number, version_label, schema_json)"
+      "id, title, description, slug, created_at, form_versions(id, version_number, version_label, schema_json)"
     )
-    .eq("owner_id", userId)
+    .eq("user_id", userId)
     .order("version_number", {
       foreignTable: "form_versions",
       ascending: false,
@@ -25,6 +25,7 @@ export async function fetchForms() {
     id: f.id,
     title: f.title,
     description: f.description,
+    slug: f.slug,
     created_at: f.created_at,
     form_version_id: f.form_versions?.[0]?.id,
     version_number: f.form_versions?.[0]?.version_number,
@@ -39,10 +40,10 @@ export async function fetchForm(id: string) {
   const { data, error } = await supabase
     .from("campaign_forms")
     .select(
-      "id, title, description, form_versions(id, version_number, version_label, schema_json)"
+      "id, title, description, slug, form_versions(id, version_number, version_label, schema_json)"
     )
     .eq("id", id)
-    .eq("owner_id", userId)
+    .eq("user_id", userId)
     .order("version_number", {
       foreignTable: "form_versions",
       ascending: false,
@@ -57,6 +58,7 @@ export async function fetchForm(id: string) {
     id: data.id,
     title: data.title,
     description: data.description,
+    slug: (data as any).slug,
     form_version_id: version.id,
     version_number: version.version_number,
     version_label: version.version_label,
@@ -67,20 +69,23 @@ export async function fetchForm(id: string) {
 // Save a form by creating a new version
 export async function saveForm(payload: any) {
   const userId = await requireUserId();
-  const { id, title, description, schema_json } = payload;
+  const { id, title, slug, description, schema_json } = payload;
   const blocks = schema_json?.blocks || [];
   const style = schema_json?.style || {};
 
   if (!title?.trim()) throw new Error("Title is required.");
+  if (!slug?.trim()) throw new Error("Slug is required.");
   if (!Array.isArray(blocks)) throw new Error("Fields JSON is required.");
   if (!style.backgroundColor) throw new Error("Background color is required.");
+
+  await ensureUniqueSlug(slug, userId, id);
 
   if (id) {
     const { error: updErr } = await supabase
       .from("campaign_forms")
-      .update({ title, description: description ?? null })
+      .update({ title, slug, description: description ?? null })
       .eq("id", id)
-      .eq("owner_id", userId);
+      .eq("user_id", userId);
     if (updErr) handleError("PATCH", updErr, "campaign_forms");
 
     const { data: latest, error: latestErr } = await supabase
@@ -109,7 +114,7 @@ export async function saveForm(payload: any) {
   } else {
     const { data: form, error: formErr } = await supabase
       .from("campaign_forms")
-      .insert({ owner_id: userId, title, description: description ?? null })
+      .insert({ user_id: userId, title, slug, description: description ?? null })
       .select()
       .single();
     if (formErr) handleError("POST", formErr, "campaign_forms");
@@ -142,7 +147,7 @@ function handleError(method: string, error: any, resource: string): never {
     throw new Error("Not authorized to save form.");
   }
   if (status === 409) {
-    throw new Error("Form already exists.");
+    throw new Error("Slug already exists.");
   }
   throw new Error((error as any)?.message || "Failed to save form.");
 }
@@ -153,6 +158,23 @@ export async function deleteForm(id: string) {
     .from("campaign_forms")
     .delete()
     .eq("id", id)
-    .eq("owner_id", userId);
+    .eq("user_id", userId);
   if (error) throw error;
+}
+
+async function ensureUniqueSlug(slug: string, userId: string, excludeId?: string) {
+  let query = supabase
+    .from("campaign_forms")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("slug", slug)
+    .limit(1);
+  if (excludeId) {
+    query = query.neq("id", excludeId);
+  }
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (data) {
+    throw new Error("Slug already exists.");
+  }
 }

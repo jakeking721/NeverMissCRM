@@ -1012,3 +1012,34 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
        ```
     3. Regenerate types:
        supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts
+
+### Schema Alignment Follow-ups
+- [TODO] Rename `campaign_forms.owner_id` to `user_id` and enforce unique `(user_id, slug)`.
+  Steps:
+    1. In Supabase SQL editor run:
+       ```sql
+       alter table public.campaign_forms rename column owner_id to user_id;
+       alter table public.campaign_forms alter column slug set not null;
+       alter table public.campaign_forms drop constraint if exists campaign_forms_owner_slug_key;
+       alter table public.campaign_forms add constraint campaign_forms_user_slug_key unique (user_id, slug);
+       ```
+    2. Re-run `supabase gen types typescript --project-id <PROJECT_ID> --schema public > src/types/supabase.ts`.
+
+- [TODO] Allow nullable `intake_campaigns.slug`.
+  Steps:
+    1. Confirm column `slug` on `intake_campaigns` permits null values. If not, run:
+       ```sql
+       alter table public.intake_campaigns alter column slug drop not null;
+       ```
+
+- [TODO] Verify `intake_resolver` view exposes `form_json` and `user_id` and that all anonymous form loads use this view.
+  Steps:
+    1. In Supabase dashboard, ensure `intake_resolver` columns include `user_id` and `form_json`.
+    2. Remove any direct `form_versions` or `campaign_forms` reads from anonymous routes.
+
+- [TODO] Ensure all customer inserts/updates include a non-null `extra` JSON object.
+  Steps:
+    1. Review existing rows in `customers` for null `extra` and update to `{}` where needed.
+       ```sql
+       update public.customers set extra = '{}'::jsonb where extra is null;
+       ```

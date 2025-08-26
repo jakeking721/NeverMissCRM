@@ -3,25 +3,25 @@ Supabase Schema Specification
 
 Canonical Timestamp
 -------------------
-- `created_at` is the canonical creation timestamp.
-- Tables using `created_at`: `campaigns`, `campaign_templates`, `public_slugs`, `campaign_forms`, `credit_ledger`, `profiles`, `intake_campaigns`, `form_submissions`, `form_versions`, `intake_submissions`, `customers`.
+-`created_at` is the canonical creation timestamp.
+-Tables using `created_at`: `campaigns`, `campaign_templates`, `public_slugs`, `campaign_forms`, `credit_ledger`, `profiles`, `intake_campaigns`, `form_submissions`, `form_versions`, `intake_submissions`, `customers`.
 
 DataKey & Latest Values
 -----------------------
-- Form blocks map answers via `dataKey` strings.
-- Keys prefixed with `f.` correspond to built-in customer fields (e.g., `f.first_name`, `f.phone`).
-- Keys prefixed with `r.` map to custom registry fields using their `field_name`.
-- Keys not following these prefixes are treated as raw custom keys.
-- Only keys with provided answers create rows in `customer_latest_values`; blank values are ignored.
+-Form blocks map answers via `dataKey` strings.
+-Keys prefixed with `f.` correspond to built-in customer fields (e.g., `f.first_name`, `f.phone`).
+-Keys prefixed with `r.` map to custom registry fields using their `field_name`.
+-Keys not following these prefixes are treated as raw custom keys.
+-Only keys with provided answers create rows in `customer_latest_values`; blank values are ignored.
  - Registry answers using `r.<field_name>` keys populate `customer_latest_values`; `customers.extra` now only stores unregistered keys.
 
 Tables
 ------
 
 **admin_users**
-- Columns: `user_id uuid` PK references `auth.users`, `permissions jsonb` nullable.
-- RLS: none; requires service role.
-- Admin vs user: internal mapping of users to admin privileges.
+Columns: `user_id uuid` PK references `auth.users`, `permissions jsonb` nullable.
+RLS: none; requires service role.
+Admin vs user: internal mapping of users to admin privileges.
 
 **profiles**
 - Columns: `id uuid` PK, `email text`, `username text`, `role text` default `user`, `credits int`, `avatar text`, `is_approved boolean` default `false`, `is_active boolean` default `true`, `deactivated_at timestamptz`, `default_form_id uuid` FK to `campaign_forms`, `created_at timestamptz` default `now()`, `updated_at timestamptz`, `settings jsonb` default `{}`.
@@ -37,7 +37,7 @@ Tables
 - Admin vs user: same as regular users; admin-specific actions via `ensure_user_slug` function.
 
 **campaigns**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `title text`, `name text`, `slug text`, `type text` default `'sms'`, `message text`, `recipients text[]` default `{}`, `status text` default `'draft'`, `start_at timestamptz`, `end_at timestamptz`, `form_template_id uuid` FK to `campaign_forms(id)`, `form_snapshot_json jsonb`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `title text`, `name text`, `slug text`, `type text` default `'sms'`, `message text`, `recipients text[]` default `{}`, `status text` default `'draft'`, `start_at timestamptz`, `end_at timestamptz`, `form_template_id uuid` FK to `campaign_forms(id)`, `form_snapshot_json jsonb`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
 - Indexes: `campaigns_owner_id_idx` on `owner_id`.
 - Triggers: `set_updated_at` before update calling `update_updated_at_column`.
 - RLS: `campaigns_owner_rw` requires `auth.uid() = owner_id` and profile is approved & active; `Campaigns public read` allows anonymous select by slug.
@@ -51,34 +51,34 @@ Tables
 
 **custom_fields**
 - Columns: `id uuid` PK, `user_id uuid` FK, `key text`, `label text`, `type text`, `options jsonb` default `[]`, `required boolean` default `false`, `"order" integer` default `0`, `visible_on jsonb` default `{}`, `archived boolean` default `false`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
-- Constraints: unique `(user_id, key)`.
+Constraints: unique `(user_id, key)`.
 - RLS: `custom_fields_owner` (owner only).
 - Admin vs user: no admin override.
 
 **campaign_forms**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `template_id uuid`, `user_id uuid`, `slug text`, `title text`, `description text` nullable, `schema_json jsonb` default `{}`, `version int` default `1`, `is_active boolean` default `true`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `campaign_id uuid`, `template_id uuid`, `user_id uuid`, `slug text` not null, `title text`, `description text` nullable, `schema_json jsonb` default `{}`, `version int` default `1`, `is_active boolean` default `true`, `created_at timestamptz` default `now()`, `updated_at timestamptz` default `now()`.
 - Constraints: unique `(user_id, slug)`.
 - RLS: `campaign_forms_owner_rw` enforces `auth.uid() = user_id` for read/write; `campaign_forms_public_select` allows public read.
 - Admin vs user: admins act as regular users; public can read forms via slug.
 - `schema_json.blocks[]` now store block metadata with `block_id`, `control_type`, `mapsToFactory`, `dataKey`, `saveToLatest`, and optional `validationSubtype` alongside existing block settings.
-- Supported block types include `title`, `description`, `input`, `dropdown`, `single-choice`, `checkbox`, `image`, `link`, and `pdf`.
+Supported block types include `title`, `description`, `input`, `dropdown`, `single-choice`, `checkbox`, `image`, `link`, and `pdf`.
 
 
 **form_versions**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `form_id uuid` FK, `owner_id uuid` FK, `version_number int`, `schema_json jsonb`, `version_label text`, `created_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `form_id uuid` FK, `user_id uuid` FK, `version_number int`, `schema_json jsonb`, `version_label text`, `created_at timestamptz` default `now()`.
 - Constraints: unique `(form_id, version_number)`.
 - RLS: `form_versions_owner_rw` enforces `auth.uid() = owner_id` for read/write.
 - Admin vs user: no special admin override.
 
 **intake_campaigns**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `title text`, `slug text`, `form_version_id uuid` FK, `form_snapshot_json jsonb`, `start_date date`, `end_date date`, `status text` default `'draft'`, `gate_field text` default `'phone'`, `prefill_gate boolean` default `false`, `success_message text`, `require_consent boolean` default `false`, `created_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `title text`, `slug text` nullable, `form_version_id uuid` FK, `form_snapshot_json jsonb`, `start_date date`, `end_date date`, `status text` default `'draft'`, `gate_field text` default `'phone'`, `prefill_gate boolean` default `false`, `success_message text`, `require_consent boolean` default `false`, `created_at timestamptz` default `now()`.
 - Constraints: unique `(owner_id, slug)`.
 - RLS: `intake_campaigns_owner_rw` (owner read/write).
 - Admin vs user: no special admin override; anonymous access occurs via the `intake_resolver` view.
 
 **intake_resolver** (view)
-- Columns: `slug text`, `campaign_id uuid`, `form_version_id uuid`, `form_id uuid`, `form_json jsonb`, `status text`, `start_date timestamptz`, `end_date timestamptz`, `owner_id uuid`, `gate_field text`, `prefill_gate boolean`, `success_message text`, `require_consent boolean`.
-- Grants: `anon` SELECT.
+- Columns: `slug text`, `campaign_id uuid`, `form_version_id uuid`, `form_id uuid`, `form_json jsonb`, `status text`, `start_date timestamptz`, `end_date timestamptz`, `user_id uuid`, `gate_field text`, `prefill_gate boolean`, `success_message text`, `require_consent boolean`.
+Grants: `anon` SELECT.
 - RLS: none (inherits from base tables).
 
 **customers**
@@ -90,7 +90,7 @@ Tables
 - Admin vs user: no admin override; only owner with approved, active profile.
 
 **credit_ledger**
-- Columns: `id uuid` PK default `gen_random_uuid()`, `owner_id uuid` FK, `delta integer` not null, `reason text`, `related_id uuid`, `created_at timestamptz` default `now()`.
+- Columns: `id uuid` PK default `gen_random_uuid()`, `user_id uuid` FK, `delta integer` not null, `reason text`, `related_id uuid`, `created_at timestamptz` default `now()`.
 - Indexes: `credit_ledger_owner_id_idx` on `owner_id`.
 - RLS: `credit_ledger_owner_rw` (owner only).
 - Admin vs user: no admin override.
@@ -113,29 +113,29 @@ Tables
 - Admin vs user: owner access only.
 
 **customer_email_collisions / customer_phone_collisions**
-- Temporary tables capturing duplicate contacts during normalization; not intended for production use.
+-Temporary tables capturing duplicate contacts during normalization; not intended for production use.
 
 Functions & Triggers
 --------------------
-- `update_updated_at_column()` → sets `updated_at` on row updates.
-- `handle_new_user()` → trigger on `auth.users` to insert a profile row.
-- `intake_submit(p_user_id uuid, p_form_id uuid, p_campaign_id uuid default null, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, upserts custom field registry entries, merges custom answers into `customers.extra`, and records consent text/time.
-- `intake_find_customer(owner_id uuid, gate text, value text)` → looks up an existing customer by normalized phone or email for intake flows.
-- `intake_add_customer(p_slug text, p_first_name text, p_last_name text, p_phone text, p_zip_code text default null, p_extra jsonb default '{}'::jsonb, p_user_id uuid)` → security-definer RPC used by public intake flows to create a customer when none is found.
-- `normalize_phone(text)` → returns E.164-format string.
-- `increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
-- `ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.
-- `is_admin(uid)` → security-definer function used in profile policies.
-- `upsert_customer_custom_field_value(p_customer_id uuid, p_field_id uuid, p_value text)` → legacy helper for the deprecated `customer_custom_field_values` table.
+-`update_updated_at_column()` → sets `updated_at` on row updates.
+-`handle_new_user()` → trigger on `auth.users` to insert a profile row.
+-`intake_submit(p_user_id uuid, p_form_id uuid, p_campaign_id uuid default null, p_answers jsonb, p_consent_text text)` → inserts an intake submission, resolves or creates a customer, updates factory fields and `customer_latest_values`, upserts custom field registry entries, merges custom answers into `customers.extra`, and records consent text/time.
+-`intake_find_customer(user_id uuid, gate text, value text)` → looks up an existing customer by normalized phone or email for intake flows.
+-`intake_add_customer(p_slug text, p_first_name text, p_last_name text, p_phone text, p_zip_code text default null, p_extra jsonb default '{}'::jsonb, p_user_id uuid)` → security-definer RPC used by public intake flows to create a customer when none is found.
+-`normalize_phone(text)` → returns E.164-format string.
+-`increment_credits(p_user_id, p_amount)` / `add_credits(p_user_id, p_amount)` → adjust profile credit balance with admin checks.
+-`ensure_user_slug(p_user_id)` → guarantee a `public_slugs` row for a user.
+-`is_admin(uid)` → security-definer function used in profile policies.
+-`upsert_customer_custom_field_value(p_customer_id uuid, p_field_id uuid, p_value text)` → legacy helper for the deprecated `customer_custom_field_values` table.
 - Triggers: `set_updated_at` on `campaigns` and `customers`; `on_auth_user_created` on `auth.users`.
 
 Admin vs. User Summary
 ----------------------
-- **Profiles**: admins may read/update/delete any profile; users limited to their own.
-- **Public Slugs, Campaigns, Campaign Templates, Custom Fields, Campaign Forms, Intake Campaigns, Customers, Credit Ledger**: admins have no implicit elevated access—ownership is required. Forms, slugs, and intake campaigns offer public read access where noted.
+-**Profiles**: admins may read/update/delete any profile; users limited to their own.
+-**Public Slugs, Campaigns, Campaign Templates, Custom Fields, Campaign Forms, Intake Campaigns, Customers, Credit Ledger**: admins have no implicit elevated access—ownership is required. Forms, slugs, and intake campaigns offer public read access where noted.
 
 TODO
 ----
-- Drop `customer_email_collisions` and `customer_phone_collisions` tables once duplicate data is resolved.
-- Remove legacy `customer_custom_field_values` table and its `upsert_customer_custom_field_value` function when no longer needed.
-- No schema changes required for IntakeRenderer footer submit button.
+-Drop `customer_email_collisions` and `customer_phone_collisions` tables once duplicate data is resolved.
+-Remove legacy `customer_custom_field_values` table and its `upsert_customer_custom_field_value` function when no longer needed.
+-No schema changes required for IntakeRenderer footer submit button.

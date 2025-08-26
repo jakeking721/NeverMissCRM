@@ -66,7 +66,7 @@ export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
   const { data, error } = await supabase
     .from("intake_resolver")
     .select(
-      "campaign_id, owner_id, form_id, gate_field, prefill_gate, success_message, require_consent"
+      "campaign_id, user_id, form_id, gate_field, prefill_gate, success_message, require_consent"
     )
     .eq("slug", slug)
     .single();
@@ -74,7 +74,7 @@ export async function fetchWizardConfig(slug: string): Promise<WizardConfig> {
   return {
     campaignId: data.campaign_id,
     formId: data.form_id,
-    userId: data.owner_id,
+    userId: data.user_id,
     gateField: (data.gate_field as "phone" | "email") || "phone",
     prefill: data.prefill_gate ?? false,
     successMessage: data.success_message ?? null,

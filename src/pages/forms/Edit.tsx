@@ -23,6 +23,7 @@ import BlockPalette, { PaletteBlock } from "@/components/builder/BlockPalette";
 import DraggableBlock from "@/components/builder/DraggableBlock";
 import PropertyPanel from "@/components/builder/PropertyPanel";
 import { fetchForm, saveForm } from "@/services/forms";
+import { toKeySlug } from "@/utils/slug";
 import { getFields, createField, CustomField, FieldType } from "@/services/fieldsService";
 import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
@@ -52,6 +53,7 @@ export default function FormBuilder() {
     backgroundColor: "#ffffff",
   });
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [showPalette, setShowPalette] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
@@ -68,6 +70,7 @@ export default function FormBuilder() {
           setBlocks(f?.schema_json?.blocks || []);
           setStyle(f?.schema_json?.style || { backgroundColor: "#f9fafb" });
           setTitle(f?.title || "");
+          setSlug(f?.slug || "");
           setDescription(f?.description || "");
         })
         .catch(console.error);
@@ -480,6 +483,7 @@ export default function FormBuilder() {
 
     const payload: any = {
       title,
+      slug,
       description,
       schema_json: { blocks: filteredBlocks, style },
     };
@@ -574,6 +578,24 @@ export default function FormBuilder() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="My form title"
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+
+            {/* Slug card */}
+            <div className="mb-4 p-4 md:p-5 bg-white rounded-2xl shadow-sm border">
+              <label
+                htmlFor="form-slug"
+                className="block text-xs font-medium text-gray-700 mb-1"
+              >
+                Slug
+              </label>
+              <input
+                id="form-slug"
+                value={slug}
+                onChange={(e) => setSlug(toKeySlug(e.target.value))}
+                placeholder="unique-form-slug"
+                required
                 className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
             </div>
