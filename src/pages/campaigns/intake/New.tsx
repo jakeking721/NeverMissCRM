@@ -145,6 +145,7 @@ export default function NewIntakeCampaign() {
             className="border rounded w-full p-2"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
+            onBlur={() => setSlug(slugifyCampaign(slug))}
           />
           {slug && slugTaken && (
             <p className="text-sm text-red-600">Slug already in use</p>

@@ -142,18 +142,18 @@ export default function IntakeRenderer() {
     let mounted = true;
     (async () => {
       try {
-        const selectStr =
+        const SELECT_COLUMNS =
           "slug,campaign_id,form_version_id,form_id,form_json,status,start_date,end_date,owner_id,gate_field,prefill_gate,success_message,require_consent";
         const { data, error } = await supabase
           .from("intake_resolver")
-          .select(selectStr)
+          .select(SELECT_COLUMNS)
           .eq("slug", normalizedSlug)
           .single();
 
         if (error) {
           toast.error(error.message);
           if (import.meta.env.DEV) {
-            const url = `${SUPABASE_URL}/rest/v1/intake_resolver?select=${encodeURIComponent(selectStr)}&slug=eq.${encodeURIComponent(normalizedSlug)}&limit=1`;
+            const url = `${SUPABASE_URL}/rest/v1/intake_resolver?select=${encodeURIComponent(SELECT_COLUMNS)}&slug=eq.${encodeURIComponent(normalizedSlug)}&limit=1`;
             console.warn("[IntakeRenderer] fetch failed", url, error);
           }
           if (mounted) {

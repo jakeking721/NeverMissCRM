@@ -33,6 +33,17 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     2. If any are missing, apply migrations `20250806040000_add_intake_function_and_bucket.sql` and `20250808000000_intake_flow.sql`.
     3. Regenerate types after applying migrations.
 
+### Campaign Slug Cleanup
+- [TODO] Normalize existing `intake_campaigns.slug` values to match `slugifyCampaign`.
+  Steps:
+    1. In Supabase SQL editor run:
+       ```sql
+       update intake_campaigns
+       set slug = regexp_replace(lower(trim(slug)), '[^a-z0-9-]+', '-', 'g')
+       where slug is not null;
+       ```
+    2. Regenerate any QR codes or links that referenced old slug values.
+
 ### Form and Campaign References
 - [TODO] Apply migration `20251002110000_add_form_and_campaign_columns.sql` to link customers and intake submissions to forms and campaigns.
   Steps:
