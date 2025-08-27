@@ -17,6 +17,12 @@ Whenever the database schema changes, update SUPABASE_SCHEMA_SPEC.txt in tandem 
     5. Remove any test customers, intake submissions, and latest value rows created by the run.
 
 
+### Intake Resolver View
+- [TODO] Confirm the `intake_resolver` view exposes `owner_id` and is readable by `anon`.
+  Steps:
+    1. In Supabase SQL editor run `select * from intake_resolver limit 1;` and verify `owner_id` column exists.
+    2. If missing, update the view to include `owner_id` and grant `anon` select.
+
 ### Intake Function Verification
 - [TODO] Confirm `intake_add_customer` and `intake_find_customer` RPCs exist and are executable by `anon`.
   Steps:

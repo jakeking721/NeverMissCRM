@@ -10,6 +10,7 @@ import {
   updateIntakeCampaign,
 } from "@/services/intakeCampaignService";
 import { getQrBaseUrl } from "@/utils/url";
+import { slugifyCampaign } from "@/utils/strings";
 
 interface FormTemplate {
   id: string;
@@ -62,7 +63,8 @@ export default function NewIntakeCampaign() {
     }
   }, [search]);
 
-  const url = slug ? `${getQrBaseUrl()}/intake/${slug}` : "";
+  const normalizedSlug = slugifyCampaign(slug);
+  const url = normalizedSlug ? `${getQrBaseUrl()}/intake/${normalizedSlug}` : "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +72,7 @@ export default function NewIntakeCampaign() {
       if (campaignId) {
         await updateIntakeCampaign(campaignId, {
           title,
-          slug: slug || null,
+          slug: normalizedSlug || null,
           form_version_id: formVersionId,
           start_date: start || null,
           end_date: end || null,
@@ -83,7 +85,7 @@ export default function NewIntakeCampaign() {
       } else {
         await createIntakeCampaign({
           title,
-          slug: slug || null,
+          slug: normalizedSlug || null,
           form_version_id: formVersionId,
           start_date: start || null,
           end_date: end || null,
@@ -102,7 +104,7 @@ export default function NewIntakeCampaign() {
   };
 
   useEffect(() => {
-    if (!slug) {
+    if (!normalizedSlug) {
       setSlugTaken(false);
       return;
     }
@@ -113,12 +115,12 @@ export default function NewIntakeCampaign() {
       const { data } = await supabase
         .from("intake_campaigns")
         .select("id")
-        .eq("slug", slug)
+        .eq("slug", normalizedSlug)
         .eq("owner_id", userId)
         .maybeSingle();
       setSlugTaken(!!data && data.id !== campaignId);
     })();
-  }, [slug, campaignId]);
+  }, [normalizedSlug, campaignId]);
 
   return (
     <PageShell faintFlag>

@@ -10,8 +10,10 @@ import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import * as yup from "@/utils/yup";
 import { formatPhone, normalizePhone } from "@/utils/phone";
+import { toast } from "react-toastify";
 
-import { supabase } from "@/utils/supabaseClient";
+import { supabase, SUPABASE_URL } from "@/utils/supabaseClient";
+import { slugifyCampaign } from "@/utils/strings";
 import { submitIntake } from "@/services/intake";
 import Success from "./Success";
 
@@ -116,6 +118,7 @@ type Block =
 
 export default function IntakeRenderer() {
   const { slug = "" } = useParams<RouteParams>();
+  const normalizedSlug = slugifyCampaign(slug);
   const [searchParams] = useSearchParams();
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,81 +138,59 @@ export default function IntakeRenderer() {
     }
   | null>(null);
 
-  const formIdParam = searchParams.get("form_id");
-
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        let formId = formIdParam || undefined;
-        let userId: string | null = null;
-        let campaignId: string | null = null;
-        let successMessage: string | null = null;
-        let schemaBlocks: Block[] = [];
-
-        const { data: resolved } = await supabase
+        const selectStr =
+          "slug,campaign_id,form_version_id,form_id,form_json,status,start_date,end_date,owner_id,gate_field,prefill_gate,success_message,require_consent";
+        const { data, error } = await supabase
           .from("intake_resolver")
-          .select(
-            "campaign_id, user_id, form_id, form_json, status, start_date, end_date, success_message"
-          )
-          .eq("slug", slug)
-          .maybeSingle();
+          .select(selectStr)
+          .eq("slug", normalizedSlug)
+          .single();
 
-        if (resolved) {
-          const now = new Date();
-          if (
-            resolved.status !== "active" ||
-            (resolved.start_date && new Date(resolved.start_date) > now) ||
-            (resolved.end_date && new Date(resolved.end_date) < now)
-          ) {
-            setError("This intake is not currently available.");
-            setLoading(false);
-            return;
+        if (error) {
+          toast.error(error.message);
+          if (import.meta.env.DEV) {
+            const url = `${SUPABASE_URL}/rest/v1/intake_resolver?select=${encodeURIComponent(selectStr)}&slug=eq.${encodeURIComponent(normalizedSlug)}&limit=1`;
+            console.warn("[IntakeRenderer] fetch failed", url, error);
           }
-          userId = resolved.user_id;
-          campaignId = resolved.campaign_id;
-          formId = resolved.form_id;
-          successMessage = resolved.success_message ?? null;
-          schemaBlocks = resolved.form_json?.blocks ?? [];
-        } else {
-          const { data: slugRow, error: slugErr } = await supabase
-            .from("public_slugs")
-            .select("user_id, default_form_id")
-            .eq("slug", slug)
-            .maybeSingle();
-          if (slugErr || !slugRow) {
-            if (import.meta.env.DEV) {
-              console.debug("[IntakeRenderer] slug not found", { slug, slugErr });
-            }
-            setError("Form not found");
+          if (mounted) {
+            setError("Unable to load form.");
             setLoading(false);
-            return;
           }
-          userId = slugRow.user_id;
-          if (!formId) formId = slugRow.default_form_id || undefined;
-          if (!formId) {
-            setError("Form not found");
-            setLoading(false);
-            return;
-          }
-          const { data: formRow, error: formErr } = await supabase
-            .from("intake_resolver")
-            .select("form_json")
-            .eq("form_id", formId)
-            .maybeSingle();
-          if (formErr || !formRow) {
-            setError("Form not found");
-            setLoading(false);
-            return;
-          }
-          schemaBlocks = (formRow as any).form_json?.blocks ?? [];
+          return;
         }
 
+        if (!data) {
+          if (mounted) {
+            setError("Form not found");
+            setLoading(false);
+          }
+          return;
+        }
+
+        const now = new Date();
+        if (
+          data.status !== "active" ||
+          (data.start_date && new Date(data.start_date) > now) ||
+          (data.end_date && new Date(data.end_date) < now)
+        ) {
+          if (mounted) {
+            setError("This campaign is not currently active");
+            setLoading(false);
+          }
+          return;
+        }
+
+        const schemaBlocks: Block[] = data.form_json?.blocks ?? [];
+
         setCampaignInfo({
-          campaign_id: campaignId,
-          user_id: userId!,
-          form_id: formId,
-          success_message: successMessage,
+          campaign_id: data.campaign_id,
+          user_id: data.owner_id,
+          form_id: data.form_id,
+          success_message: data.success_message ?? null,
         });
 
         let btnText = "Submit";
@@ -236,27 +217,33 @@ export default function IntakeRenderer() {
           if ((b.type === "pdf" || b.type === "link") && b.required)
             initVals[`ack_${b.id}`] = false;
         });
+
         const prefillField = searchParams.get("gateField");
         const prefillValue = searchParams.get("gateValue");
         if (
-          prefillField &&
+          data.prefill_gate &&
+          prefillField === data.gate_field &&
           prefillValue &&
           Object.prototype.hasOwnProperty.call(initVals, prefillField)
         ) {
           initVals[prefillField] = prefillValue;
         }
+
         setValues(initVals);
-      } catch (e: any) {
-        if (!mounted) return;
-        setError(e?.message || "Failed to load form");
-      } finally {
         if (mounted) setLoading(false);
+      } catch (e: any) {
+        toast.error(e?.message || "Failed to load form");
+        if (import.meta.env.DEV) console.error(e);
+        if (mounted) {
+          setError("Unable to load form.");
+          setLoading(false);
+        }
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [slug, formIdParam, searchParams]);
+  }, [normalizedSlug, searchParams]);
 
   const buildValidation = () => {
     const shape: Record<string, any> = {};

@@ -83,7 +83,7 @@ Supported block types include `title`, `description`, `input`, `dropdown`, `sing
 - Admin vs user: no special admin override; anonymous access occurs via the `intake_resolver` view.
 
 **intake_resolver** (view)
-- Columns: `slug text`, `campaign_id uuid`, `form_version_id uuid`, `form_id uuid`, `form_json jsonb`, `status text`, `start_date timestamptz`, `end_date timestamptz`, `user_id uuid`, `gate_field text`, `prefill_gate boolean`, `success_message text`, `require_consent boolean`.
+- Columns: `slug text`, `campaign_id uuid`, `form_version_id uuid`, `form_id uuid`, `form_json jsonb`, `status text`, `start_date timestamptz`, `end_date timestamptz`, `owner_id uuid`, `gate_field text`, `prefill_gate boolean`, `success_message text`, `require_consent boolean`.
 Grants: `anon` SELECT.
 - RLS: none (inherits from base tables).
 
